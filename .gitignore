@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build / output artefacts
+build/
+dist/
+
+# Local secrets - never commit
+*.pem
+*.key
+*.crt
+.env.local
+.env.*.local
+secrets.*
+*.token
+
+# Generated SRI backup
+web/*.bak

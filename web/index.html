@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dispersion-Assisted GS Phase Recovery — Viewer</title>
+
+  <!--
+    Content-Security-Policy: keep the surface area small.
+    - default 'self' so unknown origins are blocked
+    - scripts allowed from unpkg (VTK.js / Plotly) and self; no inline JS
+      (everything lives in /js)
+    - styles allow inline for the small inline rule-set below; the alternative
+      is to move them to web/styles.css if your reviewer wants no inline at all
+    - img-src/data: so VTK can embed textures
+    - object/frame ancestors empty: no clickjacking
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: blob:;
+    connect-src 'self';
+    font-src 'self' data:;
+    object-src 'none';
+    base-uri 'self';
+    frame-ancestors 'none';
+    form-action 'self';
+  " />
+  <meta name="referrer" content="no-referrer" />
+
+  <style>
+    body  { font-family: system-ui, sans-serif; margin: 0; background: #0d1117; color: #c9d1d9; }
+    header{ padding: 1rem 1.5rem; border-bottom: 1px solid #30363d; }
+    header h1 { margin: 0 0 .3rem 0; font-size: 1.15rem; }
+    header p  { margin: 0; color: #8b949e; font-size: .85rem; }
+    main  { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; }
+    section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: .75rem; }
+    section h2 { font-size: .95rem; margin: 0 0 .5rem 0; color: #58a6ff; }
+    .panel { width: 100%; min-height: 320px; }
+    .full   { grid-column: 1 / -1; }
+    .meta   { font-family: ui-monospace, monospace; font-size: .8rem; color: #8b949e; white-space: pre; }
+    footer  { padding: .8rem 1.5rem; color: #8b949e; font-size: .8rem; border-top: 1px solid #30363d; }
+    .badge  { display: inline-block; padding: 2px 6px; background: #1f6feb; color: white;
+              border-radius: 4px; font-size: .7rem; margin-right: 6px;}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dispersion-Assisted Gerchberg-Saxton Phase Recovery</h1>
+    <p>
+      <span class="badge">Plotly 3D</span>
+      Static viewer for the GS iterates and the 90&deg; optical hybrid output.
+      Data is read from <code>data/sample.json</code> — drop a new file in to swap datasets.
+    </p>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. GS iteration error</h2>
+      <div id="errPlot" class="panel"></div>
+    </section>
+
+    <section>
+      <h2>2. Recovered vs true phase</h2>
+      <div id="phasePlot" class="panel"></div>
+    </section>
+
+    <section class="full">
+      <h2>3. |u(t)| evolution across GS iterations (3D surface)</h2>
+      <div id="surface3d" class="panel" style="min-height: 420px;"></div>
+    </section>
+
+    <section>
+      <h2>4. 90&deg; hybrid — four output intensities</h2>
+      <div id="hybridChannels" class="panel"></div>
+    </section>
+
+    <section>
+      <h2>5. Balanced I/Q constellation</h2>
+      <div id="constellation" class="panel"></div>
+    </section>
+
+    <section class="full">
+      <h2>Dataset metadata</h2>
+      <pre id="meta" class="meta"></pre>
+    </section>
+  </main>
+
+  <footer>
+    Source: <a href="https://github.com/ColinsCoding/Dispersion-Assisted-GS-Phase-Recovery"
+       rel="noopener noreferrer">ColinsCoding/Dispersion-Assisted-GS-Phase-Recovery</a>
+    &middot; Built for the Jalali Lab Project 2 brief. See <code>SECURITY.md</code>.
+  </footer>
+
+  <!--
+    Subresource Integrity (SRI) hash for the one CDN script (Plotly).
+    The 3D surface view is rendered by Plotly's WebGL backend, so we no longer
+    need a second library.  If you bump the Plotly version, run
+
+        ./tools/update-sri.sh
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.32.0/plotly.min.js"
+          integrity="sha384-7TVmlZWH60iKX5Uk7lSvQhjtcgw2tkFjuwLcXoRSR4zXTyWFJRm9aPAguMh7CIra"
+          crossorigin="anonymous"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
