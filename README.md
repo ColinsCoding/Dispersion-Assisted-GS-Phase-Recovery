@@ -3,8 +3,6 @@
 > Can two intensity-only measurements after known dispersive propagation recover
 > the missing optical phase well enough to reduce or replace a local oscillator?
 
-AMO / photonics research — Jalali Lab, UCLA ECE 279AS, Spring 2026.
-
 ---
 
 ## Background
