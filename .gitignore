@@ -60,8 +60,10 @@ desktop.ini
 ############################
 
 *.docx
-*.pdf
 *.pptx
+# PDFs ignored globally except curated references
+*.pdf
+!references/*.pdf
 
 ############################
 # Local experiment folders (IGNORE THESE)
