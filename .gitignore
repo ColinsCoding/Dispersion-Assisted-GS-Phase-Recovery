@@ -1,0 +1,111 @@
+############################
+# Jupyter / Python
+############################
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+############################
+# OS / Editor junk
+############################
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+############################
+# Temporary / Downloads
+############################
+
+*.crdownload
+*.tmp
+*.temp
+*.log
+
+############################
+# Archives / packaged junk
+############################
+
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+############################
+# Media (usually generated)
+############################
+
+*.mp4
+*.avi
+*.mov
+*.gif
+
+############################
+# Images (often generated figures)
+# Uncomment if you DON'T want figures tracked
+############################
+*.png
+*.jpg
+*.jpeg
+
+############################
+# Documents
+############################
+
+*.docx
+*.pdf
+*.pptx
+
+############################
+# Local experiment folders (IGNORE THESE)
+############################
+
+local_scratch/
+research_runs/
+results/
+demo_spectra/
+tdgsa_frames/
+tdgsa_project_frames/
+
+############################
+# Large datasets / exports
+############################
+
+*.csv
+*.npy
+*.npz
+*.h5
+*.mat
+
+############################
+# AI / notebook artifacts
+############################
+
+*_summary.json
+
+############################
+# Firmware build artifacts
+############################
+
+firmware/*.elf
+firmware/*.o
+firmware/*.map
+
+############################
+# Notebooks
+############################
+
+# Track canonical notebooks only
+!phase_retrieval.ipynb
+!notebooks/seals_simulation.ipynb
+
+# Archive folder is ignored (history only, not tracked)
+archive/
+.venv/
