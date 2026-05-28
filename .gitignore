@@ -93,6 +93,12 @@ tdgsa_project_frames/
 *_summary.json
 
 ############################
+# Generated databases
+############################
+
+references/refs.db
+
+############################
 # Firmware build artifacts
 ############################
 
