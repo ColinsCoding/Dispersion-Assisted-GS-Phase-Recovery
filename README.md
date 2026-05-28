@@ -32,7 +32,8 @@ make push      # git push origin main
 
 | § | Topic | OUSD Area |
 |---|---|---|
-| 1–6 | Forward model · synthetic signals · TD-GS algorithm · baseline recovery | Advanced Computing |
+| 1–2b | Environment · electromagnetic foundations · H(ν)=exp(iαDν²) derivation | Advanced Computing |
+| 3–6 | Forward model · synthetic signals · TD-GS algorithm · baseline recovery | Advanced Computing |
 | 7 | PhyCV Phase-Stretch Transform — single-measurement baseline | Advanced Computing |
 | 8–9 | Convergence (1–1600 iter) · measurement diversity D₂/D₁ sweep | Advanced Computing |
 | 10 | QPSK phase recovery — FutureG communication waveform | FutureG |
