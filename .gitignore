@@ -111,3 +111,4 @@ firmware/*.map
 # Archive folder is ignored (history only, not tracked)
 archive/
 .venv/
+references/pptx_figures/
