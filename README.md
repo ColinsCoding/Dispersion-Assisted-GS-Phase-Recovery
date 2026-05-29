@@ -1,5 +1,8 @@
 # Dispersion-Assisted GS Phase Recovery
 
+> **ECE 279AS — Project 2 · UCLA · Spring 2026 · Complete**  
+> Independent work. Formerly coursework in Prof. Jalali's lab.
+
 Intensity-only phase retrieval for carrier-less coherent fiber sensing.
 Two dispersed measurements. No local oscillator. No 90° hybrid.
 
