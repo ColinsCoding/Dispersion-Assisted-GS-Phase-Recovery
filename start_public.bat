@@ -25,16 +25,19 @@ if not defined PY ( echo [ERROR] Python not found. & pause & exit /b 1 )
 
 REM ── Find cloudflared ─────────────────────────────────────────────
 set CF=
-REM 1. Already on PATH (new sessions after install)
+REM 1. Already on PATH
 where cloudflared >nul 2>&1 && set CF=cloudflared
-REM 2. Known install locations (winget MSI, no PATH refresh needed)
-for %%d in (
-  "%ProgramFiles(x86)%\cloudflared\cloudflared.exe"
-  "%ProgramFiles%\cloudflared\cloudflared.exe"
-  "C:\Program Files (x86)\cloudflared\cloudflared.exe"
-  "C:\Program Files\cloudflared\cloudflared.exe"
-  "%~dp0cloudflared.exe"
-) do ( if not defined CF if exist %%d set CF=%%d )
+REM 2. Hardcoded install paths — avoid for-loop + parentheses bug
+if not defined CF (
+  set "_C1=C:\Program Files (x86)\cloudflared\cloudflared.exe"
+  if exist "C:\Program Files (x86)\cloudflared\cloudflared.exe" set "CF=C:\Program Files (x86)\cloudflared\cloudflared.exe"
+)
+if not defined CF (
+  if exist "C:\Program Files\cloudflared\cloudflared.exe" set "CF=C:\Program Files\cloudflared\cloudflared.exe"
+)
+if not defined CF (
+  if exist "%~dp0cloudflared.exe" set "CF=%~dp0cloudflared.exe"
+)
 
 if not defined CF (
   echo  cloudflared not found.  Installing via winget...
