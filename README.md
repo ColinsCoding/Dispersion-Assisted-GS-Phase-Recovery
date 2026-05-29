@@ -147,7 +147,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 
 ---
 
-## Notebook · `phase_retrieval.ipynb` · 107 cells
+## Notebook · `phase_retrieval.ipynb` · 109 cells
 
 | § | Topic | OUSD Area |
 |---|---|---|
@@ -179,6 +179,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 | 71 | C11 beamformer: RF/OPA HPBW · Marx EMP discharge · BLDC PID · combat FSM | Directed Energy · HMI |
 | 72 | Neural PID backprop (torch) · EM phase optimisation (Adam) · Lagrangian/Jacobian · laser cavity · Falcon 9 Tsiolkovsky | Trusted AI · Advanced Computing |
 | 73 | 3-D optical voxel hash · energy minimisation (H_TV + H_pc Wirtinger GD) · LSH retrieval | Advanced Computing · Trusted AI |
+| 74 | Odd/even Cooley-Tukey butterfly circuit · F_p field arithmetic (BN128) · keccak256 commitments · `OpticalPhaseVerifier.sol` explicit trust | Trusted AI · Advanced Computing |
 
 ## SEALS · `notebooks/seals_simulation.ipynb` · 10 cells
 

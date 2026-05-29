@@ -606,3 +606,323 @@ def optical_hash_demo(n_points=256, rng_seed=3):
         "n_stored":        len(oh),
         "nbr_dists":       nbr_dists,
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  §74  Odd / Even  ·  Arithmetic Circuits  ·  Ethereum Explicit Trust
+# ════════════════════════════════════════════════════════════════════════════
+#
+#  6-step construction
+#  ───────────────────
+#  Step 1  Odd/even Cooley-Tukey split
+#          X = FFT(x)  is recursively split:
+#            x_even = x[0::2],  x_odd = x[1::2]
+#            X[k]   = FFT_even[k] + ω^k · FFT_odd[k]     k = 0..N/2-1
+#            X[k+N/2] = FFT_even[k] - ω^k · FFT_odd[k]
+#
+#  Step 2  Butterfly gate  (a, b, ω) → (a + ω·b,  a − ω·b)
+#          One gate = two additions + one multiplication = circuit depth 1.
+#          N-point FFT needs N/2 · log₂N butterfly gates.
+#
+#  Step 3  Field mapping  float → F_p
+#          Ethereum's secp256k1 prime p = 2²⁵⁶ − 2³² − 977.
+#          Map I[n] ∈ [0,1] to  ⌊I[n] · 2³²⌋ mod p  (32-bit fixed-point).
+#
+#  Step 4  Field butterfly  over F_p  (same gate, modular arithmetic)
+#          (a, b, w) → ((a + w·b) mod p,  (a − w·b) mod p)
+#          This is exactly one R1CS constraint.
+#
+#  Step 5  keccak256 commitment
+#          C_I1 = keccak256(I1_bytes)
+#          C_I2 = keccak256(I2_bytes)
+#          C_φ  = keccak256(phi_bytes)
+#          Commitments are 32-byte Ethereum bytes32 values.
+#
+#  Step 6  On-chain explicit trust
+#          OpticalPhaseVerifier.sol stores (C_I1, C_I2, C_φ).
+#          Anyone with raw data calls verify(id, I1_raw, I2_raw) → bool.
+#          No trusted third party. The contract IS the trust.
+#
+# ════════════════════════════════════════════════════════════════════════════
+
+# ── Step 1 & 2 : Explicit odd/even radix-2 FFT ───────────────────────────────
+
+def fft_butterfly(a: complex, b: complex, w: complex):
+    """
+    Cooley-Tukey butterfly gate: (a, b, ω) -> (top, bottom).
+
+    top    = a + ω·b    (even combination)
+    bottom = a - ω·b    (odd  combination)
+
+    This is one arithmetic circuit gate over C (or F_p for ZK).
+    """
+    wb = w * b
+    return a + wb, a - wb
+
+
+def fft_radix2_dit(x):
+    """
+    Radix-2 Decimation-In-Time FFT — explicit odd/even recursive split.
+
+    At every level:
+      x_even = x[0::2]   (even-indexed samples)
+      x_odd  = x[1::2]   (odd-indexed  samples)
+    then butterfly-combine with twiddle factors ω_k = exp(-2πi·k/N).
+
+    Equivalent to numpy.fft.fft but exposing the circuit structure.
+    Returns DFT array of same length.  Length must be a power of 2.
+    """
+    x = np.asarray(x, dtype=complex)
+    N = len(x)
+    if N == 1:
+        return x.copy()
+    if N & (N - 1):
+        # Pad to next power-of-2 for demonstration
+        N2 = 1 << int(np.ceil(np.log2(N)))
+        x  = np.pad(x, (0, N2 - N))
+        N  = N2
+
+    # ── recursive odd/even split ──────────────────────────────────────────
+    X_even = fft_radix2_dit(x[0::2])   # even indices: 0, 2, 4, …
+    X_odd  = fft_radix2_dit(x[1::2])   # odd  indices: 1, 3, 5, …
+
+    # ── twiddle factors ───────────────────────────────────────────────────
+    k = np.arange(N // 2)
+    w = np.exp(-2j * PI * k / N)       # ω_k = e^{-2πik/N}
+
+    # ── butterfly combine ─────────────────────────────────────────────────
+    top    = X_even + w * X_odd         # X[k]       k = 0 .. N/2-1
+    bottom = X_even - w * X_odd         # X[k + N/2]
+    return np.concatenate([top, bottom])
+
+
+def fft_circuit_stats(N: int):
+    """
+    Return (n_butterflies, circuit_depth, n_odd_stages, n_even_stages)
+    for an N-point radix-2 FFT.
+
+    circuit_depth  = log2(N) levels
+    n_butterflies  = (N/2) * log2(N)  gates per full FFT
+    Each level alternates between grouping even outputs (top)
+    and odd outputs (bottom).
+    """
+    if N < 2 or (N & (N - 1)):
+        return None
+    depth = int(np.log2(N))
+    return {
+        "N":             N,
+        "circuit_depth": depth,
+        "n_butterflies": (N // 2) * depth,
+        "gates_per_GS_iter": 2 * (N // 2) * depth,   # forward + inverse FFT
+        "odd_stages":    depth // 2,
+        "even_stages":   (depth + 1) // 2,
+    }
+
+
+# ── Step 3 & 4 : Field arithmetic over secp256k1 prime ───────────────────────
+
+# Ethereum secp256k1 field prime
+P_SECP256K1 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+
+# BN128 (alt_bn128) scalar field prime — used in Groth16 ZK-SNARK on Ethereum
+P_BN128 = 0x30644e72e131a029b85045b68181585d2833e84879b9709142e1f0121b70900d
+
+_SCALE_32 = 1 << 32   # 32-bit fixed-point scale
+
+
+def float_to_field(x: float, p: int = P_BN128, scale: int = _SCALE_32) -> int:
+    """Map float x ∈ [0, 1] to prime field element in F_p."""
+    return int(round(float(x) * scale)) % p
+
+
+def field_to_float(fe: int, p: int = P_BN128, scale: int = _SCALE_32) -> float:
+    """Inverse: field element → float (approximate, mod p assumed < scale)."""
+    return (fe % p) / scale
+
+
+def field_add(a: int, b: int, p: int = P_BN128) -> int:
+    return (a + b) % p
+
+
+def field_sub(a: int, b: int, p: int = P_BN128) -> int:
+    return (a - b) % p
+
+
+def field_mul(a: int, b: int, p: int = P_BN128) -> int:
+    return (a * b) % p
+
+
+def field_butterfly(a: int, b: int, w: int, p: int = P_BN128):
+    """
+    Arithmetic circuit butterfly gate over F_p.
+
+    (a, b, w) -> (a + w·b mod p,  a - w·b mod p)
+
+    This is exactly one R1CS (Rank-1 Constraint System) row:
+      s·(w) = wb
+      top    = a + wb
+      bottom = a - wb    (= a + p - wb)
+    """
+    wb  = field_mul(w, b, p)
+    top = field_add(a, wb, p)
+    bot = field_sub(a, wb, p)
+    return top, bot
+
+
+def nth_root_of_unity(k: int, N: int, p: int = P_BN128) -> int:
+    """
+    k-th N-th root of unity in F_p.
+    Requires N | (p-1)  (N divides the field order).
+    Uses the primitive root g of F_p.
+    For BN128: primitive root g = 5.
+    """
+    g = 5
+    # ω_N = g^((p-1)/N)  is a primitive N-th root of unity
+    omega_N = pow(g, (p - 1) // N, p)
+    return pow(omega_N, k, p)
+
+
+# ── Step 5 : keccak256 commitment ─────────────────────────────────────────────
+
+def keccak256(data: bytes) -> bytes:
+    """
+    Ethereum-compatible keccak256 hash.
+    Uses pysha3 (pip install pysha3) if available; falls back to sha3_256.
+    Note: Python's hashlib.sha3_256 is NIST SHA3, NOT keccak256.
+    For production, install: pip install pysha3
+    """
+    try:
+        import sha3 as _sha3
+        h = _sha3.keccak_256()
+        h.update(data)
+        return h.digest()
+    except ImportError:
+        import hashlib
+        # Structural stand-in: sha3_256 (not identical to keccak in last padding)
+        return hashlib.sha3_256(data).digest()
+
+
+def commit_intensity(I: np.ndarray) -> str:
+    """keccak256 commitment to intensity array. Returns 0x-prefixed hex string."""
+    raw = I.astype(np.float32).tobytes()
+    return "0x" + keccak256(raw).hex()
+
+
+def commit_phase(phi: np.ndarray) -> str:
+    """keccak256 commitment to phase solution."""
+    raw = phi.astype(np.float32).tobytes()
+    return "0x" + keccak256(raw).hex()
+
+
+# ── Step 6 : Full optical ZK demo ─────────────────────────────────────────────
+
+def optical_zk_demo(N: int = 64, snr_db: float = 20.0, rng_seed: int = 7):
+    """
+    6-step optical phase retrieval with Ethereum-style explicit trust.
+
+    Step 1  Generate I1, I2 (two dispersed intensity measurements)
+    Step 2  Show odd/even FFT split — circuit stats
+    Step 3  Map I1[0..15] to BN128 field elements
+    Step 4  Run field butterfly on first 4 field elements
+    Step 5  Compute keccak256 commitments C_I1, C_I2, C_phi
+    Step 6  Simulate OpticalPhaseVerifier on-chain call
+
+    Returns dict with all intermediate values for visualisation.
+    """
+    rng  = np.random.default_rng(rng_seed)
+
+    # ── Step 1: measurements ──────────────────────────────────────────────
+    t   = np.linspace(0, 1, N)
+    phi_true = 1.5 * np.sin(2 * PI * 3 * t) + 0.5 * rng.normal(0, 0.1, N)
+    D1, D2   = -600.0, -1200.0
+    nu        = np.fft.fftfreq(N)
+    H1        = np.exp(1j * PI * D1 * nu**2)
+    H2        = np.exp(1j * PI * D2 * nu**2)
+    E_true    = np.exp(1j * phi_true)
+    I1        = np.abs(np.fft.ifft(np.fft.fft(E_true) * H1))**2
+    I2        = np.abs(np.fft.ifft(np.fft.fft(E_true) * H2))**2
+    snr_lin   = 10**(snr_db / 10)
+    noise_std = np.sqrt(I1.mean() / snr_lin)
+    I1 += rng.normal(0, noise_std, N)
+    I2 += rng.normal(0, noise_std, N)
+    I1  = np.clip(I1, 0, None)
+    I2  = np.clip(I2, 0, None)
+
+    # ── Step 2: FFT circuit stats ─────────────────────────────────────────
+    N_pad   = 1 << int(np.ceil(np.log2(N)))
+    stats   = fft_circuit_stats(N_pad)
+    X_numpy = np.fft.fft(I1)
+    X_radix2 = fft_radix2_dit(I1)
+    fft_match = bool(np.allclose(X_numpy[:N], X_radix2[:N], atol=1e-9))
+
+    # Explicit even/odd split at first level
+    I1_even = I1[0::2]
+    I1_odd  = I1[1::2]
+
+    # ── Step 3: field elements ────────────────────────────────────────────
+    n_show = 8
+    I1_fe  = [float_to_field(v) for v in I1[:n_show]]
+    I1_rec = [field_to_float(fe) for fe in I1_fe]
+
+    # ── Step 4: field butterfly on first 4 pairs ──────────────────────────
+    butterfly_results = []
+    for i in range(min(4, n_show // 2)):
+        a  = I1_fe[i]
+        b  = I1_fe[i + n_show // 2]
+        w  = nth_root_of_unity(i, n_show)
+        top, bot = field_butterfly(a, b, w)
+        butterfly_results.append({
+            "i": i, "a": hex(a), "b": hex(b), "w": hex(w),
+            "top": hex(top), "bot": hex(bot),
+        })
+
+    # ── Step 5: commitments ───────────────────────────────────────────────
+    # Run one GS iteration to get phi estimate
+    E_est = np.sqrt(np.maximum(I1, 0)).astype(complex)
+    for _ in range(50):
+        E_spec = np.fft.fft(E_est) * H1
+        E_spec = np.abs(np.fft.fft(np.sqrt(np.maximum(I2, 0)))) * np.exp(1j * np.angle(E_spec))
+        E_est  = np.fft.ifft(E_spec / (H1 + 1e-12))
+        E_est  = np.sqrt(np.maximum(I1, 0)) * np.exp(1j * np.angle(E_est))
+    phi_est  = np.angle(E_est)
+
+    C_I1 = commit_intensity(I1)
+    C_I2 = commit_intensity(I2)
+    C_phi = commit_phase(phi_est)
+
+    # ── Step 6: simulate on-chain verification ────────────────────────────
+    # In Solidity: verify(id, I1_raw, I2_raw) checks keccak256(I1_raw)==C_I1
+    verify_I1 = (commit_intensity(I1)  == C_I1)
+    verify_I2 = (commit_intensity(I2)  == C_I2)
+    tamper    = I1.copy(); tamper[0] += 1.0
+    tamper_rejected = (commit_intensity(tamper) != C_I1)
+
+    return {
+        # Step 1
+        "I1":            I1.tolist(),
+        "I2":            I2.tolist(),
+        "phi_true":      phi_true.tolist(),
+        "phi_est":       phi_est.tolist(),
+        "t":             t.tolist(),
+        # Step 2
+        "I1_even":       I1_even.tolist(),
+        "I1_odd":        I1_odd.tolist(),
+        "fft_match":     fft_match,
+        "circuit_stats": stats,
+        # Step 3
+        "I1_float_sample": I1[:n_show].tolist(),
+        "I1_field_sample": [hex(fe) for fe in I1_fe],
+        "I1_recovered":    I1_rec,
+        # Step 4
+        "butterfly_results": butterfly_results,
+        # Step 5
+        "C_I1":          C_I1,
+        "C_I2":          C_I2,
+        "C_phi":         C_phi,
+        # Step 6
+        "verify_I1":     verify_I1,
+        "verify_I2":     verify_I2,
+        "tamper_rejected": tamper_rejected,
+        "N":             N,
+        "snr_db":        snr_db,
+    }
