@@ -556,29 +556,43 @@ def mc_spawn(n):
 
 
 # ── Track draw ────────────────────────────────────────────────────────────────
+# Explicit floor / plateau rects — never use segment y-equality check
+# (loop polygon segments are near-horizontal near 0° / 180° and would
+#  stamp dark rectangles across the whole screen)
+_FLOOR_RECTS = [
+    # (world_x1, world_x2, top_y)  — filled from top_y down to H
+    (0,          700,    FLOOR_Y),
+    (950,        LOOP_CX - LOOP_R - 30, FLOOR_Y - RAMP_H),
+    (LOOP_CX + LOOP_R + 30, 2800,       FLOOR_Y - RAMP_H),
+    (3100,       3700,   FLOOR_Y),
+    (3900,       4200,   FLOOR_Y - 100),
+    (4400,       WORLD_W, FLOOR_Y),
+]
+
 def draw_track(surf, cam_x):
+    # ── Filled ground under each flat / elevated section ──────────────────
+    for (wx1, wx2, top_y) in _FLOOR_RECTS:
+        sx1 = int(wx1 - cam_x)
+        sx2 = int(wx2 - cam_x)
+        if sx2 < 0 or sx1 > W:
+            continue
+        pygame.draw.rect(surf, TRACK_FILL,
+                         (sx1, int(top_y), sx2 - sx1, H - int(top_y) + 10))
+
+    # ── Track edge lines (all segments, culled off-screen) ────────────────
     for seg in TRACK_SEGS:
         p1, p2 = seg
         sx1 = int(p1[0]-cam_x); sy1 = int(p1[1])
         sx2 = int(p2[0]-cam_x); sy2 = int(p2[1])
-        pygame.draw.line(surf, TRACK_EDGE, (sx1,sy1), (sx2,sy2), 5)
+        if max(sx1, sx2) < -20 or min(sx1, sx2) > W + 20:
+            continue
+        pygame.draw.line(surf, TRACK_EDGE, (sx1, sy1), (sx2, sy2), 5)
 
-    # Loop highlight ring
-    lx = int(LOOP_CX-cam_x); ly = int(LOOP_CY)
-    # Outer decorative ring
-    pygame.draw.circle(surf, (80,60,25), (lx,ly), LOOP_R+16, 3)
-
-    # Filled floor below each flat section
-    for p1,p2 in TRACK_SEGS:
-        x1,y1 = p1; x2,y2 = p2
-        if abs(y1-y2) < 5:   # horizontal segment
-            pts = [
-                (int(x1-cam_x), int(y1)),
-                (int(x2-cam_x), int(y2)),
-                (int(x2-cam_x), H+10),
-                (int(x1-cam_x), H+10),
-            ]
-            pygame.draw.polygon(surf, TRACK_FILL, pts)
+    # ── Loop highlight ────────────────────────────────────────────────────
+    lx = int(LOOP_CX - cam_x); ly = int(LOOP_CY)
+    if -LOOP_R - 30 < lx < W + LOOP_R + 30:
+        pygame.draw.circle(surf, (90, 68, 28), (lx, ly), LOOP_R + 18, 4)
+        pygame.draw.circle(surf, (50, 38, 15), (lx, ly), LOOP_R - 8,  1)
 
 
 # ── HUD ───────────────────────────────────────────────────────────────────────
@@ -657,6 +671,10 @@ def main():
     show_gear = False
     drive_fx  = 0.0
 
+    # Pre-compute background pillar positions (static, not re-rolled every frame)
+    PILLARS = [(int(i * 290), int(RNG.integers(55, 180)))
+               for i in range(WORLD_W // 290 + 3)]
+
     running = True
     while running:
         dt = min(clock.tick(FPS)/1000.0, 0.033)
@@ -716,10 +734,11 @@ def main():
         for gy_ in range(0,H,100):
             pygame.draw.line(surf,(14,14,26),(0,gy_),(W,gy_),1)
 
-        # Distant silhouette pillars
-        for px in range(int(-cam_x*0.35)%300-300, W+300, 300):
-            ph = int(RNG.integers(70,200))
-            pygame.draw.rect(surf,(22,17,10),(px-20,FLOOR_Y-ph,40,ph))
+        # Distant silhouette pillars (parallax, pre-computed heights)
+        for (wx, ph) in PILLARS:
+            sx = int(wx - cam_x * 0.35)
+            if -40 < sx < W + 40:
+                pygame.draw.rect(surf, (22, 17, 10), (sx-20, FLOOR_Y-ph, 40, ph))
 
         draw_track(surf, cam_x)
 
