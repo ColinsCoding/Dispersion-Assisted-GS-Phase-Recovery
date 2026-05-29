@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jalali Lab — Optical Data Dashboard</title>
+<style>
+  :root {
+    --bg0: #040410; --bg1: #0a0c18; --bg2: #111428;
+    --accent: #50d8ff; --gold: #ffd040; --pink: #ff3278;
+    --green: #00ff9f; --purple: #cc88ff; --text: #c0d0e0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg0); color: var(--text); font-family: 'Consolas', monospace; }
+
+  header {
+    background: var(--bg1);
+    border-bottom: 1px solid #223;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  header h1 { font-size: 1.1rem; color: var(--accent); font-weight: bold; }
+  header span { font-size: 0.8rem; color: #556; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Drop zone */
+  #drop-zone {
+    border: 2px dashed #334466;
+    border-radius: 10px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--bg1);
+    margin-bottom: 20px;
+  }
+  #drop-zone.drag-over { border-color: var(--accent); background: #0d1020; }
+  #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+  #drop-zone p { color: #778; font-size: 0.85rem; margin-top: 6px; }
+  #drop-zone strong { color: var(--text); }
+
+  #file-input { display: none; }
+
+  /* Buttons */
+  .btn {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    border: none; cursor: pointer; font-family: inherit; font-size: 0.85rem;
+    font-weight: bold; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--accent); color: #020210; }
+  .btn-demo    { background: var(--gold);   color: #020210; margin-left: 10px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+  /* Status bar */
+  #status {
+    font-size: 0.8rem; padding: 8px 14px; border-radius: 6px;
+    background: var(--bg2); border-left: 3px solid var(--accent);
+    margin-bottom: 16px; display: none;
+  }
+  #status.err { border-color: var(--pink); color: var(--pink); }
+
+  /* Stats chips */
+  #stats-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 18px;
+  }
+  .chip {
+    background: var(--bg2); border: 1px solid #223350;
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 0.75rem; color: var(--gold);
+  }
+  .chip span { color: var(--text); }
+
+  /* Plot */
+  #plot-area { text-align: center; }
+  #plot-img  { max-width: 100%; border-radius: 8px; display: none; }
+  #spinner   { display: none; font-size: 2rem; color: var(--accent); margin: 40px; }
+
+  /* Help */
+  details {
+    background: var(--bg1); border: 1px solid #223;
+    border-radius: 8px; padding: 12px 16px; margin-top: 24px;
+    font-size: 0.82rem;
+  }
+  summary { cursor: pointer; color: var(--accent); font-weight: bold; }
+  summary::marker { color: var(--accent); }
+  details p, details li { color: #99aabb; line-height: 1.7; margin: 4px 0; }
+  code { background: #111428; padding: 2px 6px; border-radius: 3px;
+         color: var(--green); font-size: 0.8rem; }
+
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>&#9678; Jalali Lab — Optical Data Dashboard</h1>
+    <span>Time-domain &middot; FFT &middot; Spectrogram &middot; TD-GS phase preview</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Drop zone -->
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">&#128190;</div>
+    <strong>Drop optical data file here</strong>
+    <p>CSV (time, intensity) &nbsp;|&nbsp; .npy &nbsp;|&nbsp; .txt</p>
+    <p style="margin-top:8px">or click to browse</p>
+  </div>
+  <input type="file" id="file-input" accept=".csv,.npy,.txt,.dat"/>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="upload-btn" onclick="uploadFile()" disabled>
+      Analyse File
+    </button>
+    <button class="btn btn-demo" onclick="runDemo()">
+      &#9654; Run Demo (synthetic STEAM pulse)
+    </button>
+  </div>
+
+  <div id="status"></div>
+  <div id="stats-row"></div>
+
+  <div id="plot-area">
+    <div id="spinner">&#9881;</div>
+    <img id="plot-img" alt="analysis plots"/>
+  </div>
+
+  <!-- Help section -->
+  <details>
+    <summary>How to use &amp; file format</summary>
+    <ul>
+      <li><strong>CSV</strong>: two columns <code>time, intensity</code> — no header needed</li>
+      <li><strong>NPY</strong>: 1D array (intensity only) or 2D array shape <code>(N,2)</code></li>
+      <li><strong>Demo</strong>: generates a synthetic dispersion-stretched Gaussian with simulated cell modulation</li>
+    </ul>
+    <p>Plots produced:</p>
+    <ul>
+      <li>Time-domain waveform + Hilbert envelope</li>
+      <li>Power spectral density |FFT|&sup2;</li>
+      <li>STFT spectrogram with peak-frequency tracking (chirp rate)</li>
+      <li>TD-GS phase preview (one Gerchberg-Saxton iteration, D1=&minus;600 ps&sup2;, D2=&minus;1200 ps&sup2;)</li>
+      <li>Instantaneous frequency (Hilbert)</li>
+      <li>Autocorrelation R(&tau;)</li>
+    </ul>
+    <p>Run locally: <code>python optical_dashboard/app.py</code> &rarr; <a href="http://localhost:5000">localhost:5000</a></p>
+  </details>
+
+  <details style="margin-top:10px">
+    <summary>Claude Code local setup (actual steps)</summary>
+    <p>1. Install Node.js 18+ (from nodejs.org)</p>
+    <p>2. Install the CLI:</p>
+    <p><code>npm install -g @anthropic-ai/claude-code</code></p>
+    <p>3. Set your API key:</p>
+    <p><code>set ANTHROPIC_API_KEY=sk-ant-api03-...</code> &nbsp; (Windows cmd)</p>
+    <p><code>export ANTHROPIC_API_KEY=sk-ant-api03-...</code> &nbsp; (bash/zsh)</p>
+    <p>4. Launch:</p>
+    <p><code>claude</code></p>
+    <p>Or in your project directory: <code>cd D:\Summer2026\Dispersion-Assisted-GS-Phase-Recovery &amp;&amp; claude</code></p>
+    <p style="margin-top:8px">Get API key: <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    <p>Docs: <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank">docs.anthropic.com/claude-code</a></p>
+  </details>
+
+</div><!-- /container -->
+
+<script>
+let selectedFile = null;
+
+// Drag & drop
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) selectFile(f);
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) selectFile(e.target.files[0]);
+});
+
+function selectFile(f) {
+  selectedFile = f;
+  document.getElementById('upload-btn').disabled = false;
+  setStatus(`File selected: ${f.name} (${(f.size/1024).toFixed(1)} KB)`, false);
+}
+
+function setStatus(msg, isErr) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  s.style.display = 'block';
+  s.className = isErr ? 'err' : '';
+}
+
+function showSpinner(on) {
+  document.getElementById('spinner').style.display = on ? 'block' : 'none';
+}
+
+function renderStats(stats) {
+  const row = document.getElementById('stats-row');
+  row.innerHTML = '';
+  const labels = {
+    N: 'samples', dt: 'Δt', fs: 'f_s',
+    peak_freq: 'f_peak', rms: 'RMS', dyn_range: 'dyn. range'
+  };
+  for (const [k, v] of Object.entries(stats)) {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `${labels[k] || k}: <span>${v}</span>`;
+    row.appendChild(chip);
+  }
+}
+
+async function sendRequest(url, formData) {
+  showSpinner(true);
+  document.getElementById('plot-img').style.display = 'none';
+  try {
+    const resp = await fetch(url, {method: 'POST', body: formData});
+    const data = await resp.json();
+    if (data.error) { setStatus('Error: ' + data.error, true); return; }
+    renderStats(data.stats);
+    const img = document.getElementById('plot-img');
+    img.src = 'data:image/png;base64,' + data.plot;
+    img.style.display = 'block';
+    setStatus(data.source ? `Demo: ${data.source}` : 'Analysis complete.', false);
+  } catch(e) {
+    setStatus('Network error: ' + e.message, true);
+  } finally {
+    showSpinner(false);
+  }
+}
+
+function uploadFile() {
+  if (!selectedFile) return;
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  setStatus('Analysing...', false);
+  sendRequest('/process', fd);
+}
+
+async function runDemo() {
+  setStatus('Running demo...', false);
+  showSpinner(true);
+  document.getElementById('plot-img').style.display = 'none';
+  try {
+    const resp = await fetch('/demo');
+    const data = await resp.json();
+    if (data.error) { setStatus('Error: ' + data.error, true); return; }
+    renderStats(data.stats);
+    const img = document.getElementById('plot-img');
+    img.src = 'data:image/png;base64,' + data.plot;
+    img.style.display = 'block';
+    setStatus('Demo: ' + data.source, false);
+  } catch(e) {
+    setStatus('Error: ' + e.message, true);
+  } finally {
+    showSpinner(false);
+  }
+}
+</script>
+</body>
+</html>
