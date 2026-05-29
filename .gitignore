@@ -112,3 +112,13 @@ firmware/*.map
 archive/
 .venv/
 references/pptx_figures/
+
+############################
+# Runtime data (never commit)
+############################
+
+# Flask upload store — user files, SQLite audit DB
+optical_dashboard/uploads/
+
+# Reference database (regenerated)
+references/refs.db
