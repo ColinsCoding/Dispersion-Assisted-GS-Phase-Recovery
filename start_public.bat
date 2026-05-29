@@ -35,15 +35,37 @@ if not defined CF (
 if not defined CF (
   echo  cloudflared not found.  Installing via winget...
   winget install --id Cloudflare.cloudflared --silent --accept-package-agreements --accept-source-agreements
-  where cloudflared >nul 2>&1 && set CF=cloudflared
+
+  REM winget adds to PATH but this session has not refreshed — probe known locations
+  for %%d in (
+    "%ProgramFiles%\cloudflared\cloudflared.exe"
+    "%ProgramFiles(x86)%\cloudflared\cloudflared.exe"
+    "%LOCALAPPDATA%\Microsoft\WinGet\Packages\Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe\cloudflared.exe"
+    "%SystemDrive%\cloudflared\cloudflared.exe"
+    "%~dp0cloudflared.exe"
+  ) do (
+    if not defined CF (
+      if exist %%d set CF=%%d
+    )
+  )
+
+  REM Also re-try where after refreshing PATH from registry
+  if not defined CF (
+    for /f "usebackq delims=" %%p in (
+      `powershell -NoProfile -Command "[System.Environment]::GetEnvironmentVariable('PATH','Machine') -split ';' | ForEach-Object { $f = Join-Path $_ 'cloudflared.exe'; if (Test-Path $f) { $f } }" 2^>nul`
+    ) do ( if not defined CF set CF=%%p )
+  )
 )
 
 if not defined CF (
   echo.
-  echo  [ERROR] cloudflared still not found.
-  echo  Download manually from:
+  echo  [ERROR] cloudflared installed but not found in PATH yet.
+  echo  Close this window, open a new terminal, and run:
+  echo    .\start_public.bat
+  echo  (winget PATH changes require a new session to take effect)
+  echo.
+  echo  OR download cloudflared.exe manually and place it here:
   echo    https://github.com/cloudflare/cloudflared/releases/latest
-  echo  Place cloudflared.exe in this folder and re-run.
   echo.
   pause
   exit /b 1
