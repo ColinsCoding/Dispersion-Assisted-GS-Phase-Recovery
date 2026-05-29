@@ -24,11 +24,40 @@ make seals     # jupyter notebook notebooks/seals_simulation.ipynb
 make execute   # run all cells in place
 make firmware  # cross-compile → firmware/rogueguard_firmware.elf  (aarch64-linux-gnu-gcc)
 make push      # git push origin main
+make dashboard # python optical_dashboard/app.py → http://localhost:5000
 ```
 
 ---
 
-## Notebook · `phase_retrieval.ipynb` · 76 cells
+## Optical Dashboard · `optical_dashboard/`
+
+Interactive Flask web app — five tabs, all dark-theme, no page reloads.
+
+```
+python optical_dashboard/app.py   →   http://localhost:5000
+```
+
+| Tab | Endpoint | Description |
+|-----|----------|-------------|
+| **Signal Analysis** | `POST /upload`, `GET /demo` | Drag-drop CSV/.npy → time-domain · PSD · spectrogram · TD-GS phase · autocorrelation. File auto-processes on select (two-click). UUID-isolated upload dirs, 1-hour auto-cleanup. |
+| **QPSK Modem** | `GET /qpsk?snr=&nbits=` | Gray-coded QPSK, RRC pulse shaping (β=0.35), AWGN, matched-filter RX. Constellation · BER vs SNR · eye diagram · phase trellis. |
+| **WDM 48-ch** | `GET /wdm?nch=&snr=` | ITU-T G.694.1 C-band, 100 GHz spacing. Per-channel demux power bar · λ-scatter · PSD overlay. |
+| **Digital Logic** | `GET /digital?byte=&cycles=` | D-latch · D flip-flop · 8-bit shift register · 2:1 MUX · TDM 2:1 mux/demux. State waterfall + control signals. |
+| **3-D Hash** | `GET /hash3d?npts=` | Sparse 3-D voxel hash over (x,y,λ). Energy min: gradient descent on H=0.1·H_TV+0.4·H_pc. LSH nearest-neighbour retrieval. |
+
+DSP module: `optical_dashboard/dsp.py`
+
+```python
+from optical_dashboard import dsp as DSP
+
+result = DSP.simulate_link(n_bits=2048, snr_db=12)   # QPSK
+result = DSP.wdm_sim(n_ch=48, snr_db=25)              # WDM
+result = DSP.optical_hash_demo(n_points=256)           # 3-D hash + energy min
+```
+
+---
+
+## Notebook · `phase_retrieval.ipynb` · 107 cells
 
 | § | Topic | OUSD Area |
 |---|---|---|
@@ -54,6 +83,12 @@ make push      # git push origin main
 | 53 | SEALS — Mie + Rayleigh Python port, wavelength-to-angle | Integrated Sensing |
 | 54 | FutureG — carrier-less architecture · SWaP analysis | FutureG |
 | 55 | RogueGuard 1U — embedded deployment · ROC · pipeline latency | Trusted AI · HMI |
+| 67 | OUSD(R&E) alignment · Thevenin/Norton optical equivalents · STEAM SPICE netlist | FutureG · Advanced Computing |
+| 68 | TAM bubble chart — RogueGuard $420M / STEAM-Dx $1800M / TS-QPI $280M / SEALS $650M | Trusted AI |
+| 70 | SBIR pathway · Phase I/II checklist · DoD insertion milestones | Trusted AI |
+| 71 | C11 beamformer: RF/OPA HPBW · Marx EMP discharge · BLDC PID · combat FSM | Directed Energy · HMI |
+| 72 | Neural PID backprop (torch) · EM phase optimisation (Adam) · Lagrangian/Jacobian · laser cavity · Falcon 9 Tsiolkovsky | Trusted AI · Advanced Computing |
+| 73 | 3-D optical voxel hash · energy minimisation (H_TV + H_pc Wirtinger GD) · LSH retrieval | Advanced Computing · Trusted AI |
 
 ## SEALS · `notebooks/seals_simulation.ipynb` · 10 cells
 

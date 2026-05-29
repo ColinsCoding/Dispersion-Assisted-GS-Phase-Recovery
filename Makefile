@@ -11,7 +11,10 @@ FW_CC     := aarch64-linux-gnu-gcc
 FW_CFLAGS := -O2 -std=c11 -Wall -Wextra
 FW_LIBS   := -lm -lfftw3f -lpthread
 
-.PHONY: install run seals execute clean push help firmware
+DASH_DIR  := optical_dashboard
+DASH_APP  := $(DASH_DIR)/app.py
+
+.PHONY: install run seals execute clean push help firmware dashboard
 
 help:
 	@echo "Dispersion-Assisted Optical Phase Recovery"
@@ -22,6 +25,7 @@ help:
 	@echo "  seals        Open SEALS simulation notebook"
 	@echo "  execute      Run notebook top-to-bottom and save outputs"
 	@echo "  firmware     Cross-compile rogueguard firmware -> aarch64 ELF"
+	@echo "  dashboard    Start Flask optical dashboard (http://localhost:5000)"
 	@echo "  clean        Remove cache files and generated outputs"
 	@echo "  push         Push main branch to GitHub"
 
@@ -46,6 +50,9 @@ clean:
 	find . -type d -name ".ipynb_checkpoints" -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
 	-rm -f $(FW_BIN)
+
+dashboard:
+	cd $(DASH_DIR) && $(PYTHON) app.py
 
 push:
 	git push origin main
