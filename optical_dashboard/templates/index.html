@@ -3,200 +3,290 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Jalali Lab — Optical Data Dashboard</title>
+<title>Jalali Lab — Optical Dashboard</title>
 <style>
-  :root {
-    --bg0: #040410; --bg1: #0a0c18; --bg2: #111428; --bg3: #161930;
-    --accent: #50d8ff; --gold: #ffd040; --pink: #ff3278;
-    --green: #00ff9f; --purple: #cc88ff; --text: #c0d0e0; --muted: #556677;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg0); color: var(--text); font-family: 'Consolas', monospace; }
+/* ════════════════════════════════════════════════
+   BAUHAUS PALETTE
+   Rot / Blau / Gelb / Schwarz / Weiss
+   ════════════════════════════════════════════════ */
+:root {
+  --rot:   #C41E3A;
+  --blau:  #1441A0;
+  --gelb:  #F0BA00;
+  --sw:    #111111;
+  --weiss: #F7F5F0;
+  --grau:  #DDDAD3;
+  --hell:  #EDEAE4;
+  --text:  #1A1A1A;
+  --muted: #6B6B6B;
+}
 
-  /* ── Header ────────────────────────────────────────────────────────────── */
-  header {
-    background: var(--bg1); border-bottom: 1px solid #1a2038;
-    padding: 12px 24px; display: flex; align-items: center; gap: 14px;
-  }
-  header h1 { font-size: 1.05rem; color: var(--accent); font-weight: bold; letter-spacing: 0.03em; }
-  header span { font-size: 0.75rem; color: var(--muted); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ── Tab bar ───────────────────────────────────────────────────────────── */
-  .tab-bar {
-    background: var(--bg1); border-bottom: 1px solid #1a2038;
-    display: flex; gap: 0; padding: 0 16px; overflow-x: auto;
-  }
-  .tab-btn {
-    background: none; border: none; border-bottom: 2px solid transparent;
-    color: var(--muted); cursor: pointer; font-family: inherit; font-size: 0.8rem;
-    font-weight: bold; padding: 11px 18px; transition: color 0.15s, border-color 0.15s;
-    white-space: nowrap;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+body {
+  background: var(--weiss);
+  color: var(--text);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
 
-  /* ── Tab content ────────────────────────────────────────────────────────── */
-  .tab-pane { display: none; }
-  .tab-pane.active { display: block; }
+/* ── Voronoi Header ──────────────────────────────────── */
+#header-wrap {
+  position: relative;
+  height: 128px;
+  overflow: hidden;
+  border-bottom: 4px solid var(--sw);
+}
+#vcanvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+.header-text {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; z-index: 2; white-space: nowrap;
+}
+.header-text h1 {
+  font-size: 1.55rem; font-weight: 900;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--sw);
+  background: rgba(247,245,240,0.88);
+  padding: 5px 22px;
+  border: 3px solid var(--sw);
+  display: inline-block;
+}
+.header-text p {
+  font-size: 0.63rem; color: var(--sw);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-top: 5px;
+  background: rgba(247,245,240,0.78);
+  display: inline-block; padding: 2px 10px;
+}
 
-  /* ── Container ──────────────────────────────────────────────────────────── */
-  .container { max-width: 1120px; margin: 0 auto; padding: 22px 16px; }
+/* ── Tricolor accent ─────────────────────────────────── */
+.tribar {
+  height: 7px;
+  background: linear-gradient(
+    to right,
+    var(--rot)  0% 33.33%,
+    var(--blau) 33.33% 66.66%,
+    var(--gelb) 66.66% 100%
+  );
+}
 
-  /* ── Drop zone ──────────────────────────────────────────────────────────── */
-  #drop-zone {
-    border: 2px dashed #2a3560; border-radius: 10px; padding: 36px 24px;
-    text-align: center; cursor: pointer; background: var(--bg1);
-    transition: border-color 0.2s, background 0.2s; margin-bottom: 18px;
-  }
-  #drop-zone.drag-over { border-color: var(--accent); background: #0d1020; }
-  #drop-zone .icon { font-size: 2.2rem; margin-bottom: 8px; }
-  #drop-zone strong { color: var(--text); font-size: 0.95rem; }
-  #drop-zone p { color: var(--muted); font-size: 0.8rem; margin-top: 5px; }
-  #file-input { display: none; }
+/* ── Tab bar ─────────────────────────────────────────── */
+.tab-bar {
+  display: flex; background: var(--sw);
+  border-bottom: 3px solid var(--sw);
+  overflow-x: auto;
+}
+.tab-btn {
+  background: var(--sw); border: none;
+  border-right: 2px solid #2a2a2a;
+  color: #999; cursor: pointer;
+  font-family: inherit; font-size: 0.71rem;
+  font-weight: 700; padding: 12px 20px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tab-btn:hover { color: white; background: #222; }
+.tab-btn.active[data-tab="signal"]  { background: var(--blau); color: white; }
+.tab-btn.active[data-tab="qpsk"]    { background: var(--rot);  color: white; }
+.tab-btn.active[data-tab="wdm"]     { background: var(--gelb); color: var(--sw); }
+.tab-btn.active[data-tab="digital"] { background: #3a3a3a;     color: white; }
+.tab-btn.active[data-tab="hash3d"]  { background: var(--sw);   color: var(--gelb); border-bottom: 3px solid var(--gelb); }
 
-  /* ── Status / error bar ─────────────────────────────────────────────────── */
-  .status-bar {
-    font-size: 0.8rem; padding: 7px 14px; border-radius: 6px;
-    background: var(--bg2); border-left: 3px solid var(--accent);
-    margin-bottom: 14px; display: none;
-  }
-  .status-bar.err { border-color: var(--pink); color: var(--pink); }
+/* ── Tab panes ───────────────────────────────────────── */
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 18px; }
 
-  /* ── Stats chips ────────────────────────────────────────────────────────── */
-  .chip-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
-  .chip {
-    background: var(--bg2); border: 1px solid #1e2c4a;
-    border-radius: 20px; padding: 3px 11px; font-size: 0.73rem; color: var(--gold);
-  }
-  .chip span { color: var(--text); }
+/* ── Drop zone ───────────────────────────────────────── */
+#drop-zone {
+  border: 3px dashed var(--sw); padding: 34px 24px;
+  text-align: center; cursor: pointer;
+  background: white; margin-bottom: 18px;
+  transition: border-color 0.15s, background 0.15s;
+}
+#drop-zone:hover, #drop-zone.drag-over {
+  border-color: var(--blau); background: #ECF0FB;
+  border-style: solid;
+}
+#drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+#drop-zone strong {
+  color: var(--sw); font-size: 0.93rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+#drop-zone p { color: var(--muted); font-size: 0.79rem; margin-top: 6px; }
+#file-input { display: none; }
 
-  /* ── Controls (sliders / inputs) ────────────────────────────────────────── */
-  .ctrl-row {
-    display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;
-    margin-bottom: 18px; background: var(--bg1); border: 1px solid #1e2c4a;
-    border-radius: 8px; padding: 14px 18px;
-  }
-  .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
-  .ctrl-group label { font-size: 0.73rem; color: var(--muted); }
-  .ctrl-group input[type=range] { width: 160px; accent-color: var(--accent); cursor: pointer; }
-  .ctrl-group input[type=number],
-  .ctrl-group input[type=text]  {
-    background: var(--bg2); border: 1px solid #2a3560; border-radius: 4px;
-    color: var(--text); font-family: inherit; font-size: 0.82rem;
-    padding: 4px 8px; width: 100px;
-  }
-  .ctrl-group .val { font-size: 0.78rem; color: var(--accent); text-align: right; }
+/* ── Status bar ──────────────────────────────────────── */
+.status-bar {
+  font-size: 0.79rem; padding: 8px 14px; margin-bottom: 14px;
+  border-left: 4px solid var(--blau); background: #ECF0FB;
+  display: none; color: var(--sw); font-weight: 500;
+}
+.status-bar.err { border-color: var(--rot); background: #FCECEA; color: var(--rot); }
 
-  /* ── Run buttons ────────────────────────────────────────────────────────── */
-  .btn-run {
-    background: var(--accent); color: #010d16; font-family: inherit; font-size: 0.83rem;
-    font-weight: bold; border: none; border-radius: 6px; padding: 9px 22px;
-    cursor: pointer; transition: opacity 0.15s; align-self: flex-end;
-  }
-  .btn-run:hover { opacity: 0.82; }
-  .btn-demo {
-    background: var(--gold); color: #010d16; font-family: inherit; font-size: 0.83rem;
-    font-weight: bold; border: none; border-radius: 6px; padding: 9px 18px;
-    cursor: pointer; transition: opacity 0.15s; align-self: flex-end;
-  }
-  .btn-demo:hover { opacity: 0.82; }
+/* ── Chips ───────────────────────────────────────────── */
+.chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; }
+.chip {
+  background: var(--sw); color: var(--gelb);
+  padding: 3px 10px; font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.chip span { color: white; font-weight: 400; margin-left: 4px; }
 
-  /* ── Plot area ───────────────────────────────────────────────────────────── */
-  .plot-wrap { text-align: center; min-height: 80px; }
-  .plot-img { max-width: 100%; border-radius: 8px; display: none; }
-  .spinner { display: none; font-size: 1.8rem; color: var(--accent); margin: 32px; }
+/* ── Controls ────────────────────────────────────────── */
+.ctrl-row {
+  display: flex; flex-wrap: wrap; gap: 18px;
+  align-items: flex-end; margin-bottom: 18px;
+  background: white; border: 2px solid var(--sw); padding: 14px 18px;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-group label {
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+}
+.ctrl-group input[type=range]  { width: 150px; accent-color: var(--rot); cursor: pointer; }
+.ctrl-group input[type=number],
+.ctrl-group input[type=text]   {
+  background: white; border: 2px solid var(--sw); border-radius: 0;
+  color: var(--sw); font-family: inherit; font-size: 0.82rem;
+  padding: 4px 8px; width: 100px;
+}
+.ctrl-group input:focus { outline: 2px solid var(--blau); outline-offset: 1px; }
+.ctrl-group .val { font-size: 0.76rem; font-weight: 700; color: var(--rot); }
+select {
+  background: white; border: 2px solid var(--sw); border-radius: 0;
+  color: var(--sw); font-family: inherit; font-size: 0.82rem; padding: 4px 8px;
+}
 
-  /* ── Help accordion ─────────────────────────────────────────────────────── */
-  details {
-    background: var(--bg1); border: 1px solid #1e2c4a; border-radius: 8px;
-    padding: 11px 16px; margin-top: 20px; font-size: 0.8rem;
-  }
-  summary { cursor: pointer; color: var(--accent); font-weight: bold; }
-  details p, details li { color: #99aabb; line-height: 1.75; margin: 3px 0; }
-  code {
-    background: #0c0e1e; padding: 2px 6px; border-radius: 3px;
-    color: var(--green); font-size: 0.78rem;
-  }
-  a { color: var(--accent); }
+/* ── Buttons ─────────────────────────────────────────── */
+.btn-run {
+  background: var(--rot); color: white;
+  font-family: inherit; font-size: 0.81rem; font-weight: 700;
+  border: none; padding: 10px 22px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  transition: opacity 0.15s; align-self: flex-end;
+}
+.btn-run:hover { opacity: 0.84; }
+.btn-demo {
+  background: var(--blau); color: white;
+  font-family: inherit; font-size: 0.81rem; font-weight: 700;
+  border: none; padding: 10px 18px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  transition: opacity 0.15s; align-self: flex-end;
+}
+.btn-demo:hover { opacity: 0.84; }
 
-  /* ── Scrollbar tint ─────────────────────────────────────────────────────── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg0); }
-  ::-webkit-scrollbar-thumb { background: #2a3560; border-radius: 3px; }
+/* ── Plot area ───────────────────────────────────────── */
+.plot-wrap { text-align: center; min-height: 60px; }
+.plot-img  { max-width: 100%; border: 2px solid var(--sw); display: none; }
+.spinner   { display: none; font-size: 1.6rem; color: var(--rot); margin: 28px; }
+
+/* ── Details ─────────────────────────────────────────── */
+details {
+  background: white; border: 2px solid var(--sw);
+  padding: 12px 16px; margin-top: 18px; font-size: 0.8rem;
+}
+summary {
+  cursor: pointer; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; color: var(--blau);
+}
+details p, details li { color: var(--muted); line-height: 1.8; margin: 3px 0; }
+code { background: var(--hell); padding: 2px 6px; font-size: 0.77rem; color: var(--sw); }
+a    { color: var(--blau); }
+
+/* ── Scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--grau); }
+::-webkit-scrollbar-thumb { background: var(--sw); }
 </style>
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>&#9678; Jalali Lab — Optical Data Dashboard</h1>
-    <span>Signal Analysis &middot; QPSK &middot; 48-ch WDM &middot; Digital Logic &middot; 3-D Optical Hash</span>
+<!-- ═══ Voronoi Header ════════════════════════════════ -->
+<div id="header-wrap">
+  <canvas id="vcanvas"></canvas>
+  <div class="header-text">
+    <h1>&#9678; Jalali Lab</h1>
+    <p>Optical Signal Analysis &nbsp;&middot;&nbsp; Dispersion-Assisted GS Phase Recovery &nbsp;&middot;&nbsp; ECE 279AS</p>
   </div>
-</header>
+</div>
+<div class="tribar"></div>
 
-<!-- ═══ Tab bar ════════════════════════════════════════════════════════════ -->
+<!-- ═══ Tab bar ══════════════════════════════════════ -->
 <div class="tab-bar" id="tab-bar">
-  <button class="tab-btn active" data-tab="signal">&#128190; Signal Analysis</button>
-  <button class="tab-btn"        data-tab="qpsk">&#11835; QPSK Modem</button>
-  <button class="tab-btn"        data-tab="wdm">&#127752; WDM 48-ch</button>
-  <button class="tab-btn"        data-tab="digital">&#127381; Digital Logic</button>
-  <button class="tab-btn"        data-tab="hash3d">&#128256; 3-D Hash</button>
+  <button class="tab-btn active" data-tab="signal">Signal Analysis</button>
+  <button class="tab-btn"        data-tab="qpsk">QPSK Modem</button>
+  <button class="tab-btn"        data-tab="wdm">WDM 48-ch</button>
+  <button class="tab-btn"        data-tab="digital">Digital Logic</button>
+  <button class="tab-btn"        data-tab="hash3d">3-D Hash</button>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  TAB 1 — Signal Analysis                                               -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TAB 1 — Signal Analysis
+     ═══════════════════════════════════════════════════ -->
 <div class="tab-pane active" id="pane-signal">
 <div class="container">
 
   <div id="drop-zone" onclick="document.getElementById('file-input').click()">
     <div class="icon">&#128190;</div>
-    <strong>Drop optical data file here — or click to browse</strong>
+    <strong>Drop optical data file here &mdash; or click to browse</strong>
     <p>
-      <code>.mat</code> (MATLAB I1/I2) &nbsp;|&nbsp;
+      <code>.mat</code> (MATLAB I1/I2 two-arm) &nbsp;|&nbsp;
       <code>.csv</code> (time, intensity) &nbsp;|&nbsp;
       <code>.npy</code> &nbsp;|&nbsp;
-      <code>.txt</code> &nbsp;&mdash;&nbsp;
-      auto-processes on select (two clicks)
+      <code>.txt</code>
+      &nbsp;&mdash;&nbsp; auto-processes on select
     </p>
   </div>
   <input type="file" id="file-input" accept=".csv,.npy,.txt,.dat,.mat"
          onchange="autoUpload(this)"/>
 
-  <!-- ── Experiment metadata form ──────────────────────────────────────── -->
-  <div class="ctrl-row" id="meta-form" style="flex-wrap:wrap;gap:14px;">
+  <!-- Drag & drop -->
+  <script>
+  (function(){
+    const dz = document.getElementById('drop-zone');
+    dz.addEventListener('dragover',  e=>{e.preventDefault();dz.classList.add('drag-over');});
+    dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e=>{
+      e.preventDefault(); dz.classList.remove('drag-over');
+      const f=e.dataTransfer.files[0]; if(f) uploadFileObj(f);
+    });
+  })();
+  </script>
+
+  <!-- Experiment metadata form -->
+  <div class="ctrl-row" style="flex-wrap:wrap;gap:14px;">
     <div class="ctrl-group">
-      <label>D&#8321; (ps²)&nbsp;<span style="color:var(--accent)">fiber 1</span></label>
-      <input type="number" id="meta-d1" value="-600" step="50"
-             title="Dispersion of fiber arm 1 in ps²" style="width:90px"/>
+      <label>D&#x2081; (ps&sup2;) &mdash; fiber 1</label>
+      <input type="number" id="meta-d1" value="-600" step="50" style="width:88px;border-color:var(--blau)"/>
     </div>
     <div class="ctrl-group">
-      <label>D&#8322; (ps²)&nbsp;<span style="color:var(--pink)">fiber 2</span></label>
-      <input type="number" id="meta-d2" value="-1200" step="50"
-             title="Dispersion of fiber arm 2 in ps²" style="width:90px"/>
+      <label>D&#x2082; (ps&sup2;) &mdash; fiber 2</label>
+      <input type="number" id="meta-d2" value="-1200" step="50" style="width:88px;border-color:var(--rot)"/>
     </div>
     <div class="ctrl-group">
-      <label>&lambda;&#8320; (nm)</label>
-      <input type="number" id="meta-lam" value="1550" step="1"
-             title="Center wavelength in nm" style="width:80px"/>
+      <label>&lambda;&#x2080; (nm)</label>
+      <input type="number" id="meta-lam" value="1550" step="1" style="width:78px"/>
     </div>
     <div class="ctrl-group">
-      <label>f&#8209;sample (GSa/s)</label>
-      <input type="number" id="meta-fs" value="56" step="1"
-             title="ADC sample rate in GSa/s" style="width:75px"/>
+      <label>f&#x2011;sample (GSa/s)</label>
+      <input type="number" id="meta-fs" value="56" step="1" style="width:70px"/>
     </div>
-    <div class="ctrl-group" style="min-width:150px;">
+    <div class="ctrl-group" style="min-width:140px;">
       <label>Lab / Attribution</label>
-      <input type="text" id="meta-lab" value="Jalali Lab, UCLA"
-             placeholder="e.g. Jalali Lab" style="width:160px"/>
+      <input type="text" id="meta-lab" value="Jalali Lab, UCLA" style="width:160px"/>
     </div>
     <div class="ctrl-group" style="flex:1;min-width:200px;">
       <label>Experiment description</label>
-      <input type="text" id="meta-desc" value=""
-             placeholder="e.g. QPSK 28 Gbaud, D1=−600 D2=−1200 ps²"
-             style="width:100%;max-width:340px"/>
+      <input type="text" id="meta-desc" placeholder="e.g. QPSK 28 Gbaud, D1=&minus;600 D2=&minus;1200 ps&sup2;"
+             style="width:100%;max-width:320px"/>
     </div>
-    <button class="btn-demo" onclick="runDemo()">&#9654; Demo (synthetic STEAM)</button>
+    <button class="btn-demo" onclick="runDemo()">&#9654; Demo — STEAM pulse</button>
   </div>
 
   <div class="status-bar" id="status-sig"></div>
@@ -207,28 +297,22 @@
   </div>
 
   <details>
-    <summary>File format &amp; parameters guide</summary>
+    <summary>File format &amp; parameters</summary>
     <ul>
-      <li><strong>MATLAB .mat</strong>: save with <code>save('data.mat','I1','I2')</code> — automatic 2-arm TD-GS (50 iter)</li>
-      <li><strong>CSV / TXT</strong>: two columns <code>time, intensity</code> (no header required)</li>
-      <li><strong>NPY</strong>: 1-D float array (intensity only) or <code>(N,2)</code> array (time, intensity)</li>
+      <li><strong>MATLAB .mat</strong> &mdash; <code>save('data.mat','I1','I2')</code> &rarr; automatic 2-arm TD-GS (50 iter)</li>
+      <li><strong>CSV / TXT</strong> &mdash; two columns <code>time, intensity</code> (no header required)</li>
+      <li><strong>NPY</strong> &mdash; 1-D float array or <code>(N,2)</code> array</li>
     </ul>
-    <p><strong>Parameters:</strong> D₁, D₂ (fiber dispersion ps²) &nbsp;|&nbsp;
-       λ₀ (center wavelength nm) &nbsp;|&nbsp; f_s (ADC sample rate GSa/s)</p>
-    <p><strong>TD-GS phase retrieval:</strong> H(ν)=exp(iπDν²) · 50 iterations for .mat (2-arm) ·
-       1 iteration estimate for single-arm files</p>
-    <p><strong>Plots:</strong> time domain + Hilbert envelope · Power PSD · STFT spectrogram ·
-       recovered phase φ(t) · instantaneous frequency · autocorrelation R(τ)</p>
-    <p>Run locally: <code>python optical_dashboard/app.py</code> →
-       <a href="http://localhost:5000">localhost:5000</a></p>
+    <p>TD-GS: H(&nu;)=exp(i&pi;D&nu;&sup2;) &middot; 50 iter for .mat (2-arm) &middot; 1 iter estimate for single-arm</p>
+    <p>Plots: time domain + envelope &middot; PSD &middot; STFT &middot; phase &phi;(t) &middot; inst. freq &middot; autocorrelation</p>
   </details>
 
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  TAB 2 — QPSK Modem                                                    -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TAB 2 — QPSK Modem
+     ═══════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-qpsk">
 <div class="container">
 
@@ -241,9 +325,7 @@
     </div>
     <div class="ctrl-group">
       <label>N bits</label>
-      <select id="qpsk-nbits" style="background:var(--bg2);border:1px solid #2a3560;
-              border-radius:4px;color:var(--text);font-family:inherit;
-              font-size:0.82rem;padding:4px 8px;">
+      <select id="qpsk-nbits">
         <option value="512">512</option>
         <option value="1024">1 024</option>
         <option value="2048" selected>2 048</option>
@@ -263,18 +345,17 @@
 
   <details>
     <summary>QPSK modem details</summary>
-    <p>Gray-coded QPSK · RRC pulse shaping (β=0.35, 8 sps) · AWGN channel ·
-       matched-filter RX · hard decision.</p>
-    <p>BER theory: <code>0.5 · erfc(√(E_b/N₀))</code></p>
-    <p>Plots: constellation · BER vs SNR · TX/RX waveform · eye diagram · phase trellis</p>
+    <p>Gray-coded QPSK &middot; RRC pulse shaping (&beta;=0.35, 8 sps) &middot; AWGN channel &middot; matched-filter RX.</p>
+    <p>BER theory: <code>0.5 &middot; erfc(&radic;(E&#x2090;/N&#x2080;))</code></p>
+    <p>Plots: constellation &middot; BER vs SNR &middot; TX/RX waveform &middot; eye diagram &middot; phase trellis</p>
   </details>
 
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  TAB 3 — WDM 48-ch                                                     -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TAB 3 — WDM 48-ch
+     ═══════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-wdm">
 <div class="container">
 
@@ -303,18 +384,16 @@
 
   <details>
     <summary>48-channel DWDM details</summary>
-    <p>ITU-T G.694.1 · 100 GHz channel spacing · C-band 1529–1565 nm ·
-       anchor 193.1 THz · QPSK per channel.</p>
-    <p>Demux: Gaussian bandpass filter (50 GHz 1-σ width) per channel.</p>
-    <p>Plots: per-channel power bar · λ-axis scatter · frequency-axis scatter + PSD overlay</p>
+    <p>ITU-T G.694.1 &middot; 100 GHz spacing &middot; C-band 1529&ndash;1565 nm &middot; anchor 193.1 THz.</p>
+    <p>Demux: Gaussian bandpass (50 GHz 1-&sigma;) per channel.</p>
   </details>
 
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  TAB 4 — Digital Logic                                                 -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TAB 4 — Digital Logic
+     ═══════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-digital">
 <div class="container">
 
@@ -322,8 +401,7 @@
     <div class="ctrl-group">
       <label>Data byte (hex)</label>
       <input type="text" id="dig-byte" value="B2" maxlength="2"
-             placeholder="hex e.g. B2"
-             style="width:70px;text-transform:uppercase"/>
+             placeholder="B2" style="width:64px;text-transform:uppercase"/>
     </div>
     <div class="ctrl-group">
       <label>Cycles</label>
@@ -343,19 +421,16 @@
 
   <details>
     <summary>Digital logic primitives</summary>
-    <p>D-latch (level-sensitive EN) · D flip-flop (positive-edge CLK) ·
-       8-bit SIPO shift register · 2:1 combinational MUX.</p>
-    <p>TDM 2:1 mux/demux: bit-interleave [a₀,b₀,a₁,b₁,…] → round-trip verify.</p>
-    <p>Plots: register states vs cycle · control signals (CLK/EN/D_in) ·
-       shift register waterfall · TDM mux/demux</p>
+    <p>D-latch (level-sensitive EN) &middot; D flip-flop (positive-edge CLK) &middot; 8-bit SIPO shift register &middot; 2:1 MUX.</p>
+    <p>TDM 2:1 mux/demux: bit-interleave [a&#x2080;,b&#x2080;,a&#x2081;,b&#x2081;,&hellip;] &rarr; round-trip verify.</p>
   </details>
 
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!--  TAB 5 — 3-D Optical Hash                                              -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TAB 5 — 3-D Hash
+     ═══════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-hash3d">
 <div class="container">
 
@@ -373,196 +448,250 @@
   <div class="chip-row"   id="chips-hash"></div>
   <div class="plot-wrap">
     <div class="spinner"  id="spin-hash">&#9881;</div>
-    <img class="plot-img" id="img-hash" alt="3D Hash"/>
+    <img class="plot-img" id="img-hash" alt="3-D Hash"/>
   </div>
 
   <details>
-    <summary>3-D optical hash + energy minimisation theory</summary>
-    <p><strong>OpticalHash3D</strong> — sparse voxel hash over (x,y,λ) space.</p>
-    <p>Hash function: <code>h(ix,iy,iλ) = (ix·p₁ ⊕ iy·p₂ ⊕ iλ·p₃) mod N</code> (polynomial XOR)</p>
-    <p>Energy functional:</p>
-    <p><code>H = 0.1·H_TV + 0.4·H_pc</code></p>
-    <p><code>H_TV = ½·Σ|E_i − E_j|²</code> — total variation (penalises abrupt field changes)</p>
-    <p><code>H_pc = Σ(|E_k|−1)²</code> — TD-GS pure-phase constraint</p>
-    <p>Gradient descent drives the stored field toward a smooth unit-amplitude wavefront.</p>
-    <p><strong>OpticalLSH</strong> — locality-sensitive hashing for O(1) approximate
-       nearest-neighbour retrieval. Random projections: <code>h(v)=sign(Av+b)∈{0,1}^n</code></p>
-    <p>Plots: wavefront amplitude scatter · |E|(λ) scatter · hash bucket histogram ·
-       energy convergence (H_TV, H_pc, H_total) · (x,λ) projection</p>
+    <summary>3-D optical hash + energy minimisation</summary>
+    <p>Sparse voxel hash over (x,y,&lambda;). Polynomial XOR: <code>h = (ix&middot;p&#x2081; &oplus; iy&middot;p&#x2082; &oplus; i&lambda;&middot;p&#x2083;) mod N</code></p>
+    <p>Energy: <code>H = 0.1&middot;H&#x209C;&#x1D65B; + 0.4&middot;H&#x209A;&#x1D68;</code> &mdash; Wirtinger gradient descent.</p>
+    <p>LSH: random projections <code>h(v)=sign(Av+b)&in;{0,1}&#x207F;</code> for O(1) nearest-neighbour retrieval.</p>
   </details>
 
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     SCRIPTS
+     ═══════════════════════════════════════════════════ -->
 <script>
-// ── Tab switching ────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+/* ── Voronoi canvas ──────────────────────────────────── */
+(function(){
+  const canvas = document.getElementById('vcanvas');
+  const wrap   = document.getElementById('header-wrap');
+
+  function draw(){
+    const W = wrap.clientWidth || 1200;
+    const H = 128;
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(W, H);
+
+    // Bauhaus colors as [r,g,b]
+    const PAL = [
+      [196, 30, 58],   // rot
+      [20, 65, 160],   // blau
+      [240, 186, 0],   // gelb
+      [40,  40, 40],   // schwarz
+      [220, 218, 211], // grau
+      [196, 30, 58],   // rot again (for symmetry variety)
+    ];
+
+    // 6 base seeds in top-left quadrant, seeded PRNG
+    let s = 0xABCD1234;
+    function rng(){ s ^= s<<13; s ^= s>>17; s ^= s<<5; return (s>>>0)/4294967296; }
+    const baseSeeds = Array.from({length:6}, (_,i)=>({
+      x: (rng()*0.42 + 0.04) * (W/2),
+      y: (rng()*0.80 + 0.05) * H,
+      c: PAL[i % PAL.length]
+    }));
+
+    // Mirror left↔right  (2-fold X symmetry)
+    const seeds = baseSeeds.flatMap(s=>[
+      {x:s.x,   y:s.y, c:s.c},
+      {x:W-s.x, y:s.y, c:s.c},
+    ]);
+
+    // Rasterize nearest-neighbour — step every 2 pixels for speed
+    const STEP = 2;
+    for(let y=0; y<H; y+=STEP){
+      for(let x=0; x<W; x+=STEP){
+        let minD=1e12, ni=0;
+        for(let i=0;i<seeds.length;i++){
+          const dx=x-seeds[i].x, dy=y-seeds[i].y;
+          const d=dx*dx+dy*dy;
+          if(d<minD){ minD=d; ni=i; }
+        }
+        const [r,g,b]=seeds[ni].c;
+        // Fill STEP×STEP block
+        for(let dy2=0;dy2<STEP&&y+dy2<H;dy2++){
+          for(let dx2=0;dx2<STEP&&x+dx2<W;dx2++){
+            const idx=((y+dy2)*W+(x+dx2))*4;
+            img.data[idx]=r; img.data[idx+1]=g;
+            img.data[idx+2]=b; img.data[idx+3]=175;
+          }
+        }
+      }
+    }
+    ctx.putImageData(img,0,0);
+
+    // Draw thin cell boundary lines (detect color changes)
+    ctx.strokeStyle='rgba(17,17,17,0.35)';
+    ctx.lineWidth=1;
+    // horizontal scan for vertical edges
+    for(let y=0;y<H;y+=STEP){
+      for(let x=STEP;x<W;x+=STEP){
+        const idxL=((y)*W+(x-STEP))*4;
+        const idxR=((y)*W+(x))*4;
+        if(img.data[idxL]!==img.data[idxR]||
+           img.data[idxL+1]!==img.data[idxR+1]){
+          ctx.beginPath();
+          ctx.moveTo(x,Math.max(0,y-STEP));
+          ctx.lineTo(x,Math.min(H,y+STEP));
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  draw();
+  window.addEventListener('resize', draw);
+})();
+
+/* ── Tab switching ───────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
   });
 });
 
-// ── Drag & drop ───────────────────────────────────────────────────────────
-const dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); dz.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f) uploadFileObj(f);
-});
+/* ── Upload helpers ──────────────────────────────────── */
+function autoUpload(input){ if(input.files[0]) uploadFileObj(input.files[0]); }
 
-// ── Two-click auto-upload: fires immediately on file select ───────────────
-function autoUpload(input) {
-  if (input.files[0]) uploadFileObj(input.files[0]);
-}
-
-function uploadFileObj(f) {
-  setStatus('status-sig', `Uploading ${f.name} (${(f.size/1024).toFixed(1)} KB)…`, false);
-  spin('spin-sig', true); hide('img-sig');
-
-  // Pack file + metadata form fields into one multipart POST
-  const fd = new FormData();
-  fd.append('file', f);
-  fd.append('D1',  document.getElementById('meta-d1').value  || '-600');
-  fd.append('D2',  document.getElementById('meta-d2').value  || '-1200');
-  fd.append('lam', document.getElementById('meta-lam').value || '1550');
-  fd.append('fs',  document.getElementById('meta-fs').value  || '56');
-  fd.append('lab', document.getElementById('meta-lab').value  || '');
-  fd.append('desc',document.getElementById('meta-desc').value || '');
-
-  fetch('/upload', {method:'POST', body:fd})
-    .then(r => r.json()).then(d => {
-      spin('spin-sig', false);
-      if (d.error) { setStatus('status-sig', 'Error: '+d.error, true); return; }
-      // Merge metadata fields into displayed chips
-      const meta = {
-        D1_ps2:    document.getElementById('meta-d1').value  || '-600',
-        D2_ps2:    document.getElementById('meta-d2').value  || '-1200',
-        'λ₀_nm':   document.getElementById('meta-lam').value || '1550',
-        'fs_GSas': document.getElementById('meta-fs').value  || '56',
+function uploadFileObj(f){
+  setStatus('status-sig',`Uploading ${f.name} (${(f.size/1024).toFixed(1)} KB)…`,false);
+  spin('spin-sig',true); hide('img-sig');
+  const fd=new FormData(); fd.append('file',f);
+  fd.append('D1',  document.getElementById('meta-d1').value||'-600');
+  fd.append('D2',  document.getElementById('meta-d2').value||'-1200');
+  fd.append('lam', document.getElementById('meta-lam').value||'1550');
+  fd.append('fs',  document.getElementById('meta-fs').value||'56');
+  fd.append('lab', document.getElementById('meta-lab').value||'');
+  fd.append('desc',document.getElementById('meta-desc').value||'');
+  fetch('/upload',{method:'POST',body:fd})
+    .then(r=>r.json()).then(d=>{
+      spin('spin-sig',false);
+      if(d.error){ setStatus('status-sig','Error: '+d.error,true); return; }
+      const meta={
+        D1_ps2:    document.getElementById('meta-d1').value||'-600',
+        D2_ps2:    document.getElementById('meta-d2').value||'-1200',
+        'λ₀_nm': document.getElementById('meta-lam').value||'1550',
+        fs_GSas:   document.getElementById('meta-fs').value||'56',
       };
-      const chips = Object.assign({}, meta, d.stats);
-      if (d.two_arm) chips['2-arm'] = 'MAT ✓';
-      renderChips('chips-sig', chips);
-      showImg('img-sig', d.plot);
-      const desc = document.getElementById('meta-desc').value;
-      const lab  = document.getElementById('meta-lab').value;
-      const arm  = d.two_arm ? '  [2-arm TD-GS 50-iter]' : '';
+      const chips=Object.assign({},meta,d.stats);
+      if(d.two_arm) chips['2-arm']='MAT ✓';
+      renderChips('chips-sig',chips);
+      showImg('img-sig',d.plot);
+      const arm=d.two_arm?'  [2-arm TD-GS 50-iter]':'';
+      const desc=document.getElementById('meta-desc').value;
+      const lab=document.getElementById('meta-lab').value;
       setStatus('status-sig',
-        `✓ ${d.filename}${arm}` + (desc ? `  — ${desc}` : '') +
-        (lab ? `  | ${lab}` : ''), false);
-    }).catch(e => { spin('spin-sig',false); setStatus('status-sig','Network: '+e.message,true); });
+        '✓ '+d.filename+arm+(desc?' — '+desc:'')+(lab?' | '+lab:''),false);
+    }).catch(e=>{spin('spin-sig',false);setStatus('status-sig','Network: '+e.message,true);});
 }
 
-async function runDemo() {
-  setStatus('status-sig','Running demo…',false); spin('spin-sig',true); hide('img-sig');
-  try {
-    const d = await fetch('/demo').then(r=>r.json());
+async function runDemo(){
+  setStatus('status-sig','Running demo…',false);spin('spin-sig',true);hide('img-sig');
+  try{
+    const d=await fetch('/demo').then(r=>r.json());
     spin('spin-sig',false);
-    if(d.error){ setStatus('status-sig','Error: '+d.error,true); return; }
-    renderChips('chips-sig', d.stats);
-    showImg('img-sig', d.plot);
-    setStatus('status-sig','Demo: '+d.source, false);
-  } catch(e){ spin('spin-sig',false); setStatus('status-sig','Error: '+e.message,true); }
+    if(d.error){setStatus('status-sig','Error: '+d.error,true);return;}
+    renderChips('chips-sig',d.stats);
+    showImg('img-sig',d.plot);
+    setStatus('status-sig','Demo: '+d.source,false);
+  }catch(e){spin('spin-sig',false);setStatus('status-sig','Error: '+e.message,true);}
 }
 
-// ── QPSK ──────────────────────────────────────────────────────────────────
-async function runQPSK() {
-  const snr   = document.getElementById('qpsk-snr').value;
-  const nbits = document.getElementById('qpsk-nbits').value;
-  setStatus('status-qpsk','Running QPSK sim…',false); spin('spin-qpsk',true); hide('img-qpsk');
-  try {
-    const d = await fetch(`/qpsk?snr=${snr}&nbits=${nbits}`).then(r=>r.json());
+/* ── QPSK ────────────────────────────────────────────── */
+async function runQPSK(){
+  const snr=document.getElementById('qpsk-snr').value;
+  const nbits=document.getElementById('qpsk-nbits').value;
+  setStatus('status-qpsk','Running QPSK…',false);spin('spin-qpsk',true);hide('img-qpsk');
+  try{
+    const d=await fetch(`/qpsk?snr=${snr}&nbits=${nbits}`).then(r=>r.json());
     spin('spin-qpsk',false);
-    if(d.error){ setStatus('status-qpsk','Error: '+d.error,true); return; }
-    renderChips('chips-qpsk', {SNR_dB: d.snr_db, BER: d.ber.toExponential(2)});
-    showImg('img-qpsk', d.plot);
+    if(d.error){setStatus('status-qpsk','Error: '+d.error,true);return;}
+    renderChips('chips-qpsk',{SNR_dB:d.snr_db,BER:d.ber.toExponential(2)});
+    showImg('img-qpsk',d.plot);
     setStatus('status-qpsk',`SNR=${snr} dB  BER=${d.ber.toExponential(2)}`,false);
-  } catch(e){ spin('spin-qpsk',false); setStatus('status-qpsk','Error: '+e.message,true); }
+  }catch(e){spin('spin-qpsk',false);setStatus('status-qpsk','Error: '+e.message,true);}
 }
 
-// ── WDM ───────────────────────────────────────────────────────────────────
-async function runWDM() {
-  const nch = document.getElementById('wdm-nch').value;
-  const snr = document.getElementById('wdm-snr').value;
-  setStatus('status-wdm','Running WDM sim…',false); spin('spin-wdm',true); hide('img-wdm');
-  try {
-    const d = await fetch(`/wdm?nch=${nch}&snr=${snr}`).then(r=>r.json());
+/* ── WDM ─────────────────────────────────────────────── */
+async function runWDM(){
+  const nch=document.getElementById('wdm-nch').value;
+  const snr=document.getElementById('wdm-snr').value;
+  setStatus('status-wdm','Running WDM…',false);spin('spin-wdm',true);hide('img-wdm');
+  try{
+    const d=await fetch(`/wdm?nch=${nch}&snr=${snr}`).then(r=>r.json());
     spin('spin-wdm',false);
-    if(d.error){ setStatus('status-wdm','Error: '+d.error,true); return; }
-    renderChips('chips-wdm', {channels: d.n_ch, λ_min: d.lam_min.toFixed(1)+' nm',
-                               λ_max: d.lam_max.toFixed(1)+' nm', SNR_dB: snr});
-    showImg('img-wdm', d.plot);
-    setStatus('status-wdm',`${nch} channels  ${d.lam_min.toFixed(1)}–${d.lam_max.toFixed(1)} nm`,false);
-  } catch(e){ spin('spin-wdm',false); setStatus('status-wdm','Error: '+e.message,true); }
+    if(d.error){setStatus('status-wdm','Error: '+d.error,true);return;}
+    renderChips('chips-wdm',{channels:d.n_ch,
+      'λ_min':d.lam_min.toFixed(1)+' nm','λ_max':d.lam_max.toFixed(1)+' nm',SNR_dB:snr});
+    showImg('img-wdm',d.plot);
+    setStatus('status-wdm',`${nch} ch  ${d.lam_min.toFixed(1)}–${d.lam_max.toFixed(1)} nm`,false);
+  }catch(e){spin('spin-wdm',false);setStatus('status-wdm','Error: '+e.message,true);}
 }
 
-// ── Digital ───────────────────────────────────────────────────────────────
-async function runDigital() {
-  const byteHex = document.getElementById('dig-byte').value || 'B2';
-  const cycles  = document.getElementById('dig-cycles').value;
-  const byteVal = parseInt(byteHex, 16);
-  if (isNaN(byteVal)){ setStatus('status-dig','Invalid hex byte',true); return; }
-  setStatus('status-dig','Running digital sim…',false); spin('spin-dig',true); hide('img-dig');
-  try {
-    const d = await fetch(`/digital?byte=${byteVal}&cycles=${cycles}`).then(r=>r.json());
+/* ── Digital ─────────────────────────────────────────── */
+async function runDigital(){
+  const byteHex=document.getElementById('dig-byte').value||'B2';
+  const cycles=document.getElementById('dig-cycles').value;
+  const byteVal=parseInt(byteHex,16);
+  if(isNaN(byteVal)){setStatus('status-dig','Invalid hex byte',true);return;}
+  setStatus('status-dig','Running digital…',false);spin('spin-dig',true);hide('img-dig');
+  try{
+    const d=await fetch(`/digital?byte=${byteVal}&cycles=${cycles}`).then(r=>r.json());
     spin('spin-dig',false);
-    if(d.error){ setStatus('status-dig','Error: '+d.error,true); return; }
-    renderChips('chips-dig', {byte: '0x'+byteHex.toUpperCase(),
-                               TDM: d.tdm_ok?'OK':'FAIL', cycles});
-    showImg('img-dig', d.plot);
-    setStatus('status-dig',`data=0x${byteHex.toUpperCase()}  TDM round-trip: ${d.tdm_ok?'OK':'FAIL'}`,false);
-  } catch(e){ spin('spin-dig',false); setStatus('status-dig','Error: '+e.message,true); }
+    if(d.error){setStatus('status-dig','Error: '+d.error,true);return;}
+    renderChips('chips-dig',{byte:'0x'+byteHex.toUpperCase(),TDM:d.tdm_ok?'OK':'FAIL',cycles});
+    showImg('img-dig',d.plot);
+    setStatus('status-dig',`data=0x${byteHex.toUpperCase()}  TDM: ${d.tdm_ok?'OK':'FAIL'}`,false);
+  }catch(e){spin('spin-dig',false);setStatus('status-dig','Error: '+e.message,true);}
 }
 
-// ── 3-D Hash ─────────────────────────────────────────────────────────────
-async function runHash3D() {
-  const npts = document.getElementById('hash-npts').value;
-  setStatus('status-hash','Running 3-D hash…',false); spin('spin-hash',true); hide('img-hash');
-  try {
-    const d = await fetch(`/hash3d?npts=${npts}`).then(r=>r.json());
+/* ── 3-D Hash ────────────────────────────────────────── */
+async function runHash3D(){
+  const npts=document.getElementById('hash-npts').value;
+  setStatus('status-hash','Running 3-D hash…',false);spin('spin-hash',true);hide('img-hash');
+  try{
+    const d=await fetch(`/hash3d?npts=${npts}`).then(r=>r.json());
     spin('spin-hash',false);
-    if(d.error){ setStatus('status-hash','Error: '+d.error,true); return; }
-    renderChips('chips-hash', {
-      N_voxels:   d.n_stored,
-      H_init:     d.H_init.toFixed(3),
-      H_final:    d.H_final.toFixed(3),
-      reduction:  (d.reduction*100).toFixed(1)+'%',
-      collisions: (d.collision_rate*100).toFixed(1)+'%',
+    if(d.error){setStatus('status-hash','Error: '+d.error,true);return;}
+    renderChips('chips-hash',{
+      N_voxels:d.n_stored, H_init:d.H_init.toFixed(3),
+      H_final:d.H_final.toFixed(3),
+      reduction:(d.reduction*100).toFixed(1)+'%',
+      collisions:(d.collision_rate*100).toFixed(1)+'%',
     });
-    showImg('img-hash', d.plot);
+    showImg('img-hash',d.plot);
     setStatus('status-hash',
       `${d.n_stored} voxels  H: ${d.H_init.toFixed(2)}→${d.H_final.toFixed(2)}`+
-      `  (↓${(d.reduction*100).toFixed(1)}%)  LSH collisions: ${(d.collision_rate*100).toFixed(1)}%`,
-      false);
-  } catch(e){ spin('spin-hash',false); setStatus('status-hash','Error: '+e.message,true); }
+      `  (↓${(d.reduction*100).toFixed(1)}%)`,false);
+  }catch(e){spin('spin-hash',false);setStatus('status-hash','Error: '+e.message,true);}
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-function setStatus(id, msg, isErr) {
-  const el = document.getElementById(id);
-  el.textContent = msg; el.style.display = 'block';
-  el.className = 'status-bar' + (isErr ? ' err' : '');
+/* ── Shared helpers ──────────────────────────────────── */
+function setStatus(id,msg,isErr){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.style.display='block';
+  el.className='status-bar'+(isErr?' err':'');
 }
-function spin(id, on) {
-  document.getElementById(id).style.display = on ? 'block' : 'none';
+function spin(id,on){ document.getElementById(id).style.display=on?'block':'none'; }
+function hide(id){ document.getElementById(id).style.display='none'; }
+function showImg(id,b64){
+  const el=document.getElementById(id);
+  el.src='data:image/png;base64,'+b64; el.style.display='block';
 }
-function hide(id) { document.getElementById(id).style.display = 'none'; }
-function showImg(id, b64) {
-  const el = document.getElementById(id);
-  el.src = 'data:image/png;base64,' + b64;
-  el.style.display = 'block';
-}
-function renderChips(rowId, obj) {
-  const row = document.getElementById(rowId); row.innerHTML = '';
-  for (const [k, v] of Object.entries(obj)) {
-    const c = document.createElement('div'); c.className = 'chip';
-    c.innerHTML = `${k}: <span>${v}</span>`; row.appendChild(c);
+function renderChips(rowId,obj){
+  const row=document.getElementById(rowId); row.innerHTML='';
+  for(const [k,v] of Object.entries(obj)){
+    const c=document.createElement('div'); c.className='chip';
+    c.innerHTML=`${k}:<span>${v}</span>`; row.appendChild(c);
   }
 }
 </script>
