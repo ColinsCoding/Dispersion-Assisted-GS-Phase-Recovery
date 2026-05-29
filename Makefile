@@ -14,7 +14,7 @@ FW_LIBS   := -lm -lfftw3f -lpthread
 DASH_DIR  := optical_dashboard
 DASH_APP  := $(DASH_DIR)/app.py
 
-.PHONY: install run seals execute clean push help firmware dashboard
+.PHONY: install run seals execute clean push help firmware dashboard server
 
 help:
 	@echo "Dispersion-Assisted Optical Phase Recovery"
@@ -24,6 +24,7 @@ help:
 	@echo "  run          Open phase_retrieval.ipynb in Jupyter"
 	@echo "  seals        Open SEALS simulation notebook"
 	@echo "  execute      Run notebook top-to-bottom and save outputs"
+	@echo "  server       Cross-compile C socket server -> server/optical_rx (aarch64)"
 	@echo "  firmware     Cross-compile rogueguard firmware -> aarch64 ELF"
 	@echo "  dashboard    Start Flask optical dashboard (http://localhost:5000)"
 	@echo "  clean        Remove cache files and generated outputs"
@@ -40,6 +41,9 @@ seals:
 
 execute:
 	jupyter nbconvert --to notebook --execute --inplace $(NOTEBOOK)
+
+server:
+	$(MAKE) -C server
 
 firmware: $(FW_SRC) $(FW_DIR)/rogueguard_firmware.h
 	$(FW_CC) $(FW_CFLAGS) -o $(FW_BIN) $(FW_SRC) $(FW_LIBS)
