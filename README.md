@@ -7,6 +7,48 @@ Two dispersed measurements. No local oscillator. No 90° hybrid.
 
 ---
 
+## Live Dashboard
+
+[![Live Dashboard](https://img.shields.io/badge/Live%20Dashboard-%E2%96%B6%20Open-50d8ff?style=for-the-badge&logo=flask&logoColor=black)](https://jalabi-dashboard.onrender.com)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ColinsCoding/Dispersion-Assisted-GS-Phase-Recovery)
+[![Health](https://img.shields.io/badge/health-/health-00ff9f?style=flat-square)](https://jalabi-dashboard.onrender.com/health)
+
+> **Two clicks to use the dashboard:**
+> 1. Click **▶ Open** badge above
+> 2. Pick a tab (QPSK · WDM · Digital · 3-D Hash) — or drop a `.csv` / `.npy` file
+
+---
+
+## Deploy your own copy in 5 steps (free)
+
+```
+1.  Go to:  https://render.com/deploy?repo=https://github.com/ColinsCoding/Dispersion-Assisted-GS-Phase-Recovery
+2.  Click "Deploy to Render"  (no credit card required for free tier)
+3.  Wait ~3 min for Docker build
+4.  Copy your URL:  https://<your-service-name>.onrender.com
+5.  Replace the badge URL in this README, commit
+```
+
+**Keep it awake 24/7 for free** (Render free tier sleeps after 15 min idle):
+```
+uptimerobot.com → New Monitor → HTTP(s) → URL: https://<your-name>.onrender.com/health
+Interval: 5 minutes  →  your service never sleeps
+```
+
+**Alternative — Cloudflare Tunnel (no server, no sleep, machine must stay on):**
+```bash
+cloudflared tunnel --url http://localhost:5000
+# prints: https://xxxx.trycloudflare.com  ← paste into README badge
+```
+
+**Alternative — Railway ($5/mo, true always-on):**
+```
+railway.app → New Project → Deploy from GitHub
+             → select this repo → port 5000 → Deploy
+```
+
+---
+
 ```
  I₁[n] ── D₁ = −600 ps²  ──┐
                              ├── TD-GS (200 iter) ──► φ(t)  ──► CNN ──► SNMP alert

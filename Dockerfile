@@ -5,8 +5,10 @@
 # ══════════════════════════════════════════════════════════════════════════
 FROM python:3.12-slim
 
-# ── System deps (curl for healthcheck probe) ─────────────────────────────
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# ── System deps ───────────────────────────────────────────────────────────
+# wget: tiny (200 KB), used only for HEALTHCHECK; no curl needed
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Non-root user (security: container can't write outside /app) ──────────
@@ -40,6 +42,6 @@ EXPOSE 5000
 
 # ── Healthcheck: /health must return 200 within 5 s ───────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -sf http://localhost:5000/health || exit 1
+  CMD wget -qO- http://localhost:5000/health || exit 1
 
 CMD ["python", "app.py"]

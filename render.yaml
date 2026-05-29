@@ -1,0 +1,20 @@
+# Render Blueprint — one-click deploy from GitHub
+# https://render.com/deploy?repo=https://github.com/ColinsCoding/Dispersion-Assisted-GS-Phase-Recovery
+
+services:
+  - type: web
+    name: jalabi-dashboard
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: FLASK_HOST
+        value: "0.0.0.0"
+      - key: FLASK_PORT
+        value: "5000"
+      - key: MAX_UPLOAD_MB
+        value: "64"
+      - key: UPLOAD_TTL_S
+        value: "3600"
