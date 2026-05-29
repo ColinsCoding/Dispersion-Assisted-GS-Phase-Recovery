@@ -81,7 +81,7 @@ python optical_dashboard/app.py   →   http://localhost:5000
 
 | Tab | Endpoint | Description |
 |-----|----------|-------------|
-| **Signal Analysis** | `POST /upload`, `GET /demo` | Drag-drop CSV/.npy → time-domain · PSD · spectrogram · TD-GS phase · autocorrelation. File auto-processes on select (two-click). UUID-isolated upload dirs, 1-hour auto-cleanup. |
+| **Signal Analysis** | `POST /upload`, `GET /demo` | Drag-drop `.mat`/CSV/NPY → time-domain · PSD · spectrogram · TD-GS phase · autocorrelation. `.mat` files with I1/I2 run full 2-arm TD-GS (50 iter). File auto-processes on select (two-click). UUID-isolated upload dirs, 1-hour auto-cleanup. |
 | **QPSK Modem** | `GET /qpsk?snr=&nbits=` | Gray-coded QPSK, RRC pulse shaping (β=0.35), AWGN, matched-filter RX. Constellation · BER vs SNR · eye diagram · phase trellis. |
 | **WDM 48-ch** | `GET /wdm?nch=&snr=` | ITU-T G.694.1 C-band, 100 GHz spacing. Per-channel demux power bar · λ-scatter · PSD overlay. |
 | **Digital Logic** | `GET /digital?byte=&cycles=` | D-latch · D flip-flop · 8-bit shift register · 2:1 MUX · TDM 2:1 mux/demux. State waterfall + control signals. |
@@ -117,7 +117,7 @@ docker compose down
 Security model: Flask container runs on an **internal Docker network with zero outbound internet**.  
 Filesystem is **read-only** (`read_only: true`) except the uploads volume.  
 All query parameters validated by regex/range guards — bad kwargs return HTTP 400.  
-Filenames whitelist-filtered: `[A-Za-z0-9_-][A-Za-z0-9_-.]{0,60}.(csv|npy|txt|dat)`.
+Filenames whitelist-filtered: `[A-Za-z0-9_-][A-Za-z0-9_-.]{0,60}.(csv|npy|txt|dat|mat)`.
 
 ### Public HTTPS via Cloudflare Tunnel (free, no port-forward)
 
@@ -147,7 +147,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 
 ---
 
-## Notebook · `phase_retrieval.ipynb` · 109 cells
+## Notebook · `phase_retrieval.ipynb` · 111 cells
 
 | § | Topic | OUSD Area |
 |---|---|---|
@@ -180,6 +180,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 | 72 | Neural PID backprop (torch) · EM phase optimisation (Adam) · Lagrangian/Jacobian · laser cavity · Falcon 9 Tsiolkovsky | Trusted AI · Advanced Computing |
 | 73 | 3-D optical voxel hash · energy minimisation (H_TV + H_pc Wirtinger GD) · LSH retrieval | Advanced Computing · Trusted AI |
 | 74 | Odd/even Cooley-Tukey butterfly circuit · F_p field arithmetic (BN128) · keccak256 commitments · `OpticalPhaseVerifier.sol` explicit trust | Trusted AI · Advanced Computing |
+| 75 | TX/RX dual FSM (male/female complementary pair) · modular arithmetic state machines (step%5, step%6, k%2) · MATLAB .mat upload · 2-arm TD-GS 50-iter convergence | FutureG · Advanced Computing |
 
 ## SEALS · `notebooks/seals_simulation.ipynb` · 10 cells
 

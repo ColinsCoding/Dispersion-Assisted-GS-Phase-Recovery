@@ -152,13 +152,51 @@
   <div id="drop-zone" onclick="document.getElementById('file-input').click()">
     <div class="icon">&#128190;</div>
     <strong>Drop optical data file here — or click to browse</strong>
-    <p>CSV (time, intensity) &nbsp;|&nbsp; .npy &nbsp;|&nbsp; .txt &nbsp;|&nbsp; file auto-processes on select</p>
+    <p>
+      <code>.mat</code> (MATLAB I1/I2) &nbsp;|&nbsp;
+      <code>.csv</code> (time, intensity) &nbsp;|&nbsp;
+      <code>.npy</code> &nbsp;|&nbsp;
+      <code>.txt</code> &nbsp;&mdash;&nbsp;
+      auto-processes on select (two clicks)
+    </p>
   </div>
-  <input type="file" id="file-input" accept=".csv,.npy,.txt,.dat"
+  <input type="file" id="file-input" accept=".csv,.npy,.txt,.dat,.mat"
          onchange="autoUpload(this)"/>
 
-  <div class="ctrl-row" style="padding:10px 14px;">
-    <button class="btn-demo" onclick="runDemo()">&#9654; Demo (synthetic STEAM pulse)</button>
+  <!-- ── Experiment metadata form ──────────────────────────────────────── -->
+  <div class="ctrl-row" id="meta-form" style="flex-wrap:wrap;gap:14px;">
+    <div class="ctrl-group">
+      <label>D&#8321; (ps²)&nbsp;<span style="color:var(--accent)">fiber 1</span></label>
+      <input type="number" id="meta-d1" value="-600" step="50"
+             title="Dispersion of fiber arm 1 in ps²" style="width:90px"/>
+    </div>
+    <div class="ctrl-group">
+      <label>D&#8322; (ps²)&nbsp;<span style="color:var(--pink)">fiber 2</span></label>
+      <input type="number" id="meta-d2" value="-1200" step="50"
+             title="Dispersion of fiber arm 2 in ps²" style="width:90px"/>
+    </div>
+    <div class="ctrl-group">
+      <label>&lambda;&#8320; (nm)</label>
+      <input type="number" id="meta-lam" value="1550" step="1"
+             title="Center wavelength in nm" style="width:80px"/>
+    </div>
+    <div class="ctrl-group">
+      <label>f&#8209;sample (GSa/s)</label>
+      <input type="number" id="meta-fs" value="56" step="1"
+             title="ADC sample rate in GSa/s" style="width:75px"/>
+    </div>
+    <div class="ctrl-group" style="min-width:150px;">
+      <label>Lab / Attribution</label>
+      <input type="text" id="meta-lab" value="Jalali Lab, UCLA"
+             placeholder="e.g. Jalali Lab" style="width:160px"/>
+    </div>
+    <div class="ctrl-group" style="flex:1;min-width:200px;">
+      <label>Experiment description</label>
+      <input type="text" id="meta-desc" value=""
+             placeholder="e.g. QPSK 28 Gbaud, D1=−600 D2=−1200 ps²"
+             style="width:100%;max-width:340px"/>
+    </div>
+    <button class="btn-demo" onclick="runDemo()">&#9654; Demo (synthetic STEAM)</button>
   </div>
 
   <div class="status-bar" id="status-sig"></div>
@@ -169,13 +207,18 @@
   </div>
 
   <details>
-    <summary>File format &amp; plots produced</summary>
+    <summary>File format &amp; parameters guide</summary>
     <ul>
-      <li><strong>CSV</strong>: two columns <code>time, intensity</code></li>
-      <li><strong>NPY</strong>: 1-D array or <code>(N,2)</code> array</li>
+      <li><strong>MATLAB .mat</strong>: save with <code>save('data.mat','I1','I2')</code> — automatic 2-arm TD-GS (50 iter)</li>
+      <li><strong>CSV / TXT</strong>: two columns <code>time, intensity</code> (no header required)</li>
+      <li><strong>NPY</strong>: 1-D float array (intensity only) or <code>(N,2)</code> array (time, intensity)</li>
     </ul>
-    <p>Plots: time domain + Hilbert envelope · Power PSD · STFT spectrogram ·
-       TD-GS phase (D1=&#8722;600 ps², D2=&#8722;1200 ps²) · instantaneous frequency · autocorrelation</p>
+    <p><strong>Parameters:</strong> D₁, D₂ (fiber dispersion ps²) &nbsp;|&nbsp;
+       λ₀ (center wavelength nm) &nbsp;|&nbsp; f_s (ADC sample rate GSa/s)</p>
+    <p><strong>TD-GS phase retrieval:</strong> H(ν)=exp(iπDν²) · 50 iterations for .mat (2-arm) ·
+       1 iteration estimate for single-arm files</p>
+    <p><strong>Plots:</strong> time domain + Hilbert envelope · Power PSD · STFT spectrogram ·
+       recovered phase φ(t) · instantaneous frequency · autocorrelation R(τ)</p>
     <p>Run locally: <code>python optical_dashboard/app.py</code> →
        <a href="http://localhost:5000">localhost:5000</a></p>
   </details>
@@ -386,9 +429,23 @@ function uploadFileObj(f) {
     .then(r => r.json()).then(d => {
       spin('spin-sig', false);
       if (d.error) { setStatus('status-sig', 'Error: '+d.error, true); return; }
-      renderChips('chips-sig', d.stats);
+      // Merge metadata fields into displayed chips
+      const meta = {
+        D1_ps2: document.getElementById('meta-d1').value || '-600',
+        D2_ps2: document.getElementById('meta-d2').value || '-1200',
+        lambda_nm: document.getElementById('meta-lam').value || '1550',
+        fs_GSas: document.getElementById('meta-fs').value || '56',
+      };
+      const chips = Object.assign({}, meta, d.stats);
+      if (d.two_arm) chips['2-arm'] = 'MAT ✓';
+      renderChips('chips-sig', chips);
       showImg('img-sig', d.plot);
-      setStatus('status-sig', `✓ ${d.filename}`, false);
+      const desc = document.getElementById('meta-desc').value;
+      const lab  = document.getElementById('meta-lab').value;
+      const arm  = d.two_arm ? '  [2-arm TD-GS]' : '';
+      setStatus('status-sig',
+        `✓ ${d.filename}${arm}` + (desc ? `  — ${desc}` : '') +
+        (lab ? `  | ${lab}` : ''), false);
     }).catch(e => { spin('spin-sig',false); setStatus('status-sig','Network: '+e.message,true); });
 }
 

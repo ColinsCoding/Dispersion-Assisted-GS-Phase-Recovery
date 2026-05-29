@@ -53,7 +53,7 @@ UPLOAD_TTL  = _UPLOAD_TTL
 # Filename: printable ASCII, no path separators, no shell metacharacters
 _SAFE_FNAME = re.compile(
     r'^[A-Za-z0-9_\-][A-Za-z0-9_\-\.]{0,60}'
-    r'\.(csv|npy|txt|dat)$',
+    r'\.(csv|npy|txt|dat|mat)$',
     re.IGNORECASE,
 )
 _NULL_BYTES    = re.compile(rb'\x00')
@@ -67,11 +67,17 @@ def _sanitize_filename(raw: str) -> str:
     return name
 
 def _sanitize_bytes(data: bytes, ext: str) -> bytes:
-    """Light content scan for text files; npy files skip text checks."""
+    """Light content scan for text files; binary formats skip text checks."""
     if ext == ".npy":
         # NumPy magic bytes: \x93NUMPY
         if len(data) > 6 and data[:6] != b'\x93NUMPY':
             raise ValueError("File claims .npy but missing NumPy magic header")
+        return data
+    if ext == ".mat":
+        # MATLAB v5 magic: first 116 bytes are ASCII header starting with "MATLAB 5.0"
+        # MATLAB v4 and HDF5-based v7.3 are also binary — just ensure non-empty
+        if len(data) < 4:
+            raise ValueError(".mat file too small")
         return data
     if _NULL_BYTES.search(data):
         raise ValueError("File contains null bytes — binary content in text file?")
@@ -137,7 +143,25 @@ def dark(ax, title="", xl="", yl=""):
 
 # ── Data loader ───────────────────────────────────────────────────────────────
 def load_optical(path: Path):
-    if path.suffix == ".npy":
+    """
+    Load optical intensity data from CSV / NPY / MAT / TXT / DAT.
+
+    For .mat files with an I1/I2 pair, both arms are returned so the
+    Signal Analysis tab can display them side-by-side and run TD-GS.
+    For single-channel files, I2 is set to None.
+    Returns (t, y, y2_or_None).
+    """
+    ext = path.suffix.lower()
+
+    if ext == ".mat":
+        t, y, y2 = DSP.load_mat(path)
+        # normalise
+        for arr in (y, y2) if y2 is not None else (y,):
+            if np.ptp(arr) > 0:
+                arr -= arr.min(); arr /= (np.ptp(arr) + 1e-30)
+        return t.astype(float), y.astype(float), y2
+
+    if ext == ".npy":
         arr = np.load(path)
     else:
         rows = []
@@ -159,10 +183,10 @@ def load_optical(path: Path):
     y = y.astype(float)
     if np.ptp(y) > 0:
         y = (y - y.min()) / np.ptp(y)
-    return t.astype(float), y
+    return t.astype(float), y, None
 
 # ── Signal analysis plot ──────────────────────────────────────────────────────
-def analyse_plot(t, y):
+def analyse_plot(t, y, y2=None):
     N  = len(y)
     dt = float(np.mean(np.diff(t))) if N > 1 else 1.0
     fs = 1.0 / (dt + 1e-30)
@@ -180,17 +204,26 @@ def analyse_plot(t, y):
     nu  = np.fft.fftfreq(N)
     H   = np.exp(1j * np.pi * (D2 - D1) * nu ** 2)
     E   = np.sqrt(np.maximum(y, 0)).astype(complex)
-    phi = np.angle(np.fft.ifft(np.fft.fft(E) * H))
+    if y2 is not None:
+        # Full 2-arm TD-GS (50 iterations)
+        rx = DSP.OpticalRxFSM(D1=D1, D2=D2, n_iter=50)
+        phi, _ = rx.run(y, y2)
+    else:
+        phi = np.angle(np.fft.ifft(np.fft.fft(E) * H))
 
     fig = plt.figure(figsize=(14, 8))
     fig.patch.set_facecolor(FG)
     gs  = gridspec.GridSpec(2, 3, figure=fig, hspace=0.50, wspace=0.38)
 
     ax0 = fig.add_subplot(gs[0, 0])
-    ax0.plot(t, y,   color="#50d8ff", lw=0.8, alpha=0.7, label="signal")
+    label_y = "I₁(t)" if y2 is not None else "signal"
+    ax0.plot(t, y,   color="#50d8ff", lw=0.8, alpha=0.7, label=label_y)
+    if y2 is not None:
+        ax0.plot(t, y2, color="#ff3278", lw=0.8, alpha=0.7, label="I₂(t)  D₂")
     ax0.plot(t, env, color="#ffd040", lw=1.3, label="envelope")
     ax0.legend(fontsize=7, facecolor=BG, labelcolor="white")
-    dark(ax0, f"Time Domain  N={N}", "t", "amp")
+    arm_note = "  (2-arm .mat)" if y2 is not None else ""
+    dark(ax0, f"Time Domain  N={N}{arm_note}", "t", "amp")
 
     ax1 = fig.add_subplot(gs[0, 1])
     ax1.semilogy(freqs, np.maximum(psd, 1e-12), color="#00ff9f", lw=1.0)
@@ -230,6 +263,8 @@ def analyse_plot(t, y):
         "N": N, "dt": f"{dt:.4g}", "fs": f"{fs:.4g}",
         "f_peak": f"{f_pk:.4g}",
         "rms": f"{float(np.sqrt(np.mean(y**2))):.4f}",
+        "two_arm": y2 is not None,
+        "gs_iters": 50 if y2 is not None else 1,
     }
     return fig_b64(fig), stats
 
@@ -284,13 +319,15 @@ def upload():
         save_path = sess_dir / safe_name
         save_path.write_bytes(raw)
 
-        t, y = load_optical(save_path)
+        t, y, y2 = load_optical(save_path)
         if len(y) < 16:
             return jsonify({"error": f"Too few samples: {len(y)}"}), 400
 
-        plot, stats = analyse_plot(t, y)
+        plot, stats = analyse_plot(t, y, y2=y2)
+        has_two_arms = y2 is not None
         return jsonify({"plot": plot, "stats": stats, "session": session_id,
-                        "filename": safe_name})
+                        "filename": safe_name,
+                        "two_arm": has_two_arms})
     except Exception as e:
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
@@ -306,7 +343,8 @@ def demo():
     y   = np.clip(y, 0, None)
     plot, stats = analyse_plot(t, y)
     return jsonify({"plot": plot, "stats": stats,
-                    "source": "Synthetic STEAM: dispersion-stretched Gaussian + cell phase"})
+                    "source": "Synthetic STEAM: dispersion-stretched Gaussian + cell phase",
+                    "two_arm": False})
 
 # ── 3. QPSK modem ─────────────────────────────────────────────────────────────
 @app.route("/qpsk")

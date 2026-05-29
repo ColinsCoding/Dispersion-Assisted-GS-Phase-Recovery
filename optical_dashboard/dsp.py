@@ -14,6 +14,49 @@ from scipy.special import erfc
 PI = np.pi
 C_LIGHT = 299792458.0  # m/s
 
+# ── MATLAB .mat file loader (Jalali Lab data format) ──────────────────────────
+def load_mat(path):
+    """
+    Load optical intensity data from a MATLAB .mat file.
+
+    Searches for these variable names in priority order:
+      I1, I2, data, signal, intensity, y, x
+
+    Returns (t, I1, I2_or_None).
+    I2 is returned if both I1 and I2 exist in the file (two-arm measurement).
+    """
+    from scipy.io import loadmat
+    mat = loadmat(str(path), squeeze_me=True, mat_dtype=False)
+    # Strip MATLAB meta-keys
+    keys = [k for k in mat if not k.startswith('__')]
+
+    def _to_1d(v):
+        v = np.asarray(v, dtype=float).ravel()
+        return v[np.isfinite(v)]
+
+    # Prefer explicit I1 / I2 pair
+    if 'I1' in mat and 'I2' in mat:
+        I1 = _to_1d(mat['I1'])
+        I2 = _to_1d(mat['I2'])
+        N  = min(len(I1), len(I2))
+        t  = np.arange(N, dtype=float)
+        return t, I1[:N], I2[:N]
+
+    # Fallback: single array
+    for name in ('data', 'signal', 'intensity', 'y', 'x'):
+        if name in mat:
+            y = _to_1d(mat[name])
+            return np.arange(len(y), dtype=float), y, None
+
+    # Last resort: first numeric key
+    for k in keys:
+        v = mat[k]
+        if hasattr(v, '__len__') and len(np.asarray(v).ravel()) > 16:
+            y = _to_1d(v)
+            return np.arange(len(y), dtype=float), y, None
+
+    raise ValueError(f".mat file has no recognisable intensity variable. Keys: {keys}")
+
 # ════════════════════════════════════════════════════════════════════════════
 #  QPSK modem
 # ════════════════════════════════════════════════════════════════════════════
@@ -605,6 +648,268 @@ def optical_hash_demo(n_points=256, rng_seed=3):
         "collision_rate":  float(coll),
         "n_stored":        len(oh),
         "nbr_dists":       nbr_dists,
+    }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  §75  TX / RX Dual FSM  —  Male (transmit) / Female (receive)
+# ════════════════════════════════════════════════════════════════════════════
+#
+#  Modular arithmetic connection
+#  ──────────────────────────────
+#  TX cycles through |TX_STATES| = 5 states,  state_idx = step % 5
+#  RX cycles through |RX_STATES| = 6 states,  state_idx = step % 6
+#  GS inner loop alternates between two constraints:  k % 2
+#    k even  →  apply intensity constraint  |E| = sqrt(I)
+#    k odd   →  apply dispersion  H(nu) = exp(iπDν²)
+#
+#  Male FSM  (TX, generates optical signal)
+#  IDLE → LOAD_BITS → MODULATE → DISPERSE → SAMPLE → IDLE  (cycle)
+#
+#  Female FSM  (RX, receives and recovers phase)
+#  IDLE → UPLOAD → VALIDATE → PREPROCESS → GS_ITERATE → CONVERGED → IDLE
+#
+#  Together they form a complementary pair:
+#    TX.output  →  (channel)  →  RX.input
+#    TX.SAMPLE  ↔  RX.UPLOAD   (handshake)
+# ════════════════════════════════════════════════════════════════════════════
+
+class OpticalTxFSM:
+    """
+    Male FSM — optical transmitter.
+    Generates QPSK-modulated, dispersion-stretched intensity measurements.
+
+    States (modulo 5):
+      0  IDLE        — waiting for input bits
+      1  LOAD_BITS   — accept bit array, set parameters
+      2  MODULATE    — QPSK modulate + pulse shape
+      3  DISPERSE    — apply H1(nu) and H2(nu)  →  E1(t), E2(t)
+      4  SAMPLE      — |E1|², |E2|²  →  I1(t), I2(t)  (ready for TX)
+    """
+    STATES = ["IDLE", "LOAD_BITS", "MODULATE", "DISPERSE", "SAMPLE"]
+
+    def __init__(self, D1=-600.0, D2=-1200.0, sps=8, beta=0.35):
+        self.D1   = D1
+        self.D2   = D2
+        self.sps  = sps
+        self.beta = beta
+        self._step  = 0
+        self._bits  = None
+        self._tx    = None
+        self.I1     = None
+        self.I2     = None
+        self.history = []    # list of (step, state, note)
+
+    @property
+    def state(self):
+        return self.STATES[self._step % len(self.STATES)]
+
+    def _log(self, note=""):
+        self.history.append((self._step, self.state, note))
+
+    def step(self, bits=None):
+        """Advance FSM by one state. Pass bits only in IDLE state."""
+        s = self.state
+        if s == "IDLE":
+            if bits is not None:
+                self._bits = np.asarray(bits, dtype=int).ravel()
+                self._log(f"loaded {len(self._bits)} bits")
+            else:
+                self._log("idle — no bits")
+
+        elif s == "LOAD_BITS":
+            if self._bits is None:
+                raise RuntimeError("TX: no bits loaded before LOAD_BITS")
+            self._log(f"bits ready: n={len(self._bits)}")
+
+        elif s == "MODULATE":
+            self._tx = qpsk_tx(self._bits, self.sps, self.beta)
+            self._log(f"QPSK TX waveform: {len(self._tx)} samples")
+
+        elif s == "DISPERSE":
+            N   = len(self._tx)
+            nu  = np.fft.fftfreq(N)
+            H1  = np.exp(1j * PI * self.D1 * nu**2)
+            H2  = np.exp(1j * PI * self.D2 * nu**2)
+            TX_f = np.fft.fft(self._tx)
+            self._E1 = np.fft.ifft(TX_f * H1)
+            self._E2 = np.fft.ifft(TX_f * H2)
+            self._log(f"dispersed D1={self.D1} D2={self.D2} ps2")
+
+        elif s == "SAMPLE":
+            self.I1 = np.abs(self._E1)**2
+            self.I2 = np.abs(self._E2)**2
+            self._log(f"I1/I2 ready: {len(self.I1)} samples each")
+
+        self._step += 1
+        return self.state
+
+    def run(self, bits):
+        """Full TX pipeline: bits → I1, I2."""
+        self.step(bits)      # IDLE     → load bits
+        self.step()          # LOAD_BITS
+        self.step()          # MODULATE
+        self.step()          # DISPERSE
+        self.step()          # SAMPLE
+        return self.I1, self.I2
+
+
+class OpticalRxFSM:
+    """
+    Female FSM — optical receiver / phase retriever.
+    Accepts uploaded I1, I2 and recovers phi(t) via TD-GS.
+
+    States (modulo 6):
+      0  IDLE        — waiting for upload
+      1  UPLOAD      — accept I1, I2 arrays (or .mat/.npy file path)
+      2  VALIDATE    — check shape, remove NaN/Inf, normalise
+      3  PREPROCESS  — initialise E_est = sqrt(I1) * exp(i*0)
+      4  GS_ITERATE  — run n_iter Gerchberg-Saxton iterations
+                        k even: amplitude constraint  (|E| = sqrt(I))
+                        k odd:  dispersive constraint (H(nu) applied)
+      5  CONVERGED   — phi(t) = angle(E_est) ready for output
+    """
+    STATES = ["IDLE", "UPLOAD", "VALIDATE", "PREPROCESS", "GS_ITERATE", "CONVERGED"]
+
+    def __init__(self, D1=-600.0, D2=-1200.0, n_iter=50):
+        self.D1      = D1
+        self.D2      = D2
+        self.n_iter  = n_iter
+        self._step   = 0
+        self.I1      = None
+        self.I2      = None
+        self._E      = None
+        self.phi     = None
+        self.residuals = []
+        self.history   = []
+
+    @property
+    def state(self):
+        return self.STATES[self._step % len(self.STATES)]
+
+    def _log(self, note=""):
+        self.history.append((self._step, self.state, note))
+
+    def step(self, I1=None, I2=None):
+        """Advance FSM by one state. Pass I1/I2 in IDLE state."""
+        s = self.state
+        if s == "IDLE":
+            if I1 is not None:
+                self.I1 = np.asarray(I1, dtype=float).ravel()
+                self.I2 = np.asarray(I2 if I2 is not None else I1, dtype=float).ravel()
+                self._log(f"received I1/I2: {len(self.I1)} samples")
+            else:
+                self._log("idle — no data")
+
+        elif s == "UPLOAD":
+            self._log(f"upload confirmed: N={len(self.I1)}")
+
+        elif s == "VALIDATE":
+            N = min(len(self.I1), len(self.I2))
+            self.I1 = np.clip(np.nan_to_num(self.I1[:N]), 0, None)
+            self.I2 = np.clip(np.nan_to_num(self.I2[:N]), 0, None)
+            # Normalise to [0, 1]
+            mx = max(self.I1.max(), self.I2.max()) + 1e-12
+            self.I1 /= mx;  self.I2 /= mx
+            self._log(f"validated N={N}  max_I={mx:.4g}")
+
+        elif s == "PREPROCESS":
+            self._E = np.sqrt(self.I1).astype(complex)
+            N   = len(self.I1)
+            nu  = np.fft.fftfreq(N)
+            self._H1 = np.exp(1j * PI * self.D1 * nu**2)
+            self._H2 = np.exp(1j * PI * self.D2 * nu**2)
+            self._log("E_est = sqrt(I1), transfer functions computed")
+
+        elif s == "GS_ITERATE":
+            self.residuals = []
+            E = self._E
+            sqrt_I1 = np.sqrt(self.I1)
+            sqrt_I2 = np.sqrt(self.I2)
+            for k in range(self.n_iter):
+                if k % 2 == 0:
+                    # Even: amplitude constraint  (|T|=1 → unit amplitude)
+                    E = sqrt_I1 * np.exp(1j * np.angle(E))
+                else:
+                    # Odd: dispersive phase constraint
+                    E_spec = np.fft.fft(E) * self._H1
+                    E_spec = (np.abs(np.fft.fft(sqrt_I2))
+                              * np.exp(1j * np.angle(E_spec)))
+                    E = np.fft.ifft(E_spec / (self._H1 + 1e-12))
+                residual = float(np.mean((np.abs(E) - sqrt_I1)**2))
+                self.residuals.append(residual)
+            self._E = E
+            self._log(f"GS done: {self.n_iter} iter  final_residual={self.residuals[-1]:.4g}")
+
+        elif s == "CONVERGED":
+            self.phi = np.angle(self._E)
+            self._log(f"phi(t) ready  std={np.std(self.phi):.4f} rad")
+
+        self._step += 1
+        return self.state
+
+    def run(self, I1, I2):
+        """Full RX pipeline: I1, I2 → phi(t)."""
+        self.step(I1, I2)    # IDLE     → accept data
+        self.step()          # UPLOAD
+        self.step()          # VALIDATE
+        self.step()          # PREPROCESS
+        self.step()          # GS_ITERATE
+        self.step()          # CONVERGED
+        return self.phi, self.residuals
+
+
+def optical_link_fsm_demo(n_bits=256, snr_db=15.0, D1=-600.0, D2=-1200.0, rng_seed=5):
+    """
+    Full optical communication link using TX/RX dual FSM.
+
+    TX FSM (male)  :  bits → QPSK → disperse → I1, I2
+    AWGN channel   :  add noise at snr_db
+    RX FSM (female):  I1, I2 → validate → GS → phi(t)
+
+    Returns dict with FSM state histories, residuals, waveforms.
+    """
+    rng  = np.random.default_rng(rng_seed)
+    bits = rng.integers(0, 2, n_bits)
+
+    # ── TX ────────────────────────────────────────────────────────────────
+    tx_fsm = OpticalTxFSM(D1=D1, D2=D2)
+    I1, I2 = tx_fsm.run(bits)
+
+    # ── Channel: AWGN ─────────────────────────────────────────────────────
+    I1_noisy = np.abs(awgn(I1.astype(complex), snr_db))**2
+    I2_noisy = np.abs(awgn(I2.astype(complex), snr_db))**2
+
+    # ── RX ────────────────────────────────────────────────────────────────
+    rx_fsm = OpticalRxFSM(D1=D1, D2=D2, n_iter=60)
+    phi_est, residuals = rx_fsm.run(I1_noisy, I2_noisy)
+
+    # ── State-machine modular arithmetic table ────────────────────────────
+    tx_mod = [(i, i % len(OpticalTxFSM.STATES), OpticalTxFSM.STATES[i % len(OpticalTxFSM.STATES)])
+              for i in range(len(OpticalTxFSM.STATES) * 2)]
+    rx_mod = [(i, i % len(OpticalRxFSM.STATES), OpticalRxFSM.STATES[i % len(OpticalRxFSM.STATES)])
+              for i in range(len(OpticalRxFSM.STATES) * 2)]
+
+    # GS k%2 constraint table
+    gs_mod = [(k, k % 2, "amplitude" if k % 2 == 0 else "dispersion")
+              for k in range(10)]
+
+    return {
+        "I1":           I1[:256].tolist(),
+        "I2":           I2[:256].tolist(),
+        "I1_noisy":     I1_noisy[:256].tolist(),
+        "I2_noisy":     I2_noisy[:256].tolist(),
+        "phi_est":      phi_est.tolist(),
+        "residuals":    residuals,
+        "tx_history":   tx_fsm.history,
+        "rx_history":   rx_fsm.history,
+        "tx_mod_table": tx_mod,
+        "rx_mod_table": rx_mod,
+        "gs_mod_table": gs_mod,
+        "n_bits":       n_bits,
+        "snr_db":       snr_db,
+        "D1":           D1,
+        "D2":           D2,
     }
 
 
