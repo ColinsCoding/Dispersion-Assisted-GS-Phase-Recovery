@@ -1,28 +1,30 @@
 """
-optical_dashboard/app.py — Jalabi Lab Optical Signal Dashboard
+optical_dashboard/app.py — Jalali Lab Optical Signal Dashboard
 ==============================================================
+Flask HTTP layer.  Sits behind the C socket server (server/optical_rx.c)
+which handles raw ADC frame ingestion on AWS Graviton (Neoverse V1).
+
 Run:  python app.py  →  http://localhost:5000
-Docker: docker compose up -d  →  http://localhost:5000
+Docker: docker compose up -d
 
 Features
 --------
-  Signal Analysis : upload .mat/CSV/.npy → time-domain, PSD, spectrogram, TD-GS phase
+  Signal Analysis : .mat / CSV / NPY upload → TD-GS phase, PSD, STFT
   QPSK Modem      : Gray-coded QPSK TX/RX, RRC pulse shaping, BER vs SNR
   48-ch WDM       : ITU-T G.694.1 C-band, mux/demux, per-channel power
   Digital Logic   : 2:1 MUX, D-latch, D flip-flop, 8-bit shift register
   3-D Hash        : sparse voxel hash, energy minimisation, LSH retrieval
   Upload log      : GET /uploads/log  — SQLite audit table, all upload metadata
+  Summary         : GET /summary     — aggregate stats by format, lab, two-arm %
 
 Security
 --------
   Filename:  regex-whitelist  [A-Za-z0-9_-.]{1,64}  + extension check
   Content:   null-byte check, max line length guard, size cap (env MAX_UPLOAD_MB)
-  Network:   Flask container runs on internal Docker network (no outbound internet)
+  Network:   Flask container on internal Docker network (no outbound internet)
   Container: read-only rootfs, cap_drop=ALL, no-new-privileges
   Uploads:   UUID-isolated dirs, daemon-cleaned after UPLOAD_TTL_S seconds
   IP privacy: client IP stored as SHA-256 hash only — never raw
-
-Two-click upload: selecting a file auto-processes it immediately.
 """
 
 import os, io, re, uuid, time, hashlib, sqlite3, datetime, threading, traceback, base64
@@ -443,57 +445,7 @@ def summary():
         return jsonify({"error": str(e)}), 500
 
 
-# ── 0c. Alarm endpoint — 200 healthy, 503 degraded ────────────────────────────
-@app.route("/alarm")
-def alarm():
-    """
-    Simple health + threshold alarm endpoint.
-    Returns HTTP 200 if healthy, HTTP 503 if any alarm condition triggers.
-    UptimeRobot / cron / Cloudflare can monitor this URL.
-
-    Alarm conditions (configurable via query params):
-      max_error_pct   — max % of uploads that are errors   (default 50)
-      min_ok          — min total ok uploads to arm alarm   (default 10)
-    """
-    max_err_pct = float(request.args.get("max_error_pct", 50))
-    min_ok      = int(request.args.get("min_ok", 10))
-
-    alarms = []
-    try:
-        with _DB_LOCK:
-            con = sqlite3.connect(str(DB_PATH))
-            total   = con.execute("SELECT COUNT(*) FROM uploads").fetchone()[0]
-            ok_cnt  = con.execute("SELECT COUNT(*) FROM uploads WHERE status='ok'").fetchone()[0]
-            err_cnt = con.execute("SELECT COUNT(*) FROM uploads WHERE status='error'").fetchone()[0]
-            # Last upload time
-            last_row = con.execute(
-                "SELECT uploaded_at, status FROM uploads ORDER BY id DESC LIMIT 1"
-            ).fetchone()
-            con.close()
-
-        err_pct = 100.0 * err_cnt / max(total, 1)
-
-        if ok_cnt >= min_ok and err_pct > max_err_pct:
-            alarms.append(f"error_rate {err_pct:.1f}% > threshold {max_err_pct}%")
-
-        status_code = 503 if alarms else 200
-        return jsonify({
-            "alarm":          bool(alarms),
-            "conditions":     alarms,
-            "total_uploads":  total,
-            "ok_uploads":     ok_cnt,
-            "error_uploads":  err_cnt,
-            "error_pct":      round(err_pct, 1),
-            "last_upload":    dict(last_row) if last_row else None,
-            "uptime_s":       int(time.time() - _START_TIME),
-            "version":        _VERSION,
-        }), status_code
-
-    except Exception as e:
-        return jsonify({"alarm": True, "conditions": [str(e)]}), 503
-
-
-# ── 0e. Upload audit log (read-only JSON view of SQLite) ─────────────────────
+# ── 0c. Upload audit log (read-only JSON view of SQLite) ─────────────────────
 @app.route("/uploads/log")
 def uploads_log():
     """
