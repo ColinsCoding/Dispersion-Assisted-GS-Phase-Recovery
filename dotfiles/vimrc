@@ -1,0 +1,111 @@
+" ── Jalali Lab vimrc ─────────────────────────────────────────────────────────
+" Gabriel Morozowsky  |  UCLA ECE  |  Phase retrieval + SEALS
+" Works on: Raspberry Pi (Debian), WSL2, macOS
+
+set nocompatible
+filetype plugin indent on
+syntax on
+
+" ── Appearance ───────────────────────────────────────────────────────────────
+set number relativenumber
+set cursorline
+set colorcolumn=88          " PEP-8 + Rust style
+set laststatus=2
+set ruler
+set showcmd
+set wildmenu
+set wildmode=longest:full,full
+set scrolloff=8
+set sidescrolloff=8
+set signcolumn=yes
+
+" Dark theme (terminal 256-color)
+set background=dark
+set t_Co=256
+highlight ColorColumn ctermbg=235 guibg=#2c2d27
+highlight CursorLine  ctermbg=234 guibg=#1c1c1c
+
+" ── Indentation ──────────────────────────────────────────────────────────────
+set expandtab
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set autoindent smartindent
+
+autocmd FileType c,cpp,rust setlocal tabstop=4 shiftwidth=4
+autocmd FileType json,yaml,toml setlocal tabstop=2 shiftwidth=2
+autocmd FileType markdown setlocal wrap linebreak textwidth=0
+
+" ── Search ───────────────────────────────────────────────────────────────────
+set incsearch hlsearch ignorecase smartcase
+nnoremap <CR> :nohlsearch<CR>
+
+" ── Splits feel natural ───────────────────────────────────────────────────────
+set splitright splitbelow
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+nnoremap <C-Left>  :vertical resize -3<CR>
+nnoremap <C-Right> :vertical resize +3<CR>
+nnoremap <C-Up>    :resize +3<CR>
+nnoremap <C-Down>  :resize -3<CR>
+
+" ── Leader bindings (space) ───────────────────────────────────────────────────
+let mapleader = " "
+nnoremap <leader>w :w<CR>
+nnoremap <leader>q :q<CR>
+nnoremap <leader>e :Explore<CR>
+nnoremap <leader>f :find<Space>
+nnoremap <leader>b :buffers<CR>:b<Space>
+
+" ── File search without plugins ───────────────────────────────────────────────
+set path+=**
+set wildignore+=*/.git/*,*/__pycache__/*,*/target/*,*.pyc,*.o,*.so
+
+" ── Terminal (for Python / cargo) ────────────────────────────────────────────
+nnoremap <leader>t :terminal<CR>
+tnoremap <Esc> <C-\><C-n>
+
+" ── Python scientific shortcuts ───────────────────────────────────────────────
+autocmd FileType python nnoremap <leader>r :!python3 %<CR>
+autocmd FileType python nnoremap <leader>j :!jupyter nbconvert --to script %<CR>
+
+" ── Rust shortcuts ────────────────────────────────────────────────────────────
+autocmd FileType rust nnoremap <leader>r :!cargo run<CR>
+autocmd FileType rust nnoremap <leader>b :!cargo build --release<CR>
+autocmd FileType rust nnoremap <leader>c :!cargo clippy<CR>
+
+" ── C/C++ shortcuts ───────────────────────────────────────────────────────────
+autocmd FileType c   nnoremap <leader>r :!gcc -O2 -o %:r % && ./%:r<CR>
+autocmd FileType cpp nnoremap <leader>r :!g++ -O2 -std=c++17 -o %:r % && ./%:r<CR>
+
+" ── Statusline (no plugin) ────────────────────────────────────────────────────
+set statusline=
+set statusline+=\ %f                      " filename
+set statusline+=\ %m%r                    " modified / readonly
+set statusline+=%=                        " right align
+set statusline+=\ %{&filetype}            " filetype
+set statusline+=\ %l:%c                   " line:col
+set statusline+=\ %p%%\                   " percent
+
+" ── Clipboard ────────────────────────────────────────────────────────────────
+if has('clipboard')
+  set clipboard=unnamedplus
+endif
+
+" ── Misc quality of life ─────────────────────────────────────────────────────
+set hidden                    " switch buffers without saving
+set updatetime=300
+set timeoutlen=500
+set backspace=indent,eol,start
+set noerrorbells novisualbell
+set encoding=utf-8
+set fileencoding=utf-8
+
+" Keep undo history between sessions
+if has('persistent_undo')
+  set undofile
+  set undodir=~/.vim/undo//
+  silent !mkdir -p ~/.vim/undo
+endif
