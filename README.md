@@ -35,6 +35,21 @@ uptimerobot.com → New Monitor → HTTP(s) → URL: https://<your-name>.onrende
 Interval: 5 minutes  →  your service never sleeps
 ```
 
+**Alarm monitor** (UptimeRobot keyword alert on error rate):
+```
+uptimerobot.com → New Monitor → Keyword → URL: https://<your-name>.onrender.com/alarm
+Keyword: "alarm":false     (alerts when true = degraded)
+Interval: 5 minutes
+```
+
+**Verify a fresh deploy** (run from repo root, requires `requests` + `scipy`):
+```bash
+pip install requests scipy
+python test_upload.py --url https://<your-name>.onrender.com
+```
+Uploads 6 synthetic optical standards (OOK-NRZ, PAM4, QPSK, DPSK, STEAM, Soliton),
+reads `/uploads/log`, prints a verification table.
+
 **Alternative — Cloudflare Tunnel (no server, no sleep, machine must stay on):**
 ```bash
 cloudflared tunnel --url http://localhost:5000
@@ -82,6 +97,9 @@ python optical_dashboard/app.py   →   http://localhost:5000
 | Tab | Endpoint | Description |
 |-----|----------|-------------|
 | **Signal Analysis** | `POST /upload`, `GET /demo` | Drag-drop `.mat`/CSV/NPY → time-domain · PSD · spectrogram · TD-GS phase · autocorrelation. `.mat` files with I1/I2 run full 2-arm TD-GS (50 iter). File auto-processes on select (two-click). UUID-isolated upload dirs, 1-hour auto-cleanup. |
+| **Upload log** | `GET /uploads/log` | JSON paginated view of SQLite audit table — every upload row with DSP metadata, lab attribution, processing time. `?limit=&offset=&status=ok\|error` |
+| **Summary** | `GET /summary` | Aggregate stats from log — by extension, by lab, two-arm %, avg processing ms, recent experiment descriptions |
+| **Alarm** | `GET /alarm` | HTTP 200 healthy / 503 degraded. UptimeRobot / cron monitor. `?max_error_pct=50&min_ok=10` |
 | **QPSK Modem** | `GET /qpsk?snr=&nbits=` | Gray-coded QPSK, RRC pulse shaping (β=0.35), AWGN, matched-filter RX. Constellation · BER vs SNR · eye diagram · phase trellis. |
 | **WDM 48-ch** | `GET /wdm?nch=&snr=` | ITU-T G.694.1 C-band, 100 GHz spacing. Per-channel demux power bar · λ-scatter · PSD overlay. |
 | **Digital Logic** | `GET /digital?byte=&cycles=` | D-latch · D flip-flop · 8-bit shift register · 2:1 MUX · TDM 2:1 mux/demux. State waterfall + control signals. |
@@ -147,7 +165,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 
 ---
 
-## Notebook · `phase_retrieval.ipynb` · 111 cells
+## Notebook · `phase_retrieval.ipynb` · 113 cells
 
 | § | Topic | OUSD Area |
 |---|---|---|
@@ -181,6 +199,7 @@ docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
 | 73 | 3-D optical voxel hash · energy minimisation (H_TV + H_pc Wirtinger GD) · LSH retrieval | Advanced Computing · Trusted AI |
 | 74 | Odd/even Cooley-Tukey butterfly circuit · F_p field arithmetic (BN128) · keccak256 commitments · `OpticalPhaseVerifier.sol` explicit trust | Trusted AI · Advanced Computing |
 | 75 | TX/RX dual FSM (male/female complementary pair) · modular arithmetic state machines (step%5, step%6, k%2) · MATLAB .mat upload · 2-arm TD-GS 50-iter convergence | FutureG · Advanced Computing |
+| 76 | Jalali Lab aggregate study · 6 optical standards (OOK-NRZ, PAM4, QPSK, DPSK, STEAM, Soliton) · comparative TD-GS convergence · project conclusion | All OUSD areas |
 
 ## SEALS · `notebooks/seals_simulation.ipynb` · 10 cells
 

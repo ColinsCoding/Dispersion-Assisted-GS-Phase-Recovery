@@ -366,7 +366,134 @@ def health():
         "log_endpoint":  "/uploads/log",
     })
 
-# ── 0b. Upload audit log (read-only JSON view of SQLite) ─────────────────────
+# ── 0b. Aggregate summary (by extension, by lab, two-arm ratio, avg time) ────
+@app.route("/summary")
+def summary():
+    """
+    Aggregate statistics from the upload audit log.
+    Useful for: Jalabi Lab aggregate study of optical standard uploads.
+
+    Returns:
+      total_uploads, ok_uploads, error_uploads, two_arm_uploads
+      avg_processing_ms
+      by_extension  : count, ok_count, avg_n_samples, avg_processing_ms
+      by_lab        : count, ok_count, two_arm_count
+      recent_formats: last 20 distinct experiment descriptions
+    """
+    try:
+        with _DB_LOCK:
+            con = sqlite3.connect(str(DB_PATH))
+            con.row_factory = sqlite3.Row
+
+            total    = con.execute("SELECT COUNT(*) FROM uploads").fetchone()[0]
+            ok_cnt   = con.execute("SELECT COUNT(*) FROM uploads WHERE status='ok'").fetchone()[0]
+            err_cnt  = con.execute("SELECT COUNT(*) FROM uploads WHERE status='error'").fetchone()[0]
+            two_arm  = con.execute("SELECT COUNT(*) FROM uploads WHERE two_arm=1").fetchone()[0]
+            avg_ms   = con.execute(
+                "SELECT AVG(processing_ms) FROM uploads WHERE status='ok'"
+            ).fetchone()[0]
+
+            by_ext = [dict(r) for r in con.execute("""
+                SELECT extension,
+                       COUNT(*)                         AS count,
+                       SUM(CASE WHEN status='ok' THEN 1 ELSE 0 END) AS ok_count,
+                       AVG(n_samples)                   AS avg_n_samples,
+                       AVG(processing_ms)               AS avg_processing_ms,
+                       SUM(CASE WHEN two_arm=1 THEN 1 ELSE 0 END)   AS two_arm_count
+                FROM uploads
+                GROUP BY extension
+                ORDER BY count DESC
+            """).fetchall()]
+
+            by_lab = [dict(r) for r in con.execute("""
+                SELECT COALESCE(NULLIF(lab,''), '(unset)') AS lab,
+                       COUNT(*)                            AS count,
+                       SUM(CASE WHEN status='ok' THEN 1 ELSE 0 END) AS ok_count,
+                       SUM(CASE WHEN two_arm=1 THEN 1 ELSE 0 END)   AS two_arm_count,
+                       AVG(n_samples)                      AS avg_n_samples
+                FROM uploads
+                GROUP BY lab
+                ORDER BY count DESC
+                LIMIT 20
+            """).fetchall()]
+
+            recent_formats = [dict(r) for r in con.execute("""
+                SELECT DISTINCT experiment_desc, extension, D1_ps2, D2_ps2,
+                       lambda_nm, fs_GSas, uploaded_at
+                FROM uploads
+                WHERE status='ok' AND experiment_desc != '' AND experiment_desc IS NOT NULL
+                ORDER BY id DESC
+                LIMIT 20
+            """).fetchall()]
+
+            con.close()
+
+        return jsonify({
+            "total_uploads":    total,
+            "ok_uploads":       ok_cnt,
+            "error_uploads":    err_cnt,
+            "two_arm_uploads":  two_arm,
+            "two_arm_pct":      round(100.0 * two_arm / max(ok_cnt, 1), 1),
+            "avg_processing_ms": round(avg_ms or 0, 1),
+            "by_extension":     by_ext,
+            "by_lab":           by_lab,
+            "recent_formats":   recent_formats,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── 0c. Alarm endpoint — 200 healthy, 503 degraded ────────────────────────────
+@app.route("/alarm")
+def alarm():
+    """
+    Simple health + threshold alarm endpoint.
+    Returns HTTP 200 if healthy, HTTP 503 if any alarm condition triggers.
+    UptimeRobot / cron / Cloudflare can monitor this URL.
+
+    Alarm conditions (configurable via query params):
+      max_error_pct   — max % of uploads that are errors   (default 50)
+      min_ok          — min total ok uploads to arm alarm   (default 10)
+    """
+    max_err_pct = float(request.args.get("max_error_pct", 50))
+    min_ok      = int(request.args.get("min_ok", 10))
+
+    alarms = []
+    try:
+        with _DB_LOCK:
+            con = sqlite3.connect(str(DB_PATH))
+            total   = con.execute("SELECT COUNT(*) FROM uploads").fetchone()[0]
+            ok_cnt  = con.execute("SELECT COUNT(*) FROM uploads WHERE status='ok'").fetchone()[0]
+            err_cnt = con.execute("SELECT COUNT(*) FROM uploads WHERE status='error'").fetchone()[0]
+            # Last upload time
+            last_row = con.execute(
+                "SELECT uploaded_at, status FROM uploads ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            con.close()
+
+        err_pct = 100.0 * err_cnt / max(total, 1)
+
+        if ok_cnt >= min_ok and err_pct > max_err_pct:
+            alarms.append(f"error_rate {err_pct:.1f}% > threshold {max_err_pct}%")
+
+        status_code = 503 if alarms else 200
+        return jsonify({
+            "alarm":          bool(alarms),
+            "conditions":     alarms,
+            "total_uploads":  total,
+            "ok_uploads":     ok_cnt,
+            "error_uploads":  err_cnt,
+            "error_pct":      round(err_pct, 1),
+            "last_upload":    dict(last_row) if last_row else None,
+            "uptime_s":       int(time.time() - _START_TIME),
+            "version":        _VERSION,
+        }), status_code
+
+    except Exception as e:
+        return jsonify({"alarm": True, "conditions": [str(e)]}), 503
+
+
+# ── 0e. Upload audit log (read-only JSON view of SQLite) ─────────────────────
 @app.route("/uploads/log")
 def uploads_log():
     """
