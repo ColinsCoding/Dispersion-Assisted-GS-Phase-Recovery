@@ -2,6 +2,7 @@
 optical_dashboard/app.py — Jalali Lab Optical Signal Dashboard
 ==============================================================
 Run:  python app.py  →  http://localhost:5000
+Docker: docker compose up -d  →  http://localhost:5000
 
 Features
 --------
@@ -9,12 +10,20 @@ Features
   QPSK Modem      : Gray-coded QPSK TX/RX, RRC pulse shaping, BER vs SNR
   48-ch WDM       : ITU-T G.694.1 C-band, mux/demux, per-channel power
   Digital Logic   : 2:1 MUX, D-latch, D flip-flop, 8-bit shift register
+  3-D Hash        : sparse voxel hash, energy minimisation, LSH retrieval
+
+Security
+--------
+  Filename:  regex-whitelist  [A-Za-z0-9_-.]{1,64}  + extension check
+  Content:   null-byte check, max line length guard, size cap (env MAX_UPLOAD_MB)
+  Network:   Flask container runs on internal Docker network (no outbound internet)
+  Container: read-only rootfs, cap_drop=ALL, no-new-privileges
+  Uploads:   UUID-isolated dirs, daemon-cleaned after UPLOAD_TTL_S seconds
 
 Two-click upload: selecting a file auto-processes it immediately.
-Uploads stored in uploads/<uuid>/ (isolated per session, auto-cleaned after 1 h).
 """
 
-import os, io, uuid, time, threading, traceback, base64
+import os, io, re, uuid, time, threading, traceback, base64
 from pathlib import Path
 
 import numpy as np
@@ -28,12 +37,69 @@ from flask import Flask, render_template, request, jsonify, abort
 import dsp as DSP
 
 # ── App setup ────────────────────────────────────────────────────────────────
+_MAX_MB      = int(os.environ.get("MAX_UPLOAD_MB", 64))
+_UPLOAD_TTL  = int(os.environ.get("UPLOAD_TTL_S", 3600))
+_START_TIME  = time.time()
+_VERSION     = "1.1.0"
+
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024   # 64 MB hard limit
+app.config["MAX_CONTENT_LENGTH"] = _MAX_MB * 1024 * 1024
 
 UPLOAD_ROOT = Path(__file__).parent / "uploads"
 UPLOAD_ROOT.mkdir(exist_ok=True)
-UPLOAD_TTL  = 3600   # seconds before a session dir is removed
+UPLOAD_TTL  = _UPLOAD_TTL
+
+# ── Input sanitisation ────────────────────────────────────────────────────────
+# Filename: printable ASCII, no path separators, no shell metacharacters
+_SAFE_FNAME = re.compile(
+    r'^[A-Za-z0-9_\-][A-Za-z0-9_\-\.]{0,60}'
+    r'\.(csv|npy|txt|dat)$',
+    re.IGNORECASE,
+)
+_NULL_BYTES    = re.compile(rb'\x00')
+_MAX_LINE_LEN  = 8192    # bytes per text line
+
+def _sanitize_filename(raw: str) -> str:
+    """Reject filenames that could cause path traversal or shell injection."""
+    name = Path(raw).name          # strip any directory component
+    if not _SAFE_FNAME.match(name):
+        raise ValueError(f"Filename rejected: {name!r} — use only A-Z 0-9 _ - .")
+    return name
+
+def _sanitize_bytes(data: bytes, ext: str) -> bytes:
+    """Light content scan for text files; npy files skip text checks."""
+    if ext == ".npy":
+        # NumPy magic bytes: \x93NUMPY
+        if len(data) > 6 and data[:6] != b'\x93NUMPY':
+            raise ValueError("File claims .npy but missing NumPy magic header")
+        return data
+    if _NULL_BYTES.search(data):
+        raise ValueError("File contains null bytes — binary content in text file?")
+    for i, line in enumerate(data.split(b'\n')[:20]):
+        if len(line) > _MAX_LINE_LEN:
+            raise ValueError(f"Line {i+1} exceeds {_MAX_LINE_LEN} bytes — file looks malformed")
+    return data
+
+# ── Query parameter helpers (reject out-of-range / non-numeric kwargs) ────────
+def _qfloat(name: str, default: float, lo: float, hi: float) -> float:
+    raw = request.args.get(name, str(default))
+    try:
+        v = float(raw)
+    except (ValueError, TypeError):
+        abort(400, description=f"Parameter '{name}' must be a number, got {raw!r}")
+    if not (lo <= v <= hi):
+        abort(400, description=f"Parameter '{name}'={v} out of range [{lo}, {hi}]")
+    return v
+
+def _qint(name: str, default: int, lo: int, hi: int) -> int:
+    raw = request.args.get(name, str(default))
+    try:
+        v = int(raw)
+    except (ValueError, TypeError):
+        abort(400, description=f"Parameter '{name}' must be an integer, got {raw!r}")
+    if not (lo <= v <= hi):
+        abort(400, description=f"Parameter '{name}'={v} out of range [{lo}, {hi}]")
+    return v
 
 # ── Periodic upload cleanup (daemon thread) ───────────────────────────────────
 def _cleanup():
@@ -42,7 +108,7 @@ def _cleanup():
         now = time.time()
         try:
             for d in UPLOAD_ROOT.iterdir():
-                if d.is_dir() and (now - d.stat().st_mtime) > UPLOAD_TTL:
+                if d.is_dir() and (now - d.stat().st_mtime) > _UPLOAD_TTL:
                     import shutil; shutil.rmtree(d, ignore_errors=True)
         except Exception:
             pass
@@ -172,7 +238,18 @@ def analyse_plot(t, y):
 def index():
     return render_template("index.html")
 
-# ── 1. Optical file upload (two-click, isolated folder) ───────────────────────
+# ── 0. Health / boolean status ────────────────────────────────────────────────
+@app.route("/health")
+def health():
+    """Docker HEALTHCHECK target — returns 200 + JSON while the app is alive."""
+    return jsonify({
+        "alive":    True,
+        "version":  _VERSION,
+        "uptime_s": int(time.time() - _START_TIME),
+        "upload_root": str(UPLOAD_ROOT),
+    })
+
+# ── 1. Optical file upload (two-click, UUID-isolated, sanitised) ──────────────
 @app.route("/upload", methods=["POST"])
 def upload():
     try:
@@ -182,18 +259,30 @@ def upload():
         if not f.filename:
             return jsonify({"error": "Empty filename"}), 400
 
-        # Isolate each upload in its own UUID directory
+        # ── Regex filename whitelist ──────────────────────────────────────────
+        try:
+            safe_name = _sanitize_filename(f.filename)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        ext = Path(safe_name).suffix.lower()
+
+        # ── UUID-isolated session directory ───────────────────────────────────
         session_id = str(uuid.uuid4())
         sess_dir   = UPLOAD_ROOT / session_id
         sess_dir.mkdir()
 
-        # Sanitise filename
-        safe_name = Path(f.filename).name
-        if not safe_name.lower().endswith((".csv", ".npy", ".txt", ".dat")):
-            return jsonify({"error": "Unsupported type. Use .csv, .npy, .txt"}), 400
+        # ── Read, sanitise bytes, save ─────────────────────────────────────────
+        raw = f.read()
+        if len(raw) > _MAX_MB * 1024 * 1024:
+            return jsonify({"error": f"File exceeds {_MAX_MB} MB limit"}), 400
+        try:
+            raw = _sanitize_bytes(raw, ext)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
         save_path = sess_dir / safe_name
-        f.save(str(save_path))
+        save_path.write_bytes(raw)
 
         t, y = load_optical(save_path)
         if len(y) < 16:
@@ -222,8 +311,8 @@ def demo():
 # ── 3. QPSK modem ─────────────────────────────────────────────────────────────
 @app.route("/qpsk")
 def qpsk_route():
-    snr  = float(request.args.get("snr", 12))
-    n_b  = int(request.args.get("nbits", 2048))
+    snr  = _qfloat("snr",   12.0,   0.0,  30.0)
+    n_b  = _qint  ("nbits", 2048,   64,   16384)
     data = DSP.simulate_link(n_bits=n_b, snr_db=snr)
 
     snr_range   = np.array(data["snr_range"])
@@ -294,8 +383,8 @@ def qpsk_route():
 # ── 4. 48-channel WDM ─────────────────────────────────────────────────────────
 @app.route("/wdm")
 def wdm_route():
-    n_ch = int(request.args.get("nch", 48))
-    snr  = float(request.args.get("snr", 25))
+    n_ch = _qint  ("nch", 48,   4,  48)
+    snr  = _qfloat("snr", 25.0, 5.0, 40.0)
     data = DSP.wdm_sim(n_ch=n_ch, snr_db=snr)
 
     freqs  = np.array(data["freqs_thz"])
@@ -353,7 +442,8 @@ def wdm_route():
 # ── 5. Digital logic demo ──────────────────────────────────────────────────────
 @app.route("/digital")
 def digital_route():
-    data_byte = int(request.args.get("byte", 0xB2))   # default 10110010
+    data_byte = _qint("byte",   0xB2, 0, 255)
+    _         = _qint("cycles",   16, 4,  64)   # validate even if unused below
     log = DSP.digital_demo(data_byte, n_cycles=16)
 
     cycles = [e["cycle"]  for e in log]
@@ -434,7 +524,7 @@ def digital_route():
 # ── 6. 3-D Optical Hash + Energy Minimisation ─────────────────────────────
 @app.route("/hash3d")
 def hash3d_route():
-    n_pts = min(int(request.args.get("npts", 256)), 512)
+    n_pts = _qint("npts", 256, 32, 512)
     data  = DSP.optical_hash_demo(n_points=n_pts)
 
     x_um    = np.array(data["x_um"])
@@ -509,6 +599,10 @@ def hash3d_route():
 
 
 if __name__ == "__main__":
-    print("Jalali Lab Optical Dashboard → http://localhost:5000")
-    print(f"Upload folder: {UPLOAD_ROOT}")
-    app.run(debug=True, port=5000, use_reloader=False)
+    host = os.environ.get("FLASK_HOST", "127.0.0.1")
+    port = int(os.environ.get("FLASK_PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    print(f"Jalali Lab Optical Dashboard -> http://{host}:{port}")
+    print(f"Upload folder : {UPLOAD_ROOT}")
+    print(f"Max upload    : {_MAX_MB} MB   TTL: {_UPLOAD_TTL}s   version: {_VERSION}")
+    app.run(host=host, port=port, debug=debug, use_reloader=False)

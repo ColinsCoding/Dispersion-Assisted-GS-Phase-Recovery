@@ -1,0 +1,108 @@
+# ══════════════════════════════════════════════════════════════════════════
+#  Jalali Lab Optical Dashboard  —  docker-compose.yml
+#
+#  Services
+#  ────────
+#  dashboard   Flask app (no outbound internet, isolated network)
+#  cloudflared Cloudflare Tunnel (public HTTPS URL, no port-forward needed)
+#
+#  Quick start
+#  ────────────
+#  1.  docker compose up -d --build
+#  2.  docker compose logs -f dashboard          # watch logs
+#  3.  docker compose ps                         # check status
+#
+#  Cloudflare tunnel (free, no domain required)
+#  ─────────────────────────────────────────────
+#  A.  Install cloudflared locally once:
+#        winget install --id Cloudflare.cloudflared
+#  B.  Login (browser popup):
+#        cloudflared tunnel login
+#  C.  Create tunnel & route:
+#        cloudflared tunnel create jalabi-dashboard
+#        cloudflared tunnel route dns jalabi-dashboard dashboard.yourdomain.com
+#      — OR use a free trycloudflare.com URL (no account needed):
+#        comment out the cloudflared service below and run instead:
+#        docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
+#               tunnel --url http://dashboard:5000
+#
+#  To keep 72-hour uptime: restart: always  +  HEALTHCHECK in Dockerfile
+# ══════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Flask dashboard ────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jalabi-dashboard
+    restart: always                        # survives crashes + host reboots
+
+    ports:
+      - "127.0.0.1:5000:5000"             # localhost only; Cloudflare is public face
+
+    environment:
+      FLASK_HOST:      "0.0.0.0"
+      FLASK_PORT:      "5000"
+      MAX_UPLOAD_MB:   "64"
+      UPLOAD_TTL_S:    "3600"
+
+    volumes:
+      # Persist uploads between restarts; maps D: drive path to container
+      - type: bind
+        source: ${UPLOAD_DIR:-./optical_dashboard/uploads}
+        target: /app/optical_dashboard/uploads
+
+    # ── Security: read-only rootfs except /tmp and uploads ────────────────
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid       # matplotlib temp files
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    networks:
+      - internal                           # isolated: no outbound internet
+
+    healthcheck:
+      test:    ["CMD", "curl", "-sf", "http://localhost:5000/health"]
+      interval: 30s
+      timeout:  5s
+      retries:  3
+      start_period: 20s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Cloudflare tunnel (public HTTPS → dashboard:5000) ─────────────────
+  # To enable: set CLOUDFLARE_TUNNEL_TOKEN in .env
+  #   cloudflared tunnel token jalabi-dashboard  → paste value below
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: jalabi-cloudflared
+    restart: always
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - internal    # can reach dashboard container
+      - external    # can reach Cloudflare edge (outbound only)
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    profiles:
+      - cloudflare   # opt-in: docker compose --profile cloudflare up -d
+
+networks:
+  internal:
+    name: jalabi_internal
+    driver: bridge
+    internal: true      # Flask container: ZERO outbound internet
+  external:
+    name: jalabi_external
+    driver: bridge      # cloudflared only: outbound to Cloudflare edge

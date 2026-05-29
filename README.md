@@ -55,6 +55,54 @@ result = DSP.wdm_sim(n_ch=48, snr_db=25)              # WDM
 result = DSP.optical_hash_demo(n_points=256)           # 3-D hash + energy min
 ```
 
+### Docker deploy (24/7 uptime)
+
+```bash
+# 1. Build + start (restarts automatically on crash or reboot)
+docker compose up -d --build
+
+# 2. Check health (boolean status endpoint)
+curl http://localhost:5000/health
+# {"alive": true, "version": "1.1.0", "uptime_s": 142, ...}
+
+# 3. Logs
+docker compose logs -f dashboard
+
+# 4. Stop
+docker compose down
+```
+
+Security model: Flask container runs on an **internal Docker network with zero outbound internet**.  
+Filesystem is **read-only** (`read_only: true`) except the uploads volume.  
+All query parameters validated by regex/range guards — bad kwargs return HTTP 400.  
+Filenames whitelist-filtered: `[A-Za-z0-9_-][A-Za-z0-9_-.]{0,60}.(csv|npy|txt|dat)`.
+
+### Public HTTPS via Cloudflare Tunnel (free, no port-forward)
+
+```bash
+# One-time setup (install + login)
+winget install --id Cloudflare.cloudflared
+cloudflared tunnel login
+
+# Create tunnel + DNS route
+cloudflared tunnel create jalabi-dashboard
+cloudflared tunnel route dns jalabi-dashboard dashboard.yourdomain.com
+
+# Add token to .env
+cp .env.example .env
+# paste CLOUDFLARE_TUNNEL_TOKEN=<token from: cloudflared tunnel token jalabi-dashboard>
+
+# Start with Cloudflare profile
+docker compose --profile cloudflare up -d
+```
+
+No account? Use the free try.cloudflare.com one-liner:
+```bash
+docker run --rm --network jalabi_internal cloudflare/cloudflared:latest \
+       tunnel --url http://dashboard:5000
+# Prints a random public URL good for ~24 h
+```
+
 ---
 
 ## Notebook · `phase_retrieval.ipynb` · 107 cells
