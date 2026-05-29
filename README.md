@@ -1,12 +1,48 @@
 # Dispersion-Assisted GS Phase Recovery
 
 > **ECE 279AS — Project 2 · UCLA · Spring 2026 · Complete**  
-> Independent work. Formerly coursework in Prof. Jalali's lab.
+> Independent student work. Formerly associated with Prof. Jalali's lab.
 
 Intensity-only phase retrieval for carrier-less coherent fiber sensing.
 Two dispersed measurements. No local oscillator. No 90° hybrid.
 
 **OUSD(R&E)** — FutureG · Trusted AI · Advanced Computing · Integrated Sensing · Directed Energy · Quantum Science · HMI
+
+---
+
+## Upload optical data
+
+**Local:**
+```
+.\start.bat          # double-click on Windows → http://localhost:5000/#signal
+```
+
+**Direct link to the upload widget** (once the server is running):
+
+> [`http://localhost:5000/#signal`](http://localhost:5000/#signal)
+
+The `#signal` hash opens the **Signal Analysis** tab directly — drag-and-drop
+your `.mat` / `.csv` / `.npy` file and it processes immediately.
+
+Upload widget source:
+[`optical_dashboard/templates/index.html`](optical_dashboard/templates/index.html)
+
+---
+
+## Acknowledgment
+
+The dispersion-assisted phase retrieval concept originates from the research of
+**Prof. Bahram Jalali** and his group at UCLA
+(Jalali et al., *Appl. Phys. Lett.* 95, 231108, 2009).
+The SEALS and STEAM experimental frameworks are likewise products of that lab.
+
+This repository is an independent student implementation completed for ECE 279AS,
+Spring 2026. It does not represent the lab's official code or results.
+Any errors are entirely my own.
+
+I am grateful for the mentorship, the lecture material, and the opportunity to
+engage with this research direction. I apologize for any confusion caused by
+associating this project page with the Jalali Lab name.
 
 ---
 

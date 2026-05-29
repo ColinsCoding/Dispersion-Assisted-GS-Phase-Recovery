@@ -549,14 +549,39 @@ a    { color: var(--blau); }
   window.addEventListener('resize', draw);
 })();
 
-/* ── Tab switching ───────────────────────────────────── */
+/* ── Tab switching + URL hash routing ───────────────────
+   http://localhost:5000/#signal  → Signal Analysis (upload)
+   http://localhost:5000/#qpsk    → QPSK Modem
+   http://localhost:5000/#wdm     → WDM 48-ch
+   http://localhost:5000/#digital → Digital Logic
+   http://localhost:5000/#hash3d  → 3-D Hash
+   ──────────────────────────────────────────────────── */
+function activateTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const btn=document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  const pane=document.getElementById('pane-'+name);
+  if(btn && pane){ btn.classList.add('active'); pane.classList.add('active'); }
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
+    activateTab(btn.dataset.tab);
+    history.replaceState(null,'','#'+btn.dataset.tab);
   });
+});
+
+// On load: honour URL hash (e.g. #signal from README link)
+(function(){
+  const hash=(location.hash||'#signal').replace('#','');
+  const valid=['signal','qpsk','wdm','digital','hash3d'];
+  activateTab(valid.includes(hash)?hash:'signal');
+})();
+
+// Back/forward navigation
+window.addEventListener('hashchange',()=>{
+  const h=location.hash.replace('#','');
+  activateTab(h||'signal');
 });
 
 /* ── Upload helpers ──────────────────────────────────── */
