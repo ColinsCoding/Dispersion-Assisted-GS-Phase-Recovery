@@ -1,16 +1,17 @@
 """
-optical_dashboard/app.py — Jalali Lab Optical Signal Dashboard
+optical_dashboard/app.py — Jalabi Lab Optical Signal Dashboard
 ==============================================================
 Run:  python app.py  →  http://localhost:5000
 Docker: docker compose up -d  →  http://localhost:5000
 
 Features
 --------
-  Signal Analysis : upload CSV/.npy → time-domain, PSD, spectrogram, TD-GS preview
+  Signal Analysis : upload .mat/CSV/.npy → time-domain, PSD, spectrogram, TD-GS phase
   QPSK Modem      : Gray-coded QPSK TX/RX, RRC pulse shaping, BER vs SNR
   48-ch WDM       : ITU-T G.694.1 C-band, mux/demux, per-channel power
   Digital Logic   : 2:1 MUX, D-latch, D flip-flop, 8-bit shift register
   3-D Hash        : sparse voxel hash, energy minimisation, LSH retrieval
+  Upload log      : GET /uploads/log  — SQLite audit table, all upload metadata
 
 Security
 --------
@@ -19,11 +20,12 @@ Security
   Network:   Flask container runs on internal Docker network (no outbound internet)
   Container: read-only rootfs, cap_drop=ALL, no-new-privileges
   Uploads:   UUID-isolated dirs, daemon-cleaned after UPLOAD_TTL_S seconds
+  IP privacy: client IP stored as SHA-256 hash only — never raw
 
 Two-click upload: selecting a file auto-processes it immediately.
 """
 
-import os, io, re, uuid, time, threading, traceback, base64
+import os, io, re, uuid, time, hashlib, sqlite3, datetime, threading, traceback, base64
 from pathlib import Path
 
 import numpy as np
@@ -40,7 +42,7 @@ import dsp as DSP
 _MAX_MB      = int(os.environ.get("MAX_UPLOAD_MB", 64))
 _UPLOAD_TTL  = int(os.environ.get("UPLOAD_TTL_S", 3600))
 _START_TIME  = time.time()
-_VERSION     = "1.1.0"
+_VERSION     = "1.2.0"
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = _MAX_MB * 1024 * 1024
@@ -48,6 +50,73 @@ app.config["MAX_CONTENT_LENGTH"] = _MAX_MB * 1024 * 1024
 UPLOAD_ROOT = Path(__file__).parent / "uploads"
 UPLOAD_ROOT.mkdir(exist_ok=True)
 UPLOAD_TTL  = _UPLOAD_TTL
+
+# ── SQLite upload audit log ───────────────────────────────────────────────────
+DB_PATH   = UPLOAD_ROOT / "upload_log.db"
+_DB_LOCK  = threading.Lock()          # SQLite WAL is fine but one writer at a time
+
+_CREATE_TABLE = """
+CREATE TABLE IF NOT EXISTS uploads (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id       TEXT,
+    filename         TEXT,
+    extension        TEXT,
+    size_bytes       INTEGER,
+    uploaded_at      TEXT,           -- ISO-8601 UTC timestamp
+    processing_ms    REAL,           -- wall-clock seconds × 1000
+    client_ip_hash   TEXT,           -- SHA-256(IP) — privacy-safe
+    user_agent       TEXT,
+    referer          TEXT,
+    two_arm          INTEGER,        -- 1 if .mat with I1+I2, else 0
+    n_samples        INTEGER,
+    dt_s             REAL,
+    fs_hz            REAL,
+    f_peak_hz        REAL,
+    rms              REAL,
+    D1_ps2           REAL,           -- fiber dispersion arm 1 (from metadata form)
+    D2_ps2           REAL,           -- fiber dispersion arm 2
+    lambda_nm        REAL,           -- center wavelength
+    fs_GSas          REAL,           -- ADC sample rate
+    lab              TEXT,           -- lab attribution
+    experiment_desc  TEXT,           -- free-text description
+    gs_iters         INTEGER,        -- GS iterations run
+    status           TEXT,           -- 'ok' or 'error'
+    error_msg        TEXT            -- NULL on success
+);
+"""
+
+def _init_db():
+    with _DB_LOCK:
+        con = sqlite3.connect(str(DB_PATH))
+        con.execute(_CREATE_TABLE)
+        con.commit()
+        con.close()
+
+_init_db()
+
+def _log_upload(row: dict):
+    """Insert one row into the uploads audit table.  Never raises."""
+    cols = [
+        "session_id","filename","extension","size_bytes","uploaded_at",
+        "processing_ms","client_ip_hash","user_agent","referer",
+        "two_arm","n_samples","dt_s","fs_hz","f_peak_hz","rms",
+        "D1_ps2","D2_ps2","lambda_nm","fs_GSas","lab","experiment_desc",
+        "gs_iters","status","error_msg",
+    ]
+    placeholders = ",".join("?" for _ in cols)
+    values = tuple(row.get(c) for c in cols)
+    try:
+        with _DB_LOCK:
+            con = sqlite3.connect(str(DB_PATH))
+            con.execute(
+                f"INSERT INTO uploads ({','.join(cols)}) VALUES ({placeholders})",
+                values
+            )
+            con.commit()
+            con.close()
+    except Exception as exc:
+        # Non-fatal — never let a logging failure kill the upload response
+        app.logger.warning(f"_log_upload failed: {exc}")
 
 # ── Input sanitisation ────────────────────────────────────────────────────────
 # Filename: printable ASCII, no path separators, no shell metacharacters
@@ -277,43 +346,140 @@ def index():
 @app.route("/health")
 def health():
     """Docker HEALTHCHECK target — returns 200 + JSON while the app is alive."""
+    # Quick upload stats from DB
+    try:
+        with _DB_LOCK:
+            con = sqlite3.connect(str(DB_PATH))
+            total_uploads = con.execute("SELECT COUNT(*) FROM uploads").fetchone()[0]
+            ok_uploads    = con.execute("SELECT COUNT(*) FROM uploads WHERE status='ok'").fetchone()[0]
+            con.close()
+    except Exception:
+        total_uploads = ok_uploads = None
+
     return jsonify({
-        "alive":    True,
-        "version":  _VERSION,
-        "uptime_s": int(time.time() - _START_TIME),
-        "upload_root": str(UPLOAD_ROOT),
+        "alive":         True,
+        "version":       _VERSION,
+        "uptime_s":      int(time.time() - _START_TIME),
+        "upload_root":   str(UPLOAD_ROOT),
+        "uploads_total": total_uploads,
+        "uploads_ok":    ok_uploads,
+        "log_endpoint":  "/uploads/log",
     })
+
+# ── 0b. Upload audit log (read-only JSON view of SQLite) ─────────────────────
+@app.route("/uploads/log")
+def uploads_log():
+    """
+    Return the upload audit log as JSON.
+    Query params:
+      limit  — max rows returned  (default 100, max 1000)
+      offset — row offset         (default 0)
+      status — filter 'ok' / 'error' / 'all' (default 'all')
+    """
+    limit  = min(int(request.args.get("limit",  100)), 1000)
+    offset = max(int(request.args.get("offset", 0)),   0)
+    status_filter = request.args.get("status", "all")
+
+    sql = "SELECT * FROM uploads"
+    params: list = []
+    if status_filter in ("ok", "error"):
+        sql += " WHERE status = ?"
+        params.append(status_filter)
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params += [limit, offset]
+
+    try:
+        with _DB_LOCK:
+            con = sqlite3.connect(str(DB_PATH))
+            con.row_factory = sqlite3.Row
+            rows = [dict(r) for r in con.execute(sql, params).fetchall()]
+            total = con.execute("SELECT COUNT(*) FROM uploads").fetchone()[0]
+            con.close()
+        return jsonify({"total": total, "limit": limit, "offset": offset,
+                        "rows": rows})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── 1. Optical file upload (two-click, UUID-isolated, sanitised) ──────────────
 @app.route("/upload", methods=["POST"])
 def upload():
+    _t0        = time.monotonic()
+    session_id = str(uuid.uuid4())
+
+    # ── Shared metadata from form fields (sent alongside the file) ────────────
+    def _form_float(name, default=None):
+        v = request.form.get(name, "")
+        try: return float(v)
+        except (ValueError, TypeError): return default
+
+    def _form_str(name, maxlen=200):
+        return (request.form.get(name, "") or "")[:maxlen]
+
+    meta_D1   = _form_float("D1",   -600.0)
+    meta_D2   = _form_float("D2",  -1200.0)
+    meta_lam  = _form_float("lam",  1550.0)
+    meta_fs   = _form_float("fs",     56.0)
+    meta_lab  = _form_str("lab")
+    meta_desc = _form_str("desc", 500)
+
+    # Privacy-safe client fingerprint
+    raw_ip   = (request.headers.get("X-Forwarded-For") or
+                request.remote_addr or "")
+    ip_hash  = hashlib.sha256(raw_ip.encode()).hexdigest()
+    ua       = (request.user_agent.string or "")[:300]
+    referer  = (request.referrer or "")[:300]
+    now_iso  = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+    # Base log row — filled in further as we go
+    log_row = dict(
+        session_id=session_id, uploaded_at=now_iso,
+        client_ip_hash=ip_hash, user_agent=ua, referer=referer,
+        D1_ps2=meta_D1, D2_ps2=meta_D2, lambda_nm=meta_lam,
+        fs_GSas=meta_fs, lab=meta_lab, experiment_desc=meta_desc,
+        status="error",
+    )
+
     try:
         if "file" not in request.files:
+            log_row.update(error_msg="No file field", processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
             return jsonify({"error": "No file field"}), 400
         f = request.files["file"]
         if not f.filename:
+            log_row.update(error_msg="Empty filename", processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
             return jsonify({"error": "Empty filename"}), 400
 
         # ── Regex filename whitelist ──────────────────────────────────────────
         try:
             safe_name = _sanitize_filename(f.filename)
         except ValueError as e:
+            log_row.update(filename=f.filename[:120], error_msg=str(e),
+                           processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
             return jsonify({"error": str(e)}), 400
 
         ext = Path(safe_name).suffix.lower()
+        log_row.update(filename=safe_name, extension=ext)
 
         # ── UUID-isolated session directory ───────────────────────────────────
-        session_id = str(uuid.uuid4())
-        sess_dir   = UPLOAD_ROOT / session_id
+        sess_dir = UPLOAD_ROOT / session_id
         sess_dir.mkdir()
 
         # ── Read, sanitise bytes, save ─────────────────────────────────────────
         raw = f.read()
+        log_row["size_bytes"] = len(raw)
+
         if len(raw) > _MAX_MB * 1024 * 1024:
-            return jsonify({"error": f"File exceeds {_MAX_MB} MB limit"}), 400
+            msg = f"File exceeds {_MAX_MB} MB limit"
+            log_row.update(error_msg=msg, processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
+            return jsonify({"error": msg}), 400
         try:
             raw = _sanitize_bytes(raw, ext)
         except ValueError as e:
+            log_row.update(error_msg=str(e), processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
             return jsonify({"error": str(e)}), 400
 
         save_path = sess_dir / safe_name
@@ -321,14 +487,42 @@ def upload():
 
         t, y, y2 = load_optical(save_path)
         if len(y) < 16:
-            return jsonify({"error": f"Too few samples: {len(y)}"}), 400
+            msg = f"Too few samples: {len(y)}"
+            log_row.update(error_msg=msg, n_samples=len(y),
+                           processing_ms=round((time.monotonic()-_t0)*1000,1))
+            _log_upload(log_row)
+            return jsonify({"error": msg}), 400
 
         plot, stats = analyse_plot(t, y, y2=y2)
         has_two_arms = y2 is not None
+
+        # ── Record DSP-extracted metadata ─────────────────────────────────────
+        try:
+            dt_val = float(stats["dt"])
+            fs_val = float(stats["fs"])
+        except Exception:
+            dt_val = None; fs_val = None
+        log_row.update(
+            two_arm    = 1 if has_two_arms else 0,
+            n_samples  = int(stats["N"]),
+            dt_s       = dt_val,
+            fs_hz      = fs_val,
+            f_peak_hz  = float(stats.get("f_peak", 0) or 0),
+            rms        = float(stats.get("rms", 0) or 0),
+            gs_iters   = stats.get("gs_iters", 1),
+            status     = "ok",
+            error_msg  = None,
+            processing_ms = round((time.monotonic()-_t0)*1000, 1),
+        )
+        _log_upload(log_row)
+
         return jsonify({"plot": plot, "stats": stats, "session": session_id,
                         "filename": safe_name,
                         "two_arm": has_two_arms})
     except Exception as e:
+        log_row.update(error_msg=str(e)[:500],
+                       processing_ms=round((time.monotonic()-_t0)*1000,1))
+        _log_upload(log_row)
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 # ── 2. Demo (synthetic STEAM pulse) ───────────────────────────────────────────

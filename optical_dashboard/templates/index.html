@@ -424,17 +424,27 @@ function autoUpload(input) {
 function uploadFileObj(f) {
   setStatus('status-sig', `Uploading ${f.name} (${(f.size/1024).toFixed(1)} KB)…`, false);
   spin('spin-sig', true); hide('img-sig');
-  const fd = new FormData(); fd.append('file', f);
+
+  // Pack file + metadata form fields into one multipart POST
+  const fd = new FormData();
+  fd.append('file', f);
+  fd.append('D1',  document.getElementById('meta-d1').value  || '-600');
+  fd.append('D2',  document.getElementById('meta-d2').value  || '-1200');
+  fd.append('lam', document.getElementById('meta-lam').value || '1550');
+  fd.append('fs',  document.getElementById('meta-fs').value  || '56');
+  fd.append('lab', document.getElementById('meta-lab').value  || '');
+  fd.append('desc',document.getElementById('meta-desc').value || '');
+
   fetch('/upload', {method:'POST', body:fd})
     .then(r => r.json()).then(d => {
       spin('spin-sig', false);
       if (d.error) { setStatus('status-sig', 'Error: '+d.error, true); return; }
       // Merge metadata fields into displayed chips
       const meta = {
-        D1_ps2: document.getElementById('meta-d1').value || '-600',
-        D2_ps2: document.getElementById('meta-d2').value || '-1200',
-        lambda_nm: document.getElementById('meta-lam').value || '1550',
-        fs_GSas: document.getElementById('meta-fs').value || '56',
+        D1_ps2:    document.getElementById('meta-d1').value  || '-600',
+        D2_ps2:    document.getElementById('meta-d2').value  || '-1200',
+        'λ₀_nm':   document.getElementById('meta-lam').value || '1550',
+        'fs_GSas': document.getElementById('meta-fs').value  || '56',
       };
       const chips = Object.assign({}, meta, d.stats);
       if (d.two_arm) chips['2-arm'] = 'MAT ✓';
@@ -442,7 +452,7 @@ function uploadFileObj(f) {
       showImg('img-sig', d.plot);
       const desc = document.getElementById('meta-desc').value;
       const lab  = document.getElementById('meta-lab').value;
-      const arm  = d.two_arm ? '  [2-arm TD-GS]' : '';
+      const arm  = d.two_arm ? '  [2-arm TD-GS 50-iter]' : '';
       setStatus('status-sig',
         `✓ ${d.filename}${arm}` + (desc ? `  — ${desc}` : '') +
         (lab ? `  | ${lab}` : ''), false);
