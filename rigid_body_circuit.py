@@ -632,7 +632,9 @@ def draw_hud(surf, fonts, bodies, indy, cam_x, t, gear, show_gear):
     for b in bodies:
         if 0 < b.x - indy.x < b.r*2.8:
             sx = int(indy.x - cam_x)
-            txt = fb.render('BOULDER!', True,(255,max(0,int(80+(b.x-indy.x)*60)),0))
+            frac = (b.x - indy.x) / max(b.r * 2.8, 1.0)   # 0=touching → 1=threshold
+            green = min(255, max(0, int(frac * 210)))
+            txt = fb.render('BOULDER!', True, (255, green, 0))
             surf.blit(txt,(sx-txt.get_width()//2, FLOOR_Y-100))
             break
 
