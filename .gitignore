@@ -85,6 +85,8 @@ tdgsa_project_frames/
 *.npz
 *.h5
 *.mat
+# Track curated sample data (synthetic, <1 MB each)
+!sample_data/*.mat
 
 ############################
 # AI / notebook artifacts
