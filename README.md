@@ -1,6 +1,6 @@
 # Dispersion-Assisted GS Phase Recovery
 
-ECE 279AS · UCLA · Spring 2026 · Jalali Lab
+ECE 279AS · UCLA · Winter 2024 · Jalali Lab
 
 Carrier-less optical phase retrieval from two intensity-only measurements.
 No local oscillator. No 90° hybrid. Just fiber, a photodetector, and math.
