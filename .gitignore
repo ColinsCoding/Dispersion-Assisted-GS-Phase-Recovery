@@ -61,9 +61,8 @@ desktop.ini
 
 *.docx
 *.pptx
-# PDFs ignored globally except curated references
+# PDFs never committed — link to DOIs instead
 *.pdf
-!references/*.pdf
 
 ############################
 # Local experiment folders (IGNORE THESE)
