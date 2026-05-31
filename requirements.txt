@@ -7,4 +7,3 @@ notebook>=7.0
 torch>=2.1
 gdsfactory>=9.0
 phycv>=1.2
-hapi>=1.2
