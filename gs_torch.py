@@ -68,19 +68,16 @@ def retrieve_phase(
     H1 = _H(N, D1, device)
     H2 = _H(N, D2, device)
 
-    E = torch.sqrt(t1.clamp(min=0.0)).to(torch.complex64)
+    f1_init = torch.sqrt(t1.clamp(min=0.0)).to(torch.complex64)
+    E = _undisperse(f1_init, H1)
     errors = []
 
     for _ in range(n_iter):
-        E_d1    = _constrain(_disperse(E, H1), t1)
-        E_base  = _undisperse(E_d1, H1)
-        E_d2    = _constrain(_disperse(E_base, H2), t2)
-        E_base2 = _undisperse(E_d2, H2)
-        E_d1b   = _disperse(E_base2, H1)
-        E       = _constrain(E_d1b, t1)
+        E = torch.exp(1j * torch.angle(_undisperse(_constrain(_disperse(E, H1), t1), H1)))
+        E = torch.exp(1j * torch.angle(_undisperse(_constrain(_disperse(E, H2), t2), H2)))
 
         err = float(torch.sqrt(torch.mean(
-            (torch.abs(_disperse(E, H1)) ** 2 - t1) ** 2
+            (torch.abs(_disperse(E, H2)) ** 2 - t2) ** 2
         )).cpu())
         errors.append(err)
 
@@ -117,19 +114,16 @@ def retrieve_phase_batch(
     H1 = _H(N, D1, device)   # (N,) — broadcast over batch dim
     H2 = _H(N, D2, device)
 
-    E = torch.sqrt(t1.clamp(min=0.0)).to(torch.complex64)             # (B, N)
+    f1_init = torch.sqrt(t1.clamp(min=0.0)).to(torch.complex64)
+    E = _undisperse(f1_init, H1)                                        # (B, N)
     errors = []
 
     for _ in range(n_iter):
-        E_d1    = _constrain(_disperse(E, H1), t1)
-        E_base  = _undisperse(E_d1, H1)
-        E_d2    = _constrain(_disperse(E_base, H2), t2)
-        E_base2 = _undisperse(E_d2, H2)
-        E_d1b   = _disperse(E_base2, H1)
-        E       = _constrain(E_d1b, t1)
+        E = torch.exp(1j * torch.angle(_undisperse(_constrain(_disperse(E, H1), t1), H1)))
+        E = torch.exp(1j * torch.angle(_undisperse(_constrain(_disperse(E, H2), t2), H2)))
 
         err = float(torch.sqrt(torch.mean(
-            (torch.abs(_disperse(E, H1)) ** 2 - t1) ** 2
+            (torch.abs(_disperse(E, H2)) ** 2 - t2) ** 2
         )).cpu())
         errors.append(err)
 
@@ -145,15 +139,17 @@ if __name__ == "__main__":
     print(f"Device: {DEVICE}")
     print(f"PyTorch: {torch.__version__}")
 
-    data = make_qpsk_measurements(n_symbols=256, D1=-695.0, D2=-800.0, snr_db=30.0)
+    data = make_qpsk_measurements(n_symbols=256, D1=-5000.0, D2=-5750.0, snr_db=30.0)
     I1, I2 = data["I1"], data["I2"]
 
     # Single signal
     t0 = time.perf_counter()
-    phi, errors = retrieve_phase(I1, I2, -695.0, -800.0, n_iter=20)
+    phi, errors = retrieve_phase(I1, I2, -5000.0, -5750.0, n_iter=50)
     dt = time.perf_counter() - t0
 
-    delta = np.angle(np.exp(1j * (phi - data["phi_true"])))
+    phi_true = data["phi_true"]
+    offset = np.angle(np.mean(np.exp(1j * (phi_true - phi))))
+    delta = np.angle(np.exp(1j * (phi - phi_true + offset)))
     rms = float(np.sqrt(np.mean(delta ** 2)))
     print(f"Single  N={len(I1)}  RMS phase error={rms:.4f} rad  time={dt*1000:.1f} ms")
 
@@ -163,7 +159,7 @@ if __name__ == "__main__":
     I2_b = np.stack([I2 + 0.01 * np.random.randn(*I2.shape) for _ in range(B)])
 
     t0 = time.perf_counter()
-    phi_b, errs_b = retrieve_phase_batch(I1_b, I2_b, -695.0, -800.0, n_iter=20)
+    phi_b, errs_b = retrieve_phase_batch(I1_b, I2_b, -5000.0, -5750.0, n_iter=50)
     dt_b = time.perf_counter() - t0
     print(f"Batched B={B}  N={len(I1)}  final_err={errs_b[-1]:.6f}  time={dt_b*1000:.1f} ms")
     print(f"Per-signal: {dt_b/B*1000:.2f} ms  (vs {dt*1000:.1f} ms single)")
