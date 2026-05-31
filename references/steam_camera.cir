@@ -1,0 +1,30 @@
+
+* STEAM Camera Optical Circuit — Thevenin analog
+* Run in LTspice or ngspice
+*
+* Laser (Thevenin: pulse source + cavity impedance)
+Vlaser  IN  0   PULSE(0 1 0 0.1p 0.1p 2n 10n)  ; 100 fs pulse, 100 MHz rep
+Zlaser  IN  N1  {Z0/n_fiber}                     ; cavity output impedance
+*
+* DCF1: D1=-600 ps^2  (10-stage LC ladder, each stage = 60 ps^2)
+L1a N1  N1b 0.3n   ; GVD inductor
+C1a N1b 0   20f    ; bandwidth cap
+L1b N1b N1c 0.3n
+C1b N1c 0   20f
+* ... (repeat 10x for full 600 ps^2)
+*
+* Cell (phase object: reactive load = capacitor for phase delay)
+Ccell N1c N2 {C_cell}  ; phase shift = arctan(omega*Z*C_cell)
+*
+* DCF2: D2-D1=-600 ps^2  (matched 10-stage LC)
+L2a N2  N2b 0.3n
+C2a N2b 0   20f
+* ...
+*
+* Photodetector (matched termination)
+Rdet N_out 0 {Z0/n_fiber}  ; I(Rdet)^2 * R = optical power
+*
+.param Z0=376.73 n_fiber=1.468 C_cell=50f
+.tran 0.01p 5n
+.measure tran Vpeak MAX V(N_out)
+.end
