@@ -88,7 +88,7 @@ decrease monotonically, reaching a noise floor around iteration 15–20.
 [1] Gerchberg & Saxton, *Optik* 35(2):237–246, 1972 — original GS algorithm  
 [2] Solli, Gupta & Jalali, *Appl. Phys. Lett.* 95, 231108, 2009 — time-domain GS in the dispersive Fourier transform  
 [3] Yao et al., *Optica*, 2022 — neural network time-stretch spectral regression  
-
+[4] BioXFEL, “Phase Retrieval for Coherent Diffractive Imaging: Theory and Algorithm,” YouTube, May 31, 2026, 1h 8m 45s — tutorial lecture on phase retrieval methods for coherent diffractive imaging
 DOI links: [`references/README.md`](references/README.md)
 
 ---
