@@ -16,7 +16,6 @@ Grade 7 version:
 """
 
 import numpy as np
-from sympy import symbols, exp, pi, I, simplify, latex, sqrt
 
 # ── SymPy derivation of the dispersion transfer function ─────────────────────
 
@@ -35,6 +34,7 @@ def show_transfer_function():
 
     where F denotes the Fourier transform.
     """
+    from sympy import symbols, exp, pi, I, latex
     nu, D = symbols('nu D', real=True)
     H = exp(I * pi * D * nu**2)
     return H, latex(H)
@@ -333,6 +333,57 @@ def make_measurements(modulation='QPSK', n_symbols=64, sps=8,
         "t": t, "D1": D1, "D2": D2,
         "modulation": modulation, "unit_amplitude": unit_amplitude,
     }
+
+
+# ── 3D/4D phase retrieval: time-series stack ─────────────────────────────────
+
+def retrieve_phase_3d(
+    I1_stack: np.ndarray,
+    I2_stack: np.ndarray,
+    D1: float,
+    D2: float,
+    n_iter: int = 50,
+    unit_amplitude: bool = True,
+    phase_continuity: bool = True,
+) -> tuple:
+    """
+    Recover phase from a 3D intensity stack: phi(x, y, t) or phi(row, col, t).
+
+    Each slice along axis=0 is one independent 1D signal of length N (axis=1).
+    Run retrieve_phase slice-by-slice, then optionally enforce phase continuity
+    between adjacent slices by subtracting the global-phase jump.
+
+    Parameters
+    ----------
+    I1_stack, I2_stack : (M, N) float arrays — M signals, each length N
+    D1, D2             : float — dispersion parameters
+    n_iter             : int
+    unit_amplitude     : bool — passed to retrieve_phase
+    phase_continuity   : bool — remove global-phase jumps between adjacent rows
+
+    Returns
+    -------
+    phi_stack : (M, N) float array — recovered phase for each slice
+    errors    : (M, n_iter) float array — GS amplitude error per slice per iter
+    """
+    M, N = I1_stack.shape
+    phi_stack = np.zeros((M, N), dtype=float)
+    errors    = np.zeros((M, n_iter), dtype=float)
+
+    for m in range(M):
+        phi, errs = retrieve_phase(
+            I1_stack[m], I2_stack[m], D1, D2,
+            n_iter=n_iter, unit_amplitude=unit_amplitude,
+        )
+        phi_stack[m] = phi
+        errors[m]    = errs
+
+        if phase_continuity and m > 0:
+            # Remove global phase offset between adjacent slices
+            offset = np.angle(np.mean(np.exp(1j * (phi_stack[m] - phi_stack[m - 1]))))
+            phi_stack[m] -= offset
+
+    return phi_stack, errors
 
 
 # ── Quick self-test ───────────────────────────────────────────────────────────
