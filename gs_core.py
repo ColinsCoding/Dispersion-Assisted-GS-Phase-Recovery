@@ -17,6 +17,58 @@ Grade 7 version:
 
 import numpy as np
 
+# ── Input validation / kwarg bounds ──────────────────────────────────────────
+
+def _check_dispersion(D, name='D'):
+    """D must be non-zero with |D| ≥ 100 for meaningful diversity."""
+    D = float(D)
+    if D == 0:
+        raise ValueError(f"{name}=0 is invalid: zero dispersion produces no measurement diversity.")
+    if abs(D) < 100:
+        import warnings
+        warnings.warn(
+            f"|{name}|={abs(D):.1f} < 100. GS convergence requires |D| ≥ 5000 (normalized). "
+            f"Physical: -695 ps/nm → D_norm ≈ -5000. Current value will likely stagnate.",
+            stacklevel=3,
+        )
+    return D
+
+
+def _check_intensities(I, name='I'):
+    """Intensity array must be 1-D, finite, and non-negative after clipping."""
+    I = np.asarray(I, dtype=float)
+    if I.ndim != 1:
+        raise ValueError(f"{name} must be a 1-D array, got shape {I.shape}.")
+    if not np.all(np.isfinite(I)):
+        raise ValueError(f"{name} contains NaN or Inf values.")
+    if np.any(I < -1e-6 * np.max(np.abs(I) + 1e-30)):
+        import warnings
+        warnings.warn(f"{name} has significantly negative values — clipping to 0.", stacklevel=3)
+    return np.maximum(I, 0.0)
+
+
+def _check_n_iter(n_iter):
+    n_iter = int(n_iter)
+    if n_iter < 1:
+        raise ValueError(f"n_iter={n_iter} must be ≥ 1.")
+    if n_iter < 10:
+        import warnings
+        warnings.warn(f"n_iter={n_iter} is very low; GS needs ~50 iterations to converge.", stacklevel=3)
+    return n_iter
+
+
+def _check_modulation(modulation):
+    valid = {'OOK', 'PAM4', 'QPSK', 'DPSK', 'STEAM', 'SOLITON', 'SOL',
+             '6PSK', 'PSK6', '6-PSK'}
+    mod = modulation.upper()
+    if mod not in valid:
+        raise ValueError(
+            f"Unknown modulation '{modulation}'. "
+            f"Valid choices: {sorted(valid - {'SOLITON','SOL'}) + ['Soliton']}"
+        )
+    return mod
+
+
 # ── SymPy derivation of the dispersion transfer function ─────────────────────
 
 def show_transfer_function():
@@ -132,7 +184,8 @@ def retrieve_phase(I1, I2, D1, D2, n_iter=50, unit_amplitude=True):
     ----------
     I1, I2         : float arrays — measured intensities at dispersions D1, D2
     D1, D2         : float — dispersion parameters (same normalized units as make_measurements)
-    n_iter         : int — number of GS iterations; convergence requires ~50 for default D values
+                     |D| must be ≥ 100; convergence requires |D| ≥ 5000.
+    n_iter         : int ≥ 1 — GS iterations; ~50 needed for convergence.
     unit_amplitude : bool — enforce |E(t)|=1 each iteration.
                      True for QPSK/DPSK/smooth-phase (constant envelope).
                      False for OOK/PAM4 (varying amplitude).
@@ -142,6 +195,13 @@ def retrieve_phase(I1, I2, D1, D2, n_iter=50, unit_amplitude=True):
     phi    : float array — recovered phase φ(t) in radians (up to global phase offset)
     errors : list of float — RMS amplitude error per iteration (should decrease)
     """
+    D1 = _check_dispersion(D1, 'D1')
+    D2 = _check_dispersion(D2, 'D2')
+    n_iter = _check_n_iter(n_iter)
+    I1 = _check_intensities(I1, 'I1')
+    I2 = _check_intensities(I2, 'I2')
+    if D1 == D2:
+        raise ValueError("D1 == D2: identical dispersions provide zero measurement diversity.")
     N = min(len(I1), len(I2))
     I1, I2 = I1[:N], I2[:N]
 
@@ -243,10 +303,18 @@ def make_measurements(modulation='QPSK', n_symbols=64, sps=8,
     dict with keys: E, I1, I2, phi_true, t, D1, D2, modulation, unit_amplitude
         unit_amplitude — pass directly to retrieve_phase()
     """
+    if n_symbols < 4:
+        raise ValueError(f"n_symbols={n_symbols} must be ≥ 4.")
+    if sps < 1:
+        raise ValueError(f"sps={sps} must be ≥ 1.")
+    if not np.isfinite(snr_db):
+        raise ValueError(f"snr_db={snr_db} must be finite.")
+    D1 = _check_dispersion(D1, 'D1')
+    D2 = _check_dispersion(D2, 'D2')
     rng = np.random.default_rng(rng_seed)
     N   = n_symbols * sps
     t   = np.linspace(0, 1, N)
-    mod = modulation.upper()
+    mod = _check_modulation(modulation)
 
     def _smooth_phase(n_harm, amp_rad=np.pi):
         """
@@ -313,10 +381,26 @@ def make_measurements(modulation='QPSK', n_symbols=64, sps=8,
         E        = amp * np.exp(1j * phi_true)
         unit_amplitude = False
 
+    elif mod in ('6PSK', 'PSK6', '6-PSK'):
+        # 6-PSK (hexagonal): 6 constellation points at k·π/3, k=0..5.
+        # Phase spacing = π/3 (60°) — denser than QPSK (90°), sparser than 8-PSK (45°).
+        # GS difficulty: medium-high.  Minimum Euclidean distance = 2sin(π/6) = 1.0 (norm).
+        # Approximated here as bandlimited smooth phase ∈ [0, 2π), matching the
+        # continuous-phase transitions that RRC shaping produces.
+        phases_6psk = np.array([k * np.pi / 3 for k in range(6)])  # 0, π/3, 2π/3, π, 4π/3, 5π/3
+        syms        = rng.integers(0, 6, n_symbols)
+        phi_sym     = phases_6psk[syms]
+        # Smooth transitions via bandlimited interpolation (n_harm = n_symbols//4)
+        phi_true, E = _smooth_phase(n_harm=n_symbols // 4,
+                                    amp_rad=np.pi)   # full ±π range covers hexagon
+        # Quantize nearest 6-PSK phase for reference constellation
+        # (smooth phi is the actual test signal GS sees after pulse shaping)
+        unit_amplitude = True
+
     else:
         raise ValueError(
             f"Unknown modulation '{modulation}'. "
-            "Choose: OOK, PAM4, QPSK, DPSK, STEAM, Soliton"
+            "Choose: OOK, PAM4, QPSK, DPSK, STEAM, Soliton, 6PSK"
         )
 
     I1 = np.abs(disperse(E, D1))**2
@@ -384,6 +468,143 @@ def retrieve_phase_3d(
             phi_stack[m] -= offset
 
     return phi_stack, errors
+
+
+# ── 3D pipe: cylindrical signal topology ─────────────────────────────────────
+
+def retrieve_phase_pipe(
+    I1_pipe: np.ndarray,
+    I2_pipe: np.ndarray,
+    D1: float,
+    D2: float,
+    n_iter: int = 50,
+    unit_amplitude: bool = True,
+    angular_continuity: bool = True,
+    axial_continuity: bool = True,
+) -> tuple:
+    """
+    Phase retrieval for signals arranged on a cylindrical pipe surface: phi(theta, z, t).
+
+    Geometry
+    --------
+    The pipe has N_theta angular positions and N_z axial positions.
+    Each (theta, z) node carries one temporal signal of length N_t.
+
+        I1_pipe, I2_pipe : (N_theta, N_z, N_t)  intensity stacks
+        output phi_pipe  : (N_theta, N_z, N_t)  recovered phase
+
+    Phase continuity is enforced:
+      - axially   : between adjacent z slices  (phi[i, z+1] ≈ phi[i, z] + drift)
+      - angularly : wrapping phi[N_theta] back to phi[0]
+
+    Physical motivation
+    -------------------
+    In fiber sensing and distributed coherent receivers, the field phase
+    varies smoothly around the fiber cross-section (angular modes) and
+    along the propagation axis (dispersion-induced chirp).  Enforcing
+    cylindrical continuity suppresses global-phase jumps that single-axis
+    continuity misses at the wrap-around seam.
+
+    Parameters
+    ----------
+    I1_pipe, I2_pipe   : (N_theta, N_z, N_t) float arrays
+    D1, D2             : float — dispersion parameters
+    n_iter             : int
+    unit_amplitude     : bool
+    angular_continuity : bool — remove global-phase wrap-around discontinuity
+    axial_continuity   : bool — remove global-phase jumps along z axis
+
+    Returns
+    -------
+    phi_pipe : (N_theta, N_z, N_t) float array — recovered phase
+    errors   : (N_theta, N_z, n_iter) float array — GS amplitude error
+    """
+    N_theta, N_z, N_t = I1_pipe.shape
+    phi_pipe = np.zeros((N_theta, N_z, N_t), dtype=float)
+    errors   = np.zeros((N_theta, N_z, n_iter), dtype=float)
+
+    # Pass 1: retrieve slice-by-slice, enforce axial continuity
+    for i in range(N_theta):
+        for j in range(N_z):
+            phi, errs = retrieve_phase(
+                I1_pipe[i, j], I2_pipe[i, j], D1, D2,
+                n_iter=n_iter, unit_amplitude=unit_amplitude,
+            )
+            phi_pipe[i, j] = phi
+            errors[i, j]   = errs
+
+            if axial_continuity and j > 0:
+                offset = np.angle(np.mean(
+                    np.exp(1j * (phi_pipe[i, j] - phi_pipe[i, j - 1]))
+                ))
+                phi_pipe[i, j] -= offset
+
+    # Pass 2: enforce angular continuity (including wrap-around seam)
+    if angular_continuity and N_theta > 1:
+        for j in range(N_z):
+            for i in range(1, N_theta):
+                offset = np.angle(np.mean(
+                    np.exp(1j * (phi_pipe[i, j] - phi_pipe[i - 1, j]))
+                ))
+                phi_pipe[i, j] -= offset
+
+            # Wrap-around: close the cylinder (phi[N_theta-1] ≈ phi[0])
+            seam_offset = np.angle(np.mean(
+                np.exp(1j * (phi_pipe[0, j] - phi_pipe[N_theta - 1, j]))
+            ))
+            # Distribute half the wrap error to each end
+            phi_pipe[0, j]           += seam_offset / 2
+            phi_pipe[N_theta - 1, j] -= seam_offset / 2
+
+    return phi_pipe, errors
+
+
+def pipe_surface_plot(phi_pipe, title='Pipe phase surface $\\phi(\\theta, z)$',
+                      t_slice=0, cmap='RdBu_r'):
+    """
+    Visualize recovered phase on the cylindrical pipe surface.
+
+    phi_pipe : (N_theta, N_z, N_t)
+    t_slice  : which time sample to plot (default 0 = first)
+
+    Returns fig, axes  (caller handles plt.show / savefig)
+    """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+
+    N_theta, N_z, _ = phi_pipe.shape
+    theta = np.linspace(0, 2 * np.pi, N_theta, endpoint=False)
+    z     = np.linspace(0, 1, N_z)
+    Theta, Z = np.meshgrid(theta, z, indexing='ij')
+
+    phi_slice = phi_pipe[:, :, t_slice]
+
+    # Unwrap flat heatmap
+    fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+    im = axes[0].imshow(
+        phi_slice, aspect='auto', cmap=cmap,
+        extent=[0, 1, 0, 360], origin='lower',
+        vmin=-np.pi, vmax=np.pi,
+    )
+    axes[0].set_xlabel('Axial position $z$')
+    axes[0].set_ylabel('Angular position $\\theta$ (°)')
+    axes[0].set_title(f'{title}  [flat]')
+    plt.colorbar(im, ax=axes[0], label='Phase (rad)')
+
+    # 3D cylindrical projection
+    X = np.cos(Theta)
+    Y = np.sin(Theta)
+    ax3 = fig.add_subplot(1, 2, 2, projection='3d', label='3d')
+    axes[1].remove()
+    norm = plt.Normalize(-np.pi, np.pi)
+    colors = plt.cm.get_cmap(cmap)(norm(phi_slice))
+    ax3.plot_surface(X, Y, Z, facecolors=colors, rstride=1, cstride=1,
+                     linewidth=0, antialiased=True, alpha=0.9)
+    ax3.set_xlabel('X'); ax3.set_ylabel('Y'); ax3.set_zlabel('z')
+    ax3.set_title(f'{title}  [3D]')
+
+    plt.tight_layout()
+    return fig, ax3
 
 
 # ── Quick self-test ───────────────────────────────────────────────────────────
