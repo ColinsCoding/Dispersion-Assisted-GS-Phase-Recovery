@@ -84,6 +84,76 @@ def recover_phase(I1, I2, D1, D2, n_iter=50, unit_amplitude=True, verbose=True):
     return np.angle(E), errors
 
 
+def _gs_one_restart(args):
+    """Module-level worker for ProcessPoolExecutor (must be picklable)."""
+    I1, I2, D1, D2, n_iter, unit_amplitude, seed = args
+    rng = np.random.default_rng(seed)
+    N   = len(I1)
+    E   = np.sqrt(I1) * np.exp(1j * rng.uniform(0, 2*np.pi, N))
+    errors = []
+    for _ in range(n_iter):
+        E1 = disperse(E, D1)
+        E1 = np.exp(1j * np.angle(E1)) if unit_amplitude else np.sqrt(I1) * np.exp(1j * np.angle(E1))
+        E  = disperse(E1, -D1)
+        E2 = disperse(E, D2)
+        E2 = np.exp(1j * np.angle(E2)) if unit_amplitude else np.sqrt(I2) * np.exp(1j * np.angle(E2))
+        E  = disperse(E2, -D2)
+        errors.append(float(np.mean(np.abs(np.abs(disperse(E, D1))**2 - I1))))
+    return np.angle(E), errors
+
+
+def recover_phase_multistart(I1, I2, D1, D2, n_iter=50, unit_amplitude=True,
+                              n_restarts=8, n_jobs=None, verbose=True):
+    """
+    Multi-restart GS with parallel execution.
+    Runs n_restarts independent random inits, returns the best (lowest final error).
+
+    Parameters
+    ----------
+    n_restarts : int, number of random restarts (default 8)
+    n_jobs     : int or None, parallel workers (None = use all CPU cores)
+
+    Returns
+    -------
+    phi : 1D array, best recovered phase
+    errors : list of errors for best run
+    all_errors : list of final errors across all restarts
+    """
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    import os
+
+    I1 = np.maximum(np.asarray(I1, dtype=float), 0.0)
+    I2 = np.maximum(np.asarray(I2, dtype=float), 0.0)
+    N  = len(I1)
+
+    if n_jobs is None:
+        n_jobs = min(n_restarts, os.cpu_count() or 1)
+
+    if verbose:
+        print(f'  Multi-start: {n_restarts} restarts on {n_jobs} workers')
+
+    job_args = [(I1, I2, D1, D2, n_iter, unit_amplitude, seed)
+                for seed in range(n_restarts)]
+
+    results = []
+    with ProcessPoolExecutor(max_workers=n_jobs) as ex:
+        futures = {ex.submit(_gs_one_restart, a): a[-1] for a in job_args}
+        for fut in as_completed(futures):
+            phi_r, errs_r = fut.result()
+            results.append((errs_r[-1], phi_r, errs_r))
+            if verbose:
+                print(f'    restart {futures[fut]}  final_err={errs_r[-1]:.4f}', flush=True)
+
+    results.sort(key=lambda x: x[0])
+    best_err, best_phi, best_errors = results[0]
+    all_final = [r[0] for r in results]
+
+    if verbose:
+        print(f'  Best err: {best_err:.4f}  (worst: {max(all_final):.4f})')
+
+    return best_phi, best_errors, all_final
+
+
 def plot_results(I1, I2, phi, errors, outfile=None):
     try:
         import matplotlib.pyplot as plt
@@ -166,6 +236,7 @@ def main():
     p.add_argument('--plot',   action='store_true',        help='Show plots')
     p.add_argument('--save',   type=str,   default=None,   help='Save recovered phase to .npy')
     p.add_argument('--png',    type=str,   default=None,   help='Save plot to .png instead of showing')
+    p.add_argument('--restarts', type=int, default=1,      help='Multi-start restarts (default 1, parallel on all cores)')
     p.add_argument('--quiet',  action='store_true',        help='Suppress iteration output')
     args = p.parse_args()
 
@@ -198,10 +269,18 @@ def main():
     print('-' * 50)
 
     # ── recover ──
-    phi, errors = recover_phase(
-        I1, I2, D1=args.d1, D2=args.d2,
-        n_iter=args.iter, verbose=not args.quiet
-    )
+    if args.restarts > 1:
+        phi, errors, all_errs = recover_phase_multistart(
+            I1, I2, D1=args.d1, D2=args.d2,
+            n_iter=args.iter, n_restarts=args.restarts,
+            verbose=not args.quiet
+        )
+        print(f'All restart final errors: {[round(e,4) for e in all_errs]}')
+    else:
+        phi, errors = recover_phase(
+            I1, I2, D1=args.d1, D2=args.d2,
+            n_iter=args.iter, verbose=not args.quiet
+        )
 
     # ── report ──
     print('-' * 50)
