@@ -37,6 +37,9 @@ test:
 verify:
 	$(PY) gs_verify.py
 
+backtest:
+	$(PY) gs_backtest.py
+
 torch:
 	$(PY) gs_torch.py
 
