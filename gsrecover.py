@@ -27,9 +27,9 @@ import numpy as np
 
 def disperse(E, D):
     N  = len(E)
-    nu = np.fft.rfftfreq(N)
+    nu = np.fft.fftfreq(N)
     H  = np.exp(1j * np.pi * D * nu**2)
-    return np.fft.irfft(np.fft.rfft(E) * H, n=N)
+    return np.fft.ifft(np.fft.fft(E) * H)
 
 def recover_phase(I1, I2, D1, D2, n_iter=50, unit_amplitude=True, verbose=True):
     """
