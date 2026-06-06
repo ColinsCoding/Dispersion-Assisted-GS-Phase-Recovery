@@ -301,9 +301,11 @@ for k in range(len(x_signal)):
     if x_signal[k] != 0:
         y_manual[k:k+len(h_lpf)] += x_signal[k] * h_lpf
 
-# mode='same' truncates edges; compare interior only
-interior = slice(1, len(x_signal)-1)
-chk(np.max(np.abs(y_direct[interior] - y_manual[1:len(x_signal)-1])), 0,
+# mode='same' is center-aligned: y_direct[i] == y_manual[i + offset]
+# where offset = (len(h_lpf)-1)//2
+offset = (len(h_lpf) - 1) // 2
+N = len(x_signal)
+chk(np.max(np.abs(y_direct - y_manual[offset:offset+N])), 0,
     "conv interior == sum of shifted responses", tol=1e-10)
 print(f"  y[n] = {np.round(y_direct,3).tolist()}")
 
@@ -442,10 +444,16 @@ chk(abs(5 - round(5/fs_bad)*fs_bad), 3.0, "alias: 5Hz folds to 3Hz at fs=8", tol
 hdr("§7 — CDMA: spreading codes with near-delta autocorrelation")
 
 # Gold code generator (simplified m-sequence based)
-def m_sequence(taps, length, seed=1):
-    """Maximal-length sequence via LFSR."""
-    state = seed
+def m_sequence(taps, length, seed=None):
+    """Maximal-length sequence via LFSR (Fibonacci form, shift-right).
+    taps: list of feedback positions (1-indexed).  Polynomial: x^n + x^(n-taps[1]+1) + ...
+    For n=10, primitive poly x^10+x^8+x^5+x^1+1 uses taps [10,5,2,1].
+    Seed: defaults to all-ones (safe start for any primitive poly).
+    """
     n_taps = max(taps)
+    if seed is None:
+        seed = (1 << n_taps) - 1   # all-ones: guarantees non-zero feedback bit
+    state = seed & ((1 << n_taps) - 1)
     mask = (1 << n_taps) - 1
     seq = []
     for _ in range(length):
@@ -457,28 +465,29 @@ def m_sequence(taps, length, seed=1):
     return np.array(seq, dtype=float)*2 - 1   # map {0,1} -> {-1,+1}
 
 # CDMA IS-95 uses 64-chip Walsh codes and 32768-chip PN codes
-c1 = m_sequence([10, 7], 1023)     # GPS C/A code length (simplified)
-c2 = m_sequence([10, 3], 1023)     # different code
+# Primitive poly for degree 10: x^10+x^8+x^5+x+1 (verified taps [10,5,2,1])
+c1 = m_sequence([10, 5, 2, 1], 1023)           # User A spreading code
+c2 = m_sequence([10, 5, 2, 1], 1023, seed=0b0101010101)  # User B: different phase
 
-# Autocorrelation: should be ~N at lag 0, ~0 elsewhere
-R_auto = np.correlate(c1, c1, mode='full')
-R_cross= np.correlate(c1, c2, mode='full')
+# Circular autocorrelation via FFT — this is what the m-seq property guarantees:
+#   R_circ[0] = N,  R_circ[k] = -1 for k != 0
+C1_f     = np.fft.fft(c1)
+R_circ   = np.real(np.fft.ifft(C1_f * np.conj(C1_f)))
+peak_auto = R_circ[0]
+off_auto  = np.max(np.abs(R_circ[1:]))
 
-lags = np.arange(-(len(c1)-1), len(c1))
-peak_auto  = R_auto[len(c1)-1]
-off_auto   = np.max(np.abs(R_auto[lags != 0]))
+# Linear correlation for cross-code (for DSP illustration only)
+R_cross   = np.correlate(c1, c2, mode='full')
 peak_cross = np.max(np.abs(R_cross))
 
-print(f"  m-sequence length N={len(c1)}")
-print(f"  Autocorrelation peak (lag=0): {peak_auto:.0f}  (= N)")
-print(f"  Autocorrelation off-peak max: {off_auto:.0f}   (should be 1 for m-seq)")
-print(f"  Cross-correlation max:        {peak_cross:.0f}  (different code, different user)")
-chk(peak_auto, len(c1), "autocorr peak = N")
-# m-seq via correlate() includes edge effects; ideal off-peak = 1, actual ~1 after normalization
-print(f"  Off-peak/peak = {off_auto/peak_auto:.5f}  (ideal 1/N = {1/len(c1):.5f})")
-print(f"  Note: np.correlate uses full dot product; ideal m-seq off-peak = 1/{len(c1)} = {1/len(c1):.5f}")
-print(f"  This m-seq has off-peak = {off_auto:.0f}/{peak_auto:.0f} -- confirms near-delta property: peak >> sidelobes")
-chk(peak_auto/off_auto, len(c1), "peak-to-sidelobe ratio = N", tol=0.01)
+N_seq = len(c1)
+print(f"  m-sequence length N={N_seq}")
+print(f"  Circular autocorr peak (lag=0): {peak_auto:.1f}  (= N = {N_seq})")
+print(f"  Circular autocorr off-peak max: {off_auto:.4f}   (ideal = 1)")
+print(f"  Peak-to-sidelobe ratio: {peak_auto/off_auto:.1f}  (= N = {N_seq})")
+print(f"  Cross-correlation max: {peak_cross:.0f}  (different code, different user)")
+chk(peak_auto, N_seq, "autocorr peak = N")
+chk(peak_auto / off_auto, N_seq, "peak-to-sidelobe ratio = N", tol=0.01)
 
 # Processing gain
 PG_dB = 10*np.log10(len(c1))
@@ -614,19 +623,21 @@ ax9.legend(fontsize=7)
 
 # P10: CDMA autocorrelation
 ax10 = fig.add_subplot(gf[2,1])
-lags_plot = lags[(lags>=-50)&(lags<=50)]
-R_plot    = R_auto[(lags>=-50)&(lags<=50)]
-ax10.plot(lags_plot, R_plot, 'b-', lw=1)
+lags_circ = np.arange(-N_seq//2, N_seq//2)
+R_circ_shift = np.roll(R_circ, N_seq//2)
+mask50 = (lags_circ>=-50)&(lags_circ<=50)
+ax10.plot(lags_circ[mask50], R_circ_shift[mask50], 'b-', lw=1)
 ax10.axhline(1, color='r', ls='--', lw=1, label='off-peak = 1')
 ax10.axhline(-1,color='r', ls='--', lw=1)
-ax10.set_title(f"CDMA autocorrelation (N={len(c1)})", fontsize=9)
+ax10.set_title(f"CDMA circ-autocorr (N={N_seq})", fontsize=9)
 ax10.set_xlabel("lag k"); ax10.set_ylabel("R[k]")
 ax10.legend(fontsize=7)
 
 # P11: Cross-correlation (different users = orthogonal)
 ax11 = fig.add_subplot(gf[2,2])
-lags_c = lags[(lags>=-50)&(lags<=50)]
-R_c_p  = R_cross[(lags>=-50)&(lags<=50)]
+lags_lin = np.arange(-(N_seq-1), N_seq)
+lags_c = lags_lin[(lags_lin>=-50)&(lags_lin<=50)]
+R_c_p  = R_cross[(lags_lin>=-50)&(lags_lin<=50)]
 ax11.plot(lags_c, R_c_p, 'r-', lw=1)
 ax11.set_title(f"CDMA cross-corr (users A,B)", fontsize=9)
 ax11.set_xlabel("lag k"); ax11.set_ylabel("R_cross[k]")
