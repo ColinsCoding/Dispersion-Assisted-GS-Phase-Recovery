@@ -44,7 +44,15 @@ def parse_py_to_cells(py_source: str) -> list[dict]:
         "import matplotlib.pyplot as plt\n"
         "%matplotlib inline\n"
         "sp.init_printing(use_latex='mathjax')  # LaTeX in Jupyter\n"
-        "from IPython.display import display"
+        "from IPython.display import display\n"
+        "import os\n"
+        "# __file__ is undefined in Jupyter -- fall back to cwd\n"
+        "try:\n"
+        "    _REPL_DIR = os.path.dirname(os.path.abspath(__file__))\n"
+        "except NameError:\n"
+        "    _REPL_DIR = os.getcwd()\n"
+        "# Patch: redirect any OUT = os.path.join(os.path.dirname(__file__), ...)\n"
+        "# by replacing __file__ references below with _REPL_DIR"
     )
     cells.append({"type": "code", "source": setup})
 
@@ -173,6 +181,14 @@ def parse_py_to_cells(py_source: str) -> list[dict]:
     return cells
 
 
+def _patch_file_refs(source: str) -> str:
+    """Replace os.path.dirname(__file__) with _REPL_DIR for Jupyter compat."""
+    import re
+    source = re.sub(r'os\.path\.dirname\(__file__\)', '_REPL_DIR', source)
+    source = re.sub(r'os\.path\.abspath\(__file__\)', '_REPL_DIR', source)
+    return source
+
+
 def cells_to_notebook(cells: list[dict]) -> nbformat.NotebookNode:
     nb = nbformat.v4.new_notebook()
     nb_cells = []
@@ -183,6 +199,7 @@ def cells_to_notebook(cells: list[dict]) -> nbformat.NotebookNode:
         if cell["type"] == "markdown":
             nb_cells.append(nbformat.v4.new_markdown_cell(src))
         else:
+            src = _patch_file_refs(src)
             nb_cells.append(nbformat.v4.new_code_cell(src))
     nb.cells = nb_cells
     # Kernel metadata
