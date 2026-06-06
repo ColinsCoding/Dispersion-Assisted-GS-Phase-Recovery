@@ -26,15 +26,13 @@ def hdr(s):
 try:
     from IPython.display import display as _ipy_display
     def show(expr, label=None):
-        if label: print(f'  ' + str(label) + ':')
+        if label: print(f"  {label}:")
         _ipy_display(expr)
 except ImportError:
     def show(expr, label=None):
-        if label: print('  ' + str(label) + ':')
-        import sympy as sp
-        print('  ' + sp.pretty(expr, use_unicode=True))
-    else:
-        print(f'  {sp.pretty(expr, use_unicode=True)}')
+        if label: print(f"  {label}:")
+        import sympy as _sp
+        print("  " + _sp.pretty(expr, use_unicode=True))
 
 def chk(val, ref, label, tol=1e-9, absolute=False):
     v, r = float(val), float(ref)
