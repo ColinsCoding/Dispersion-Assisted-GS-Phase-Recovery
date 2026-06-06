@@ -301,8 +301,10 @@ for k in range(len(x_signal)):
     if x_signal[k] != 0:
         y_manual[k:k+len(h_lpf)] += x_signal[k] * h_lpf
 
-chk(np.max(np.abs(y_direct - y_manual[:len(x_signal)])), 0,
-    "direct conv == sum of shifted responses", tol=0.01)
+# mode='same' truncates edges; compare interior only
+interior = slice(1, len(x_signal)-1)
+chk(np.max(np.abs(y_direct[interior] - y_manual[1:len(x_signal)-1])), 0,
+    "conv interior == sum of shifted responses", tol=1e-10)
 print(f"  y[n] = {np.round(y_direct,3).tolist()}")
 
 # %% [markdown]
@@ -473,8 +475,10 @@ print(f"  Autocorrelation off-peak max: {off_auto:.0f}   (should be 1 for m-seq)
 print(f"  Cross-correlation max:        {peak_cross:.0f}  (different code, different user)")
 chk(peak_auto, len(c1), "autocorr peak = N")
 # m-seq via correlate() includes edge effects; ideal off-peak = 1, actual ~1 after normalization
-print(f"  Off-peak ratio: {off_auto}/{peak_auto} = {off_auto/peak_auto:.4f}  (ideal: 1/N={1/len(c1):.4f})")
-chk(off_auto/peak_auto, 1/len(c1), "off-peak/peak = 1/N (near-delta)", tol=0.01)
+print(f"  Off-peak/peak = {off_auto/peak_auto:.5f}  (ideal 1/N = {1/len(c1):.5f})")
+print(f"  Note: np.correlate uses full dot product; ideal m-seq off-peak = 1/{len(c1)} = {1/len(c1):.5f}")
+print(f"  This m-seq has off-peak = {off_auto:.0f}/{peak_auto:.0f} -- confirms near-delta property: peak >> sidelobes")
+chk(peak_auto/off_auto, len(c1), "peak-to-sidelobe ratio = N", tol=0.01)
 
 # Processing gain
 PG_dB = 10*np.log10(len(c1))
