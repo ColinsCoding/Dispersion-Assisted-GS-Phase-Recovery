@@ -8,6 +8,7 @@
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
+import sys, os; sys.path.insert(0, os.path.dirname(__file__)); from repl_helpers import hdr, show, chk
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
@@ -22,9 +23,16 @@ def hdr(s):
     bar = '─' * 60
     print(f'\n{bar}\n  {s}\n{bar}')
 
-def show(expr, label=''):
-    if label:
-        print(f'  {label}:  {sp.pretty(expr, use_unicode=True)}')
+try:
+    from IPython.display import display as _ipy_display
+    def show(expr, label=None):
+        if label: print(f'  ' + str(label) + ':')
+        _ipy_display(expr)
+except ImportError:
+    def show(expr, label=None):
+        if label: print('  ' + str(label) + ':')
+        import sympy as sp
+        print('  ' + sp.pretty(expr, use_unicode=True))
     else:
         print(f'  {sp.pretty(expr, use_unicode=True)}')
 

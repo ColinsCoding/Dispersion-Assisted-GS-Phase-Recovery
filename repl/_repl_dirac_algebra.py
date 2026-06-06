@@ -11,6 +11,7 @@
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
+import sys, os; sys.path.insert(0, os.path.dirname(__file__)); from repl_helpers import hdr, show, chk
 import numpy as np
 import sympy as sp
 from sympy import (symbols, integrate, oo, DiracDelta, Heaviside, diff,
@@ -27,9 +28,16 @@ eps = symbols('epsilon', positive=True)
 def hdr(s):
     print(f'\n{"─"*64}\n  {s}\n{"─"*64}')
 
-def show(expr, label=''):
-    tag = f'  {label}:  ' if label else '  '
-    print(tag + sp.pretty(expr, use_unicode=True))
+try:
+    from IPython.display import display as _ipy_display
+    def show(expr, label=None):
+        if label: print(f'  ' + str(label) + ':')
+        _ipy_display(expr)
+except ImportError:
+    def show(expr, label=None):
+        if label: print('  ' + str(label) + ':')
+        import sympy as sp
+        print('  ' + sp.pretty(expr, use_unicode=True))
 
 def chk(val, ref, label, tol=1e-9, absolute=False):
     v, r = float(val), float(ref)
