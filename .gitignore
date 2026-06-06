@@ -144,3 +144,15 @@ data/
 ############################
 
 repl/_repl_lut_sincos.py
+repl/_repl_lut_sincos.ipynb
+
+############################
+# Claude session data (local only)
+############################
+.claude/
+
+############################
+# Duplicate / renamed untracked repls
+############################
+repl/_repl_java_js_verilog_bessel2.py
+repl/_repl_java_js_verilog_bessel2.ipynb
