@@ -33,14 +33,16 @@ import matplotlib.gridspec as gridspec
 
 init_printing(use_latex="mathjax")
 
-def show(expr, label=""):
-    try:
-        if label:
-            display(Math(r"\textbf{" + label + r"}\quad" + latex(expr)))
-        else:
-            display(Math(latex(expr)))
-    except Exception:
-        print(f"{label}  {expr}")
+try:
+    from IPython.display import display as _ipy_display
+    def show(expr, label=None):
+        if label: print(f"  {label}:")
+        _ipy_display(expr)
+except ImportError:
+    def show(expr, label=None):
+        if label: print(f"  {label}:")
+        import sympy as _sp
+        print("  " + _sp.pretty(expr, use_unicode=True))
 
 def hdr(s):
     try: display(Markdown(f"### {s}"))
