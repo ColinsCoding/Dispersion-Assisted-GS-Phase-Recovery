@@ -18,6 +18,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+.vscode/
 
 ############################
 # Temporary / Downloads
@@ -124,3 +125,22 @@ optical_dashboard/uploads/
 # Reference database (regenerated)
 references/refs.db
 email_to_callen.txt
+
+############################
+# Executed notebooks (output-only, not canonical)
+############################
+
+*_executed.ipynb
+
+############################
+# Overnight run outputs
+############################
+
+_overnight_results.jsonl
+data/
+
+############################
+# Local REPL scratch (not for commit)
+############################
+
+repl/_repl_lut_sincos.py
