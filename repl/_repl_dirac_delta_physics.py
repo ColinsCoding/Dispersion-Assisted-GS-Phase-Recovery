@@ -47,11 +47,16 @@ OUT = os.path.join(_REPL_DIR, "_out_dirac_delta_physics.png")
 
 SEP = "=" * 65
 
-def show(expr, label=""):
-    """Display a SymPy expression with an optional label."""
-    if label:
-        display(Math(r"\text{" + label + r"} \quad " + latex(expr)))
-    else:
+try:
+    from IPython.display import display as _ipy_display
+    def show(expr, label=None):
+        if label: print(f"  {label}:")
+        _ipy_display(expr)
+except ImportError:
+    def show(expr, label=None):
+        if label: print(f"  {label}:")
+        import sympy as _sp
+        print("  " + _sp.pretty(expr, use_unicode=True))
         display(expr)
 
 def check(sympy_val, numerical_val, tol=1e-8, label=""):
