@@ -2,6 +2,10 @@
 gs_core.py — Temporal Gerchberg-Saxton phase retrieval
 Implements Solli, Gupta, Jalali — Appl. Phys. Lett. 95, 231108 (2009)
 
+OUSD(R&E) CTA alignment: FutureG · Integrated Sensing & Cyber ·
+  Trusted AI & Autonomy · Directed Energy · Human-Machine Interfaces
+  See ousd_alignment.py → stamp() to embed CTA metadata in output dicts.
+
 Physics in three lines:
   E(t) is the optical field.  You can only measure I(t) = |E(t)|².
   Dispersion maps E(t) → E_d(t) via H(ω) = exp(i π D ν²)  in frequency.
