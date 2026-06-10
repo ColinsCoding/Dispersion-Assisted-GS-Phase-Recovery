@@ -1,104 +1,152 @@
-PY      := D:/WinterInterSession2025to2026/jupyter/phase-retrieval-gs/.venv/Scripts/python.exe
-NB      := phase_retrieval.ipynb
-NB_OUT  := phase_retrieval_executed.ipynb
-NB_DEMO     := notebooks/dispersion_gs_demo.ipynb
-NB_DEMO_OUT := notebooks/dispersion_gs_demo_executed.ipynb
-NB_MODPHY   := notebooks/modern_physics_ee.ipynb
-NB_MODPHY_OUT := notebooks/modern_physics_ee_executed.ipynb
-NB_PHOTON   := notebooks/integrated_photonics_intro.ipynb
-NB_PHOTON_OUT := notebooks/integrated_photonics_intro_executed.ipynb
-NB_EMPIPE   := notebooks/em_pipe_formalization.ipynb
-NB_EMPIPE_OUT := notebooks/em_pipe_formalization_executed.ipynb
+# ══════════════════════════════════════════════════════════════════════════════
+# Makefile — Dispersion-Assisted GS Phase Recovery
+# OUSD(R&E): FutureG · Integrated Sensing · Trusted AI · Directed Energy
+# Branch: gs-torch-nd   |   SBIR Phase I $275K
+# ══════════════════════════════════════════════════════════════════════════════
 
-.PHONY: help install test torch fno notebook notebook-demo notebook-modphy notebook-photon notebook-empipe notebooks-all patch clean distclean
+PYTHON   ?= python
+JUPYTER  ?= jupyter
+NB_DIR    = notebooks
+REPL_DIR  = repl
+OUT_DIR   = outputs
 
+# ── core modules ──────────────────────────────────────────────────────────────
+GS_CORE   = gs_core.py
+GS_FNO    = gs_fno.py
+GS_TORCH  = gs_torch.py
+GS_VERIFY = gs_verify.py
+OUSD      = ousd_alignment.py
+GRASS     = grass.py
+
+.DEFAULT_GOAL := help
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HELP
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: help
 help:
-	@echo "Targets:"
-	@echo "  install       pip install requirements into venv"
-	@echo "  test          gs_core self-test  (numpy, ~1 s)"
-	@echo "  torch         gs_torch self-test (PyTorch, single + batched)"
-	@echo "  notebook       execute $(NB) -> $(NB_OUT)"
-	@echo "  notebook-demo  execute $(NB_DEMO) -> $(NB_DEMO_OUT)"
-	@echo "  notebook-modphy execute $(NB_MODPHY) -> $(NB_MODPHY_OUT)"
-	@echo "  notebook-photon execute $(NB_PHOTON) -> $(NB_PHOTON_OUT)"
-	@echo "  notebook-empipe execute $(NB_EMPIPE) -> $(NB_EMPIPE_OUT)"
-	@echo "  notebooks-all  execute all notebooks sequentially"
-	@echo "  fno            gs_fno self-test (PyTorch, ~2 min)"
-	@echo "  patch         re-apply gs_core cells to notebook"
-	@echo "  clean         remove executed notebooks + temp scripts + *.pyc"
-	@echo "  distclean     clean + figures/*.png + demo PNGs"
+	@echo ""
+	@echo "  Dispersion-Assisted GS Phase Recovery"
+	@echo "  ──────────────────────────────────────"
+	@echo "  make gs          — run GS phase retrieval demo"
+	@echo "  make fno         — train FNO on synthetic TS-DFT data"
+	@echo "  make verify      — run gs_verify test suite"
+	@echo "  make ousd        — print OUSD CTA alignment table"
+	@echo "  make grass       — render DoD grass field (Markov + EM)"
+	@echo "  make poker       — holographic poker demo"
+	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
+	@echo "  make lab         — launch JupyterLab"
+	@echo "  make nb          — launch classic Jupyter Notebook"
+	@echo "  make lint        — flake8 + ruff on core modules"
+	@echo "  make fmt         — black autoformat"
+	@echo "  make profile     — cProfile gs_core"
+	@echo "  make clean       — remove pyc, __pycache__, .ipynb_checkpoints"
+	@echo "  make clean-all   — clean + remove outputs/"
+	@echo "  make status      — git status + last 5 commits"
+	@echo "  make push        — git push origin gs-torch-nd"
+	@echo ""
 
-install:
-	$(PY) -m pip install -r requirements.txt
+# ══════════════════════════════════════════════════════════════════════════════
+# CORE RUNS
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: gs
+gs:
+	$(PYTHON) $(GS_CORE)
 
-test:
-	$(PY) gs_core.py
-
-verify:
-	$(PY) gs_verify.py
-
-backtest:
-	$(PY) gs_backtest.py
-
-torch:
-	$(PY) gs_torch.py
-
+.PHONY: fno
 fno:
-	$(PY) gs_fno.py
+	$(PYTHON) $(GS_FNO)
 
-notebook:
-	jupyter nbconvert --to notebook --execute --allow-errors \
-		--ExecutePreprocessor.timeout=300 \
-		--output $(NB_OUT) $(NB)
+.PHONY: verify
+verify:
+	$(PYTHON) $(GS_VERIFY)
 
-notebook-demo:
-	jupyter nbconvert --to notebook --execute --allow-errors \
-		--ExecutePreprocessor.timeout=600 \
-		--output-dir notebooks \
-		--output dispersion_gs_demo_executed.ipynb \
-		$(NB_DEMO)
+.PHONY: ousd
+ousd:
+	$(PYTHON) $(OUSD)
 
-notebook-modphy:
-	jupyter nbconvert --to notebook --execute --allow-errors \
-		--ExecutePreprocessor.timeout=600 \
-		--output-dir notebooks \
-		--output modern_physics_ee_executed.ipynb \
-		$(NB_MODPHY)
+.PHONY: grass
+grass:
+	$(PYTHON) $(GRASS)
 
-notebook-photon:
-	jupyter nbconvert --to notebook --execute --allow-errors \
-		--ExecutePreprocessor.timeout=600 \
-		--output-dir notebooks \
-		--output integrated_photonics_intro_executed.ipynb \
-		$(NB_PHOTON)
+.PHONY: poker
+poker:
+	$(PYTHON) holographic_poker.py
 
-notebook-empipe:
-	jupyter nbconvert --to notebook --execute --allow-errors \
-		--ExecutePreprocessor.timeout=600 \
-		--output-dir notebooks \
-		--output em_pipe_formalization_executed.ipynb \
-		$(NB_EMPIPE)
+# ══════════════════════════════════════════════════════════════════════════════
+# JUPYTER
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: lab
+lab:
+	$(JUPYTER) lab
 
-notebooks-all: notebook notebook-demo notebook-modphy notebook-photon notebook-empipe
+.PHONY: nb
+nb:
+	$(JUPYTER) notebook
 
-patch:
-	$(PY) _patch_cells.py
+.PHONY: notebooks
+notebooks:
+	@echo "Executing all notebooks in $(NB_DIR)/ ..."
+	@for nb in $(NB_DIR)/*.ipynb; do \
+		echo "  ▸ $$nb"; \
+		$(JUPYTER) nbconvert --to notebook --execute --inplace "$$nb" \
+		    --ExecutePreprocessor.timeout=300 2>&1 | tail -1; \
+	done
 
-data-small:
-	$(PY) gen_training_data.py --n 1000 --preview
+# ══════════════════════════════════════════════════════════════════════════════
+# CODE QUALITY
+# ══════════════════════════════════════════════════════════════════════════════
+LINT_TARGETS = $(GS_CORE) $(GS_FNO) $(GS_TORCH) $(GS_VERIFY) $(OUSD) $(GRASS)
 
-data-full:
-	$(PY) gen_training_data.py --n 50000
+.PHONY: lint
+lint:
+	$(PYTHON) -m flake8 --max-line-length=100 --ignore=E203,W503 $(LINT_TARGETS) || true
+	$(PYTHON) -m ruff check $(LINT_TARGETS) || true
 
-overnight:
-	$(PY) overnight_train.py --hours 7
+.PHONY: fmt
+fmt:
+	$(PYTHON) -m black --line-length 100 $(LINT_TARGETS)
 
+.PHONY: profile
+profile:
+	$(PYTHON) -m cProfile -o gs_core.prof $(GS_CORE)
+	$(PYTHON) -m pstats gs_core.prof
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GIT
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: status
+status:
+	@git status --short
+	@echo ""
+	@git log --oneline -5
+
+.PHONY: push
+push:
+	git push origin gs-torch-nd
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLEAN
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: clean
 clean:
-	-del /f /q $(NB_OUT) $(NB_DEMO_OUT) $(NB_MODPHY_OUT) $(NB_PHOTON_OUT) gs_core_test.png 2>nul
-	-del /f /q _patch_cells.py _add_dimanalysis.py _cleanup_and_insert.py _check_cells.py 2>nul
-	-for /d /r . %%d in (__pycache__) do @rd /s /q "%%d" 2>nul
-	-del /s /q *.pyc 2>nul
+	find . -name "*.pyc" -delete
+	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	find . -name ".ipynb_checkpoints" -type d -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.prof" -delete
+	@echo "  clean ✓"
 
-distclean: clean
-	-del /f /q figures\*.png 2>nul
-	-del /f /q notebooks\demo_*.png 2>nul
+.PHONY: clean-all
+clean-all: clean
+	rm -rf $(OUT_DIR)/
+	@echo "  clean-all ✓"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INCOMPLETE — TODO for Phase I delivery
+# ══════════════════════════════════════════════════════════════════════════════
+# TODO: make adc        — real ADC capture pipeline (RPi CM4 driver)
+# TODO: make tsdft-live — live TS-DFT from scope via VISA/pyvisa
+# TODO: make train-fno  — full FNO training on experimental data
+# TODO: make report     — compile LaTeX Phase I technical report
+# TODO: make docker     — build Docker image for deployment
+# TODO: make ci         — run full CI suite (lint + verify + notebooks)
