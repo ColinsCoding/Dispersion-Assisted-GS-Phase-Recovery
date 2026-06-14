@@ -159,3 +159,22 @@ def hanging_chain_modeshape(alpha_n, xfrac):
     import numpy as _np
     xf = _np.atleast_1d(_np.asarray(xfrac, dtype=float))
     return _np.array([float(mp.besselj(0, alpha_n * _np.sqrt(v))) for v in xf])
+
+
+# ── FM/PM spectra: the sidebands are Bessel functions ───────────────
+def fm_sideband_amplitudes(beta, n_max):
+    """Sideband amplitudes of a frequency-/phase-modulated tone.
+
+    cos(w_c t + beta sin(w_m t)) = sum_n J_n(beta) cos((w_c + n w_m) t), so the
+    line at the carrier + n*(modulation freq) has amplitude J_n(beta). Returns
+    {n: J_n(beta)} for n in [-n_max, n_max] (J_{-n} = (-1)^n J_n).
+    """
+    if beta < 0 or n_max < 0:
+        raise ValueError("beta and n_max must be >= 0")
+    return {n: float(mp.besselj(n, beta)) for n in range(-n_max, n_max + 1)}
+
+
+def carrier_null_indices(n):
+    """Modulation indices beta where the FM *carrier* vanishes -- the zeros of
+    J_0 (2.405, 5.520, ...). At these beta all power is in the sidebands."""
+    return bessel_zeros(0, n)
