@@ -193,3 +193,69 @@ def gaussian_packet(x, x0, k0, sigma):
     psi = np.exp(-(x - x0)**2 / (4 * sigma**2)) * np.exp(1j * k0 * x)
     dx = x[1] - x[0]
     return psi / np.sqrt(np.sum(np.abs(psi)**2) * dx)
+
+
+# ── the hydrogen atom: levels, orbitals, spin, and photons ──────────
+RYDBERG_EV = 13.605693      # ground-state binding energy of hydrogen, |E_1|
+
+
+def hydrogen_energy(n, Z=1):
+    """Bohr level energy E_n = -Z^2 * 13.6 eV / n^2."""
+    if n < 1:
+        raise ValueError("principal quantum number n must be >= 1")
+    return -Z**2 * RYDBERG_EV / n**2
+
+
+def hydrogen_radial(n, l):
+    """Symbolic radial wavefunction R_{nl}(r) (Bohr radii), via sympy.physics.hydrogen."""
+    import sympy as sp
+    from sympy.physics.hydrogen import R_nl
+    if not (0 <= l < n):
+        raise ValueError(f"need 0 <= l < n; got n={n}, l={l}")
+    r = sp.Symbol("r", positive=True)
+    return sp.simplify(R_nl(n, l, r)), r
+
+
+def transition_wavelength(n_hi, n_lo, Z=1):
+    """Rydberg formula: wavelength (nm) of the photon emitted in n_hi -> n_lo.
+
+    1/lambda = Z^2 R_inf (1/n_lo^2 - 1/n_hi^2). The level transition IS the
+    photon -- this is where quantum levels become photonics.
+    """
+    if n_hi <= n_lo:
+        raise ValueError("n_hi must exceed n_lo for emission")
+    R_inf_per_nm = 1.0973731568e-2          # Rydberg constant in 1/nm
+    inv_lambda = Z**2 * R_inf_per_nm * (1 / n_lo**2 - 1 / n_hi**2)
+    return 1.0 / inv_lambda
+
+
+def selection_rule_allowed(l1, l2, dm=0):
+    """Electric-dipole selection rules: allowed iff |dl| = 1 and |dm| <= 1."""
+    return abs(l1 - l2) == 1 and abs(dm) <= 1
+
+
+def real_orbital_angular(orbital, theta, phi):
+    """Real angular factor |Y| of the named orbital, for surface rendering.
+
+    Returns the (signed) real spherical-harmonic angular function evaluated on
+    theta, phi arrays. Supports 's', 'pz','px','py', 'dz2','dxz','dx2y2'.
+    """
+    t, p = np.asarray(theta), np.asarray(phi)
+    table = {
+        "s":     lambda: 0.5 / np.sqrt(np.pi) * np.ones_like(t),
+        "pz":    lambda: np.sqrt(3 / (4 * np.pi)) * np.cos(t),
+        "px":    lambda: np.sqrt(3 / (4 * np.pi)) * np.sin(t) * np.cos(p),
+        "py":    lambda: np.sqrt(3 / (4 * np.pi)) * np.sin(t) * np.sin(p),
+        "dz2":   lambda: np.sqrt(5 / (16 * np.pi)) * (3 * np.cos(t)**2 - 1),
+        "dxz":   lambda: np.sqrt(15 / (4 * np.pi)) * np.sin(t) * np.cos(t) * np.cos(p),
+        "dx2y2": lambda: np.sqrt(15 / (16 * np.pi)) * np.sin(t)**2 * np.cos(2 * p),
+    }
+    if orbital not in table:
+        raise ValueError(f"orbital must be one of {sorted(table)}, got {orbital!r}")
+    return table[orbital]()
+
+
+def spin_state(theta, phi=0.0):
+    """Spin-1/2 spinor pointing along direction (theta, phi) on the Bloch sphere:
+    |chi> = (cos(theta/2), e^{i phi} sin(theta/2)). theta=0 is spin-up."""
+    return np.array([np.cos(theta / 2), np.exp(1j * phi) * np.sin(theta / 2)])
