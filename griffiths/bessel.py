@@ -128,3 +128,34 @@ def fiber_mode_profile(u, w, a, r):
         return float(mp.besselj(0, u * r / a))
     scale = mp.besselj(0, u) / mp.besselk(0, w)     # continuity at r = a
     return float(scale * mp.besselk(0, w * r / a))
+
+
+# ── the hanging chain: a continuous pendulum whose modes are J_0 ────
+def hanging_chain_frequencies(L, g, n_modes):
+    """Transverse normal-mode frequencies of a flexible chain hanging under
+    gravity, fixed at the top and free at the bottom (Bernoulli, 1732).
+
+    Tension at height x above the free end is mu*g*x, and the mode equation
+    g (x u')' + omega^2 u = 0 is Bessel's equation of order 0. Regularity at the
+    bottom keeps J_0; the fixed top u(L)=0 forces J_0(2 omega sqrt(L/g)) = 0, so
+
+        omega_n = (alpha_{0,n} / 2) sqrt(g / L),   J_0(alpha_{0,n}) = 0.
+
+    Returns (frequencies, zeros).
+    """
+    if L <= 0 or g <= 0:
+        raise ValueError("L and g must be > 0")
+    if n_modes < 1:
+        raise ValueError("n_modes must be >= 1")
+    zeros = bessel_zeros(0, n_modes)
+    freqs = [(a / 2) * float(mp.sqrt(g / L)) for a in zeros]
+    return freqs, zeros
+
+
+def hanging_chain_modeshape(alpha_n, xfrac):
+    """Mode shape u = J_0(alpha_n sqrt(x/L)) vs xfrac = x/L in [0, 1], with x the
+    height above the free (bottom) end. xfrac=0 is the free end (max amplitude),
+    xfrac=1 the fixed top (zero)."""
+    import numpy as _np
+    xf = _np.atleast_1d(_np.asarray(xfrac, dtype=float))
+    return _np.array([float(mp.besselj(0, alpha_n * _np.sqrt(v))) for v in xf])
