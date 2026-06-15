@@ -52,6 +52,7 @@ from . import potential_theory
 from . import bessel
 from . import dielectrics
 from . import magnetostatics
+from . import magnetic_matter
 
 __version__ = "0.1.0"
 
@@ -67,5 +68,5 @@ __all__ = [
     "rr2_field", "rr2_paradox", "radial_div_theorem",
     "trig_substitution", "sifting_property",
     "relativity", "potentials", "quantum", "electrostatics", "potential_theory",
-    "bessel", "dielectrics", "magnetostatics",
+    "bessel", "dielectrics", "magnetostatics", "magnetic_matter",
 ]
