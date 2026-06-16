@@ -73,6 +73,42 @@ def simulate(pos, vel, eps=1.0, sigma=1.0, dt=0.005, steps=2000, store_every=20)
             "vel": vel}
 
 
+# ── symbolic analysis (SymPy) ───────────────────────────────────────
+def symbolic_lj(eps=None, sigma=None, r=None):
+    """Return SymPy symbols and expressions for the LJ potential, its force
+    (-dV/dr), the equilibrium distance (dV/dr = 0), the well depth, the curvature
+    V''(r_min) (the harmonic spring constant), and the indefinite integral.
+
+    Returns a dict; pass numeric eps/sigma to specialise, or leave None for fully
+    symbolic.
+    """
+    import sympy as sp
+    eps = sp.Symbol("epsilon", positive=True) if eps is None else sp.sympify(eps)
+    sigma = sp.Symbol("sigma", positive=True) if sigma is None else sp.sympify(sigma)
+    r = sp.Symbol("r", positive=True) if r is None else r
+
+    V = 4 * eps * ((sigma / r)**12 - (sigma / r)**6)
+    force = sp.simplify(-sp.diff(V, r))                 # F = -dV/dr
+    r_min = sp.solve(sp.Eq(sp.diff(V, r), 0), r)        # equilibrium
+    r_min = [s for s in r_min if s.is_real and s.is_positive][0]
+    V_min = sp.simplify(V.subs(r, r_min))
+    curvature = sp.simplify(sp.diff(V, r, 2).subs(r, r_min))   # k = V''(r_min)
+    integral = sp.integrate(V, r)                       # indefinite integral (+C)
+    return {"r": r, "eps": eps, "sigma": sigma, "V": V, "force": force,
+            "r_min": sp.simplify(r_min), "V_min": V_min,
+            "curvature": curvature, "integral": integral}
+
+
+def harmonic_frequency(eps=None, sigma=None, mass=None):
+    """Small-oscillation frequency about the LJ minimum: omega = sqrt(V''(r_min)/m).
+    Near the bottom the bond is a simple harmonic oscillator with spring constant
+    k = V''(r_min)."""
+    import sympy as sp
+    m = sp.Symbol("m", positive=True) if mass is None else sp.sympify(mass)
+    k = symbolic_lj(eps, sigma)["curvature"]
+    return sp.simplify(sp.sqrt(k / m))
+
+
 def hex_cluster(n_rings=2, spacing=None, sigma=1.0):
     """A 2-D hexagonal cluster of atoms at near-equilibrium spacing (a little
     crystal that stays bound under LJ cohesion)."""
