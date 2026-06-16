@@ -156,3 +156,6 @@ repl/_repl_lut_sincos.ipynb
 ############################
 repl/_repl_java_js_verilog_bessel2.py
 repl/_repl_java_js_verilog_bessel2.ipynb
+
+# iverilog compiled simulation artifacts
+*.vvp
