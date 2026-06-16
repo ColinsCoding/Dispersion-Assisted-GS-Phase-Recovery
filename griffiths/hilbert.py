@@ -65,3 +65,40 @@ def phasor_inner(z, w):
     if z.shape != w.shape:
         raise ValueError("phasor vectors must have equal length")
     return sp.simplify(sum(sp.conjugate(z[i]) * w[i] for i in range(z.rows)))
+
+
+# ── Gram-Schmidt orthogonalisation ──────────────────────────────────
+def gram_schmidt(funcs, var, a, b, weight=1, normalize=True):
+    """Gram-Schmidt: turn a list of functions into an orthogonal (or orthonormal)
+    set under the L^2 inner product on [a, b] with the given weight.
+
+    Each function has the projections onto the already-orthogonalised ones
+    subtracted off:  e_k = f_k - sum_j <e_j, f_k>/<e_j, e_j> * e_j. Applied to the
+    monomials 1, x, x^2, ... on [-1, 1] it generates the Legendre polynomials.
+    """
+    ortho = []
+    for f in funcs:
+        g = sp.sympify(f)
+        for e in ortho:
+            coeff = inner_product(e, f, var, a, b, weight) / inner_product(e, e, var, a, b, weight)
+            g = g - coeff * e
+        g = sp.simplify(g)
+        if normalize:
+            g = sp.simplify(g / norm(g, var, a, b, weight))
+        ortho.append(g)
+    return ortho
+
+
+def gram_schmidt_vectors(vectors):
+    """Gram-Schmidt on a list of numeric/symbolic column vectors (Hermitian inner
+    product). Returns the orthonormal set as sympy Matrices."""
+    ortho = []
+    for v in vectors:
+        u = sp.Matrix(v)
+        for e in ortho:
+            u = u - (e.H * sp.Matrix(v))[0] * e
+        nrm = sp.sqrt((u.H * u)[0])
+        if nrm == 0:
+            raise ValueError("vectors are linearly dependent")
+        ortho.append(sp.simplify(u / nrm))
+    return ortho
