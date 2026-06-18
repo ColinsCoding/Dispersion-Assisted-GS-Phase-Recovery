@@ -30,6 +30,7 @@ from .parity import (
 from .deltas import (
     delta_integral,
     delta_rescale,
+    delta_composition,
     step,
     d_step_dx,
     x_ddx_delta,
@@ -66,7 +67,7 @@ __all__ = [
     "check_product_rule", "check_quotient_rule",
     "PRODUCT_RULES", "QUOTIENT_RULES",
     "parity_matrix", "handedness", "invert", "INVERSION_SIGNS",
-    "delta_integral", "delta_rescale", "step", "d_step_dx", "x_ddx_delta",
+    "delta_integral", "delta_rescale", "delta_composition", "step", "d_step_dx", "x_ddx_delta",
     "is_conservative", "is_solenoidal", "scalar_potential",
     "rr2_field", "rr2_paradox", "radial_div_theorem",
     "trig_substitution", "sifting_property",
