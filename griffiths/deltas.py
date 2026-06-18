@@ -30,6 +30,32 @@ def delta_rescale(k, var=x):
     return sp.Eq(sp.DiracDelta(k * var), sp.DiracDelta(var) / sp.Abs(k))
 
 
+def delta_composition(g, var=x):
+    """The composition rule  delta(g(x)) = sum_i delta(x - x_i) / |g'(x_i)|.
+
+    The delta of a function fires at every simple zero x_i of g, each weighted by
+    one over the *absolute value* of the slope there -- a steep crossing gives a
+    small spike, a shallow one a big spike. delta_rescale (delta(kx)=delta(x)/|k|)
+    is the special case g = k*x. The rule needs g'(x_i) != 0 at each zero.
+
+    Returns (expr, real_roots). In physics this is how delta(energy) collapses in
+    Fermi's golden rule / density of states: the delta selects the states where a
+    process is allowed and the 1/|g'| is the Jacobian onto that surface.
+    """
+    g = sp.sympify(g)
+    gp = sp.diff(g, var)
+    terms, real_roots = [], []
+    for r in sp.solve(sp.Eq(g, 0), var):
+        if sp.im(r) != 0:                       # keep real crossings only
+            continue
+        slope = sp.simplify(gp.subs(var, r))
+        if slope == 0:
+            raise ValueError(f"g'({r}) = 0: delta(g) is singular at a tangent zero")
+        terms.append(sp.DiracDelta(var - r) / sp.Abs(slope))
+        real_roots.append(r)
+    return sp.Add(*terms), real_roots
+
+
 def step(var=x):
     """Griffiths' theta(x): 1 for x > 0, 0 for x <= 0 (Eq. 1.95)."""
     return sp.Heaviside(var, 0)
