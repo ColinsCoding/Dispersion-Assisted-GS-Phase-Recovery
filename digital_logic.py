@@ -257,3 +257,92 @@ def alu(op, a_bits, b_bits=None):
              "carry": carry,
              "negative": res[-1] if res else 0}
     return res, flags
+
+
+# ── the top rung: a tiny accumulator CPU (ALU -> instruction set) ────
+# The smallest honest "mental model 01" of a processor: one accumulator (ACC),
+# a flat memory, a program counter (PC). Each cycle the CPU FETCHES the
+# instruction at PC, DECODES the opcode (a decoder() picks the one control line),
+# and EXECUTES it -- arithmetic/logic flow straight through the alu() above.
+ISA = {
+    "LOADI": 0,   # ACC <- immediate operand
+    "LOAD":  1,   # ACC <- MEM[operand]
+    "STORE": 2,   # MEM[operand] <- ACC
+    "ADD":   3,   # ACC <- ACC + MEM[operand]
+    "SUB":   4,   # ACC <- ACC - MEM[operand]
+    "AND":   5,   # ACC <- ACC & MEM[operand]
+    "OR":    6,   # ACC <- ACC | MEM[operand]
+    "XOR":   7,   # ACC <- ACC ^ MEM[operand]
+    "NOT":   8,   # ACC <- ~ACC
+    "JMP":   9,   # PC  <- operand
+    "JZ":    10,  # PC  <- operand  if zero flag set
+    "HALT":  11,
+}
+_ISA_OP_TO_NAME = {v: k for k, v in ISA.items()}
+_ALU_FOR = {"ADD": "ADD", "SUB": "SUB", "AND": "AND", "OR": "OR", "XOR": "XOR"}
+
+
+def run_program(program, mem=None, width=8, max_cycles=10000, trace=False):
+    """Execute a list of (mnemonic, operand) instructions on the accumulator CPU.
+
+    Everything arithmetic goes through alu() on `width`-bit two's-complement words,
+    so this is gates all the way down. Returns a dict with acc, mem, pc, flags,
+    cycles (+ a per-cycle trace if requested).
+
+    Example -- 3 + 4:
+        run_program([("LOADI", 3), ("STORE", 0), ("LOADI", 4),
+                     ("ADD", 0), ("HALT", 0)])["acc"] == 7
+    """
+    mask = (1 << width) - 1
+    memory = [0] * (1 << width) if mem is None else list(mem)
+    acc, pc, cycles = 0, 0, 0
+    flags = {"zero": 1, "carry": 0, "negative": 0}
+    log = []
+
+    def alu_apply(name, operand_val):
+        res, fl = alu(name, int_to_bits(acc, width), int_to_bits(operand_val, width))
+        return bits_to_int(res) & mask, fl
+
+    while pc < len(program):
+        if cycles >= max_cycles:
+            raise RuntimeError("max_cycles exceeded (infinite loop?)")
+        cycles += 1
+        mnem, operand = program[pc]
+        if mnem not in ISA:
+            raise ValueError(f"unknown instruction {mnem!r}")
+
+        # DECODE: opcode -> one-hot control line (the decoder is the instruction decoder)
+        onehot = decoder(int_to_bits(ISA[mnem], 4))
+        assert sum(onehot) == 1 and onehot[ISA[mnem]] == 1
+
+        next_pc = pc + 1
+        if mnem == "LOADI":
+            acc = operand & mask
+        elif mnem == "LOAD":
+            acc = memory[operand] & mask
+        elif mnem == "STORE":
+            memory[operand] = acc
+        elif mnem in _ALU_FOR:
+            acc, flags = alu_apply(_ALU_FOR[mnem], memory[operand])
+        elif mnem == "NOT":
+            res, flags = alu("NOT", int_to_bits(acc, width))
+            acc = bits_to_int(res) & mask
+        elif mnem == "JMP":
+            next_pc = operand
+        elif mnem == "JZ":
+            next_pc = operand if flags["zero"] else pc + 1
+        elif mnem == "HALT":
+            if trace:
+                log.append((cycles, pc, mnem, operand, acc, dict(flags)))
+            break
+
+        flags["zero"] = int(acc == 0)
+        flags["negative"] = (acc >> (width - 1)) & 1
+        if trace:
+            log.append((cycles, pc, mnem, operand, acc, dict(flags)))
+        pc = next_pc
+
+    out = {"acc": acc, "mem": memory, "pc": pc, "flags": flags, "cycles": cycles}
+    if trace:
+        out["trace"] = log
+    return out
