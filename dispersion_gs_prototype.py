@@ -68,6 +68,25 @@ def add_noise(I, snr_db, rng):
     return np.maximum(I + rng.normal(0, np.sqrt(noise_power), I.shape), 0.0)
 
 
+def photon_shot_noise(I, mean_photons, rng):
+    """Low-light Poisson shot noise: detect a finite photon budget, not a smooth I.
+
+    A square-law detector counts discrete photons; the count is Poisson, so the
+    noise grows as sqrt(signal). Scale the intensity so its mean equals
+    `mean_photons`, sample Poisson counts, and rescale back to intensity units.
+    Fewer photons (absorption, weak source) -> noisier I -> harder phase recovery.
+    """
+    if mean_photons <= 0:
+        raise ValueError("mean_photons must be > 0")
+    I = np.asarray(I, dtype=float)
+    m = I.mean()
+    if m <= 0:
+        raise ValueError("intensity must have positive mean")
+    scale = mean_photons / m                       # photons per intensity unit
+    counts = rng.poisson(np.maximum(I * scale, 0.0))
+    return counts / scale                          # back to intensity units (noisy)
+
+
 def make_measurements(N=2048, D=6000.0, snr_db=30.0, seed=0):
     """Generate the two intensity planes, clean and noisy.
 

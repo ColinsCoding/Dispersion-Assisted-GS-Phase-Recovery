@@ -172,6 +172,82 @@ def dispersion_param_D(beta2, L):
     return 2 * np.pi * beta2 * L
 
 
+# ── 7. absorption & dispersion: the Lorentz oscillator (Griffiths 9.4.3) ──
+def lorentz_epsilon(omega, omega0, gamma, omega_p):
+    """Complex relative permittivity of a single-resonance Lorentz medium.
+
+    Bound electrons are damped oscillators driven by the wave:
+        eps_r(w) = 1 + w_p^2 / (w0^2 - w^2 - i*gamma*w)
+    w0 = resonance, gamma = damping (linewidth), w_p = plasma frequency
+    (oscillator strength). The imaginary part is *absorption*, the real part
+    is *dispersion* -- two faces of the same resonance.
+    """
+    w = np.asarray(omega, dtype=float)
+    if gamma < 0 or omega_p < 0:
+        raise ValueError("gamma and omega_p must be non-negative")
+    return 1.0 + omega_p**2 / (omega0**2 - w**2 - 1j * gamma * w)
+
+
+def complex_index(eps_r):
+    """Complex refractive index n~ = n + i*kappa = sqrt(eps_r) (passive: kappa>=0).
+
+    n (real part) sets the phase velocity -> *dispersion*; kappa (imaginary part)
+    sets the decay -> *absorption*.
+    """
+    n = np.sqrt(np.asarray(eps_r, dtype=complex))
+    n = np.where(n.imag < 0, -n, n)           # passive-medium branch (kappa >= 0)
+    return n
+
+
+def absorption_coefficient(omega, kappa, c=1.0):
+    """Beer-Lambert intensity absorption coefficient alpha = 2*omega*kappa/c.
+
+    Intensity falls as I(z) = I0 exp(-alpha z): the field amplitude decays like
+    exp(-omega*kappa*z/c), so the intensity (its square) decays twice as fast.
+    """
+    return 2.0 * np.asarray(omega, dtype=float) * np.asarray(kappa, dtype=float) / c
+
+
+def beer_lambert(I0, alpha, z):
+    """Transmitted intensity I0 * exp(-alpha * z) through length z."""
+    return np.asarray(I0, dtype=float) * np.exp(-np.asarray(alpha, dtype=float) * z)
+
+
+def is_anomalous(omega, n_real):
+    """Boolean mask where dn/domega < 0 -- the *anomalous* dispersion band.
+
+    Normally n rises with frequency (normal dispersion); right across an
+    absorption line it briefly *falls* -- anomalous dispersion, the price the
+    Kramers-Kronig relations charge for the absorption peak.
+    """
+    return np.gradient(np.asarray(n_real, dtype=float), np.asarray(omega, dtype=float)) < 0
+
+
+def _hilbert(g):
+    """Hilbert transform H[g] via FFT (analytic signal = g + i H[g])."""
+    g = np.asarray(g, dtype=float)
+    N = len(g)
+    h = np.zeros(N)
+    if N % 2 == 0:
+        h[0] = h[N // 2] = 1.0
+        h[1:N // 2] = 2.0
+    else:
+        h[0] = 1.0
+        h[1:(N + 1) // 2] = 2.0
+    return np.fft.ifft(np.fft.fft(g) * h).imag
+
+
+def kramers_kronig(chi_imag):
+    """Reconstruct the real part of the susceptibility from its imaginary part.
+
+    Absorption (Im chi) and dispersion (Re chi) are not independent -- causality
+    (no response before the cause) ties them by a Hilbert transform. Given the
+    absorption spectrum on a uniform grid, returns the implied dispersion
+    spectrum (up to the discrete-Hilbert sign/edge conventions).
+    """
+    return -_hilbert(np.asarray(chi_imag, dtype=float))
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
