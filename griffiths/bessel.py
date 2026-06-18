@@ -178,3 +178,73 @@ def carrier_null_indices(n):
     """Modulation indices beta where the FM *carrier* vanishes -- the zeros of
     J_0 (2.405, 5.520, ...). At these beta all power is in the sidebands."""
     return bessel_zeros(0, n)
+
+
+# ── where J_m comes from: the Frobenius power series ─────────────────
+def frobenius_indicial_roots(m):
+    """The indicial equation roots of Bessel's equation: r = +/- m.
+
+    Substituting y = sum_k a_k s^{k+r} into s^2 y'' + s y' + (s^2 - m^2) y = 0,
+    the lowest power of s gives a_0 (r^2 - m^2) = 0. The two roots are the two
+    independent behaviours at the origin: s^{+m} (the regular J_m) and s^{-m}
+    (the singular Y_m). Returns [m, -m] counting multiplicity, so m=0 -> [0, 0]
+    (the repeated root that forces the logarithm in Y_0).
+    """
+    return [sp.Integer(m), sp.Integer(-m)]
+
+
+def bessel_J_series_terms(m, terms=4):
+    """Symbolic power series for J_m(s) (regular Frobenius solution, integer m):
+
+        J_m(s) = sum_{k>=0} (-1)^k / (k! (m+k)!) (s/2)^{2k+m}.
+
+    Returns the first `terms` terms as a SymPy expression in s."""
+    if m < 0 or terms < 1:
+        raise ValueError("m >= 0 and terms >= 1")
+    expr = sp.Integer(0)
+    for k in range(terms):
+        expr += sp.Integer(-1)**k / (sp.factorial(k) * sp.factorial(m + k)) \
+            * (_s / 2)**(2 * k + m)
+    return expr
+
+
+def bessel_J_series(m, x, terms=40):
+    """Numeric J_m(x) summed straight from its power series (works for real m via
+    the Gamma function). Converges for any x given enough `terms`; this is the
+    *definition* the closed form `mp.besselj` is built on."""
+    if terms < 1:
+        raise ValueError("terms >= 1")
+    total = mp.mpf(0)
+    half = mp.mpf(x) / 2
+    for k in range(terms):
+        total += mp.mpf(-1)**k / (mp.factorial(k) * mp.gamma(m + k + 1)) \
+            * half**(2 * k + m)
+    return float(total)
+
+
+def bessel_recurrence_residual(m, x):
+    """Check the two ladder relations that link neighbouring orders/derivatives:
+
+        J_{m-1}(x) + J_{m+1}(x) = (2m/x) J_m(x)        (recurrence)
+        J_m'(x)  = (J_{m-1}(x) - J_{m+1}(x)) / 2       (derivative)
+
+    Returns (recurrence_residual, derivative_residual); both ~0 confirm them.
+    """
+    Jm1, Jm, Jp1 = mp.besselj(m - 1, x), mp.besselj(m, x), mp.besselj(m + 1, x)
+    rec = Jm1 + Jp1 - (2 * m / x) * Jm
+    der = mp.diff(lambda t: mp.besselj(m, t), x) - (Jm1 - Jp1) / 2
+    return float(rec), float(der)
+
+
+# ── the wave equation in the real world: circular modes ─────────────
+def circular_membrane_frequencies(m, n_radial, radius=1.0, speed=1.0):
+    """Eigenfrequencies of a clamped circular drum (2-D wave equation).
+
+    Separation u = J_m(k r) e^{i m theta} e^{i w t} with u=0 on the rim forces
+    k R = alpha_{m,k} (the k-th zero of J_m), so f_{m,k} = speed * alpha_{m,k} /
+    (2 pi R). The same zeros set the cutoff of a circular waveguide / the modes
+    of a step-index fibre core -- the repo's own physics. Returns the list of f.
+    """
+    if radius <= 0 or speed <= 0:
+        raise ValueError("radius and speed must be > 0")
+    return [speed * a / (2 * mp.pi.__float__() * radius) for a in bessel_zeros(m, n_radial)]
