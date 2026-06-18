@@ -159,3 +159,10 @@ repl/_repl_java_js_verilog_bessel2.ipynb
 
 # iverilog compiled simulation artifacts
 *.vvp
+
+############################
+# Generated notebook outputs (raytracer etc.)
+############################
+notebooks/raytracer_output.json
+notebooks/raytracer_stats.json
+figures/_smoke*.png
