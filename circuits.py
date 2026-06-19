@@ -75,6 +75,54 @@ def rlc_damping(R, L, C):
     return omega0, zeta, regime
 
 
+# ── AC steady state: phasor impedance and complex power ─────────────
+def impedance_resistor(R):
+    """Z_R = R (real; dissipates, no phase shift)."""
+    return complex(R, 0)
+
+
+def impedance_inductor(omega, L):
+    """Z_L = j omega L (current lags voltage by 90 deg)."""
+    return 1j * omega * L
+
+
+def impedance_capacitor(omega, C):
+    """Z_C = 1/(j omega C) = -j/(omega C) (current leads voltage by 90 deg)."""
+    if omega == 0 or C == 0:
+        raise ValueError("omega and C must be nonzero")
+    return 1.0 / (1j * omega * C)
+
+
+def series_impedance(*Z):
+    """Total impedance of elements in series: Z = sum Z_k."""
+    return sum(complex(z) for z in Z)
+
+
+def parallel_impedance(*Z):
+    """Total impedance in parallel: 1/Z = sum 1/Z_k."""
+    return 1.0 / sum(1.0 / complex(z) for z in Z)
+
+
+def complex_power(V, I):
+    """Complex power S = V . conj(I) for RMS phasors V, I. Returns a dict:
+
+    P = Re S  (active power, W, the part that does work / heats),
+    Q = Im S  (reactive power, VAR, sloshes in L/C; +inductive, -capacitive),
+    apparent = |S| (VA),  pf = P/|S| (power factor, cos of the V-I angle).
+    """
+    S = complex(V) * np.conj(complex(I))
+    ap = abs(S)
+    return {"S": S, "P": S.real, "Q": S.imag, "apparent": ap,
+            "pf": S.real / ap if ap > 0 else 1.0}
+
+
+def resonant_frequency(L, C):
+    """Series/parallel LC resonance omega_0 = 1/sqrt(LC) (reactances cancel)."""
+    if L <= 0 or C <= 0:
+        raise ValueError("L, C must be > 0")
+    return 1.0 / np.sqrt(L * C)
+
+
 if __name__ == "__main__":
     sp.init_printing()
     print("RC step solution:", solve_rc_symbolic())
