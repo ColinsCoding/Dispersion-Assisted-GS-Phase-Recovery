@@ -86,6 +86,41 @@ def bell_state():
     return cnot(apply_1q(ket("00"), H, 0), 0, 1)
 
 
+# ── the algebra tools: observables, expectation values, the Bloch vector ──
+def is_hermitian(A):
+    """A = A^dagger -- the matrices that are physical observables (real eigenvalues)."""
+    A = np.asarray(A)
+    return np.allclose(A, A.conj().T)
+
+
+def is_unitary(U):
+    """U U^dagger = I -- the reversible, norm-preserving gates."""
+    U = np.asarray(U)
+    return np.allclose(U @ U.conj().T, np.eye(len(U)))
+
+
+def expectation(state, operator):
+    """Expectation value <psi|A|psi>. Real when A is Hermitian (a measurable average).
+
+    This is the inner product at the heart of quantum readout: the average value
+    you'd measure for observable A over many copies of the state."""
+    state = np.asarray(state, dtype=complex)
+    return complex(np.vdot(state, np.asarray(operator, dtype=complex) @ state))
+
+
+def bloch_vector(state):
+    """(<X>, <Y>, <Z>) for a single qubit -- its point on the Bloch sphere.
+
+    The complete linear-algebra description of a pure qubit; |0>->(0,0,1),
+    |1>->(0,0,-1), |+>->(1,0,0). Length 1 for a pure state. This is what quantum
+    state tomography measures -- civilian quantum sensing in three numbers."""
+    if len(state) != 2:
+        raise ValueError("bloch_vector is for a single qubit (length-2 state)")
+    return np.array([expectation(state, X).real,
+                     expectation(state, Y).real,
+                     expectation(state, Z).real])
+
+
 if __name__ == "__main__":
     psi = bell_state()
     print("Bell state amplitudes:", np.round(psi, 3))
