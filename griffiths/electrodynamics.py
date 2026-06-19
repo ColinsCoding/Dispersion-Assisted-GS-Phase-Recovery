@@ -334,6 +334,34 @@ def conductor_reflectivity(omega, sigma, eps=_EPS0, mu=_MU0):
     return np.abs(r)**2
 
 
+def conductor_E_B_phase_lag(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Phase by which B lags E in a conductor: phi = arctan(kappa/k) (Griffiths 9.134).
+
+    Since k~ = K e^{i phi}, B picks up the phase of k~ relative to E. In a GOOD
+    conductor k ~ kappa, so phi -> arctan(1) = 45 deg (pi/4) -- Problem 9.20(c).
+    In a poor conductor phi -> 0 (B in phase with E, as in vacuum)."""
+    kt = conductor_wavenumber(omega, sigma, eps, mu)
+    return np.arctan2(kt.imag, kt.real)
+
+
+def conductor_B_E_amplitude_ratio(omega, sigma, eps=_EPS0, mu=_MU0):
+    """B0/E0 = K/omega = |k~|/omega (Griffiths 9.137). For a non-conductor this is
+    sqrt(mu eps) = 1/v; a conductor's huge K makes B relatively much larger."""
+    return np.abs(conductor_wavenumber(omega, sigma, eps, mu)) / np.asarray(omega, dtype=float)
+
+
+def conductor_wavelength(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Wavelength in the medium, lambda = 2 pi / k (Griffiths 9.129). In a good
+    conductor lambda = 2 pi * skin_depth (Problem 9.20b: the wave barely advances
+    one wavelength before it is absorbed)."""
+    return 2 * np.pi / conductor_wavenumber(omega, sigma, eps, mu).real
+
+
+def conductor_phase_velocity(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Phase velocity v = omega / k (Griffiths 9.129)."""
+    return np.asarray(omega, dtype=float) / conductor_wavenumber(omega, sigma, eps, mu).real
+
+
 # ── 10. Faraday: why a changing flux breaks naive KVL ───────────────
 def induced_emf(flux_expr, t):
     """Faraday's law: EMF = -d(Phi)/dt (symbolic). The line integral oint E.dl
