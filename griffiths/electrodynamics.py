@@ -334,6 +334,31 @@ def conductor_reflectivity(omega, sigma, eps=_EPS0, mu=_MU0):
     return np.abs(r)**2
 
 
+# ── 10. Faraday: why a changing flux breaks naive KVL ───────────────
+def induced_emf(flux_expr, t):
+    """Faraday's law: EMF = -d(Phi)/dt (symbolic). The line integral oint E.dl
+    around the loop equals this -- nonzero, so the electrostatic 'sum of drops = 0'
+    (KVL) must gain an EMF term."""
+    return sp.simplify(-sp.diff(flux_expr, t))
+
+
+def sinusoidal_emf(N, A, B0, omega, t):
+    """EMF of an N-turn loop of area A in B(t)=B0 sin(omega t):
+    Phi = N A B0 sin(omega t), so EMF = -dPhi/dt = -N A B0 omega cos(omega t).
+    Peak |EMF| = N A B0 omega -- the generator/transformer relation."""
+    if N <= 0 or A <= 0 or omega < 0:
+        raise ValueError("N > 0, A > 0, omega >= 0 required")
+    return -N * A * B0 * omega * np.cos(omega * np.asarray(t, dtype=float))
+
+
+def loop_current(emf, R):
+    """Single resistive loop, corrected KVL: oint E.dl = EMF = I R, so I = EMF/R.
+    With no flux change EMF=0 and I=0 (naive KVL holds); a changing flux drives I."""
+    if R <= 0:
+        raise ValueError("R must be > 0")
+    return np.asarray(emf, dtype=float) / R
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
