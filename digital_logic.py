@@ -346,3 +346,71 @@ def run_program(program, mem=None, width=8, max_cycles=10000, trace=False):
     if trace:
         out["trace"] = log
     return out
+
+
+# ── sequential logic: memory, clocked one tick at a time ────────────
+# Combinational logic (above) has no memory -- outputs depend only on the
+# present inputs. *Sequential* logic adds state: a clock edge latches the inputs
+# into flip-flops, so the output depends on history. Everything below is "what
+# happens on one rising clock edge".
+def d_flip_flop(d, q_prev):
+    """One D flip-flop: on the clock edge Q <- D (it simply remembers the last D).
+    The atomic 1-bit memory cell; q_prev is only returned if you gate the clock."""
+    return _bit(d)
+
+
+def register_tick(data_bits, load, current_bits):
+    """n-bit register: on a tick, Q <- data if load==1, else hold (load enable)."""
+    cur = [_bit(x) for x in current_bits]
+    if load not in (0, 1):
+        raise ValueError("load must be 0 or 1")
+    if load:
+        data = [_bit(x) for x in data_bits]
+        if len(data) != len(cur):
+            raise ValueError("data and register width mismatch")
+        return data
+    return cur
+
+
+def shift_register_tick(current_bits, serial_in, direction="right"):
+    """Shift one position, clocking in serial_in. Returns (new_bits, serial_out)."""
+    b = [_bit(x) for x in current_bits]
+    si = _bit(serial_in)
+    if direction == "right":
+        return [si] + b[:-1], b[-1]
+    if direction == "left":
+        return b[1:] + [si], b[0]
+    raise ValueError("direction must be 'right' or 'left'")
+
+
+def counter_tick(current_bits, enable=1):
+    """Synchronous up-counter: Q <- Q+1 mod 2^n when enabled (built on the adder)."""
+    n = len(current_bits)
+    if not enable:
+        return [_bit(x) for x in current_bits]
+    s, _ = ripple_carry_add([_bit(x) for x in current_bits], int_to_bits(1, n))
+    return s[:n]
+
+
+def fsm_run(transitions, outputs, start, input_seq, mealy=False):
+    """Run a finite state machine over an input sequence.
+
+    transitions : {(state, symbol): next_state}
+    outputs     : Moore  -> {state: out}; Mealy -> {(state, symbol): out}
+    Returns (final_state, output_seq, state_trace). A sequential circuit *is* an
+    FSM: the register holds the state, combinational logic computes next-state
+    and output. This is the gs_monitor trigger / regex-automata thread in the repo.
+    """
+    state = start
+    out_seq, trace = [], [state]
+    for sym in input_seq:
+        key = (state, sym)
+        if key not in transitions:
+            raise ValueError(f"no transition from state {state!r} on input {sym!r}")
+        if mealy:
+            out_seq.append(outputs[key])
+        state = transitions[key]
+        trace.append(state)
+        if not mealy:
+            out_seq.append(outputs[state])
+    return state, out_seq, trace
