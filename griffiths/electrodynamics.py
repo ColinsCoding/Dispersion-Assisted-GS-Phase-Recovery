@@ -320,6 +320,20 @@ def skin_depth(omega, sigma, eps=_EPS0, mu=_MU0):
     return 1.0 / kappa
 
 
+def conductor_reflectivity(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Normal-incidence power reflectivity off a conductor: R = |(1-n~)/(1+n~)|^2,
+    with complex index n~ = c*k~/omega.
+
+    This is why metals are mirrors -- and the 'Ohm = 0' (perfect conductor,
+    sigma -> infinity) limit makes R -> 1: the fields can't penetrate (skin depth
+    -> 0), so the wave is thrown straight back. The optics payoff of conduction.
+    """
+    c = 1.0 / np.sqrt(_MU0 * _EPS0)
+    n_tilde = c * conductor_wavenumber(omega, sigma, eps, mu) / np.asarray(omega, dtype=float)
+    r = (1.0 - n_tilde) / (1.0 + n_tilde)
+    return np.abs(r)**2
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
