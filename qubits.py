@@ -173,6 +173,40 @@ def qft_circuit(state):
     return s
 
 
+# ── phase estimation: a quantum ADC that measures an eigen-phase ────
+def phase_gate(angle):
+    """Single-qubit phase gate diag(1, e^{i angle})."""
+    return np.array([[1, 0], [0, np.exp(1j * angle)]], dtype=complex)
+
+
+def phase_estimation(phi, n_counting):
+    """Quantum phase estimation: read the eigen-phase phi in [0,1) into n qubits.
+
+    A unitary U with U|psi> = e^{2 pi i phi}|psi> kicks the phase back onto the
+    counting register; after the inverse QFT the register holds (close to) the
+    integer m = phi * 2^n. So this is an analog-to-digital converter for *phase*:
+    a continuous phi goes in, its n-bit binary expansion comes out -- the quantum
+    sibling of the carrier-less receiver's job (recover the phase) and of the
+    lab ADC (digitize a continuous quantity). Returns the counting-register state.
+    """
+    if n_counting < 1:
+        raise ValueError("n_counting >= 1")
+    state = ket("0" * n_counting)
+    for j in range(n_counting):                       # uniform superposition
+        state = apply_1q(state, H, j)
+    for j in range(n_counting):                       # phase kickback, qubit 0 = MSB
+        state = apply_1q(state, phase_gate(2 * np.pi * phi * 2**(n_counting - 1 - j)), j)
+    return inverse_qft(state)
+
+
+def estimate_phase(phi, n_counting):
+    """Run QPE and return (phi_hat, probability) for the most likely readout.
+    phi_hat = m/2^n is exact when phi is an n-bit fraction."""
+    probs = measure_probs(phase_estimation(phi, n_counting))
+    m = int(np.argmax(probs))
+    return m / 2**n_counting, float(probs[m])
+
+
 if __name__ == "__main__":
     psi = bell_state()
     print("Bell state amplitudes:", np.round(psi, 3))
