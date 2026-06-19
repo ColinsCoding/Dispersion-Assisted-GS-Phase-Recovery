@@ -248,6 +248,45 @@ def kramers_kronig(chi_imag):
     return -_hilbert(np.asarray(chi_imag, dtype=float))
 
 
+# ── 8. Ohm + Gauss + continuity -> charge relaxation ────────────────
+def charge_relaxation_ode():
+    """Combine the two laws (and charge conservation) into one decay equation.
+
+        continuity:  d(rho)/dt + div J = 0
+        Ohm:         J = sigma E
+        Gauss:       div E = rho / eps
+      =>  d(rho)/dt = -(sigma/eps) rho   =>   rho(t) = rho_0 e^{-t/tau},  tau = eps/sigma.
+
+    Free charge in a conductor dissolves exponentially: it flees to the surface
+    (Ohm pushes the current, Gauss says the divergence is the charge). Returns
+    (ode, solution, tau) symbolically.
+    """
+    t = sp.Symbol("t", real=True)
+    rho = sp.Function("rho")
+    eps_, sig, rho0 = sp.symbols("epsilon sigma rho_0", positive=True)
+    ode = sp.Eq(rho(t).diff(t), -(sig / eps_) * rho(t))
+    sol = sp.dsolve(ode, rho(t), ics={rho(0): rho0})
+    return ode, sol, eps_ / sig
+
+
+def charge_relaxation_time(eps, sigma):
+    """tau = eps/sigma: the time for free charge in a conductor to die off e-fold.
+
+    Tiny for metals (~1e-19 s for copper -- so small the simple model breaks down,
+    but the point stands: charge relaxes essentially instantly, which is why a
+    conductor is an equipotential and why the receiver's metal screens fast).
+    """
+    if eps <= 0 or sigma <= 0:
+        raise ValueError("eps and sigma must be > 0")
+    return eps / sigma
+
+
+def charge_decay(rho0, t, eps, sigma):
+    """Free-charge density rho(t) = rho0 * exp(-t / tau), tau = eps/sigma."""
+    tau = charge_relaxation_time(eps, sigma)
+    return np.asarray(rho0, dtype=float) * np.exp(-np.asarray(t, dtype=float) / tau)
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
