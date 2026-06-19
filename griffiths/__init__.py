@@ -44,6 +44,8 @@ from .fields import (
     radial_div_theorem,
     trig_substitution,
     sifting_property,
+    line_integral,
+    circulation,
 )
 from . import relativity
 from . import potentials
@@ -70,7 +72,7 @@ __all__ = [
     "delta_integral", "delta_rescale", "delta_composition", "step", "d_step_dx", "x_ddx_delta",
     "is_conservative", "is_solenoidal", "scalar_potential",
     "rr2_field", "rr2_paradox", "radial_div_theorem",
-    "trig_substitution", "sifting_property",
+    "trig_substitution", "sifting_property", "line_integral", "circulation",
     "relativity", "potentials", "quantum", "electrostatics", "potential_theory",
     "bessel", "dielectrics", "magnetostatics", "magnetic_matter", "hilbert",
     "radiation", "electrodynamics",

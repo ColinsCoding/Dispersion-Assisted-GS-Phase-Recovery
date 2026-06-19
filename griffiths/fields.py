@@ -110,3 +110,30 @@ def sifting_property(c=None, var=None):
     f = sp.Function("f")
     lhs = sp.Integral(f(var) * sp.DiracDelta(var - c), (var, -sp.oo, sp.oo))
     return sp.Eq(lhs, lhs.doit().simplify())
+
+
+# ── line integrals: the calculus that *is* Kirchhoff's voltage law ──
+def line_integral(F, path, t, t0, t1, vars=CARTESIAN):
+    """Work integral int F . dr along r(t) = path, for t in [t0, t1].
+
+    F    : 3-vector field in `vars` (x, y, z).
+    path : [x(t), y(t), z(t)] -- the parametrized curve.
+    Returns the (symbolic) integral. This is the calculus line integral; in a
+    circuit it is the EMF/voltage drop along a branch, int E . dl.
+    """
+    F = _as_vec3(F)
+    subs = {vars[i]: path[i] for i in range(3)}
+    dr = [sp.diff(p, t) for p in path]
+    integrand = sum(F[i].subs(subs) * dr[i] for i in range(3))
+    return sp.simplify(sp.integrate(integrand, (t, t0, t1)))
+
+
+def circulation(F, path, t, vars=CARTESIAN):
+    """Closed-loop line integral oint F . dl over one period t in [0, 2*pi].
+
+    For a CONSERVATIVE field this is 0 -- that is exactly Kirchhoff's voltage law
+    (sum of voltage drops around a loop = 0). For a NON-conservative field
+    (curl != 0, e.g. a Faraday-induced E) it equals the flux of curl F through
+    the loop (Stokes), the EMF that forces KVL to carry an extra term.
+    """
+    return line_integral(F, path, t, 0, 2 * sp.pi, vars)
