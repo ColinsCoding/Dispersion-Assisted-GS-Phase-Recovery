@@ -287,6 +287,39 @@ def charge_decay(rho0, t, eps, sigma):
     return np.asarray(rho0, dtype=float) * np.exp(-np.asarray(t, dtype=float) / tau)
 
 
+# ── 9. EM waves in conductors: complex k~ and skin depth (Griffiths 9.4.1) ──
+_EPS0 = 8.8541878128e-12     # F/m
+_MU0 = 4e-7 * np.pi          # H/m
+
+
+def conductor_wavenumber(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Complex wavenumber k~ = k + i*kappa in a conductor (Griffiths 9.125-9.126).
+
+    Once Ohm's law adds the i*mu*sigma*omega term, the dispersion relation is
+    k~^2 = mu eps omega^2 + i mu sigma omega, so k~ is complex:
+        k     = omega sqrt(mu eps/2) [ sqrt(1+(sigma/eps omega)^2) + 1 ]^(1/2)
+        kappa = omega sqrt(mu eps/2) [ sqrt(1+(sigma/eps omega)^2) - 1 ]^(1/2)
+    The wave propagates with k and decays as exp(-kappa z). Returns k + i*kappa.
+    """
+    omega = np.asarray(omega, dtype=float)
+    if np.any(omega <= 0) or sigma < 0:
+        raise ValueError("omega > 0 and sigma >= 0 required")
+    base = omega * np.sqrt(mu * eps / 2.0)
+    s = np.sqrt(1.0 + (sigma / (eps * omega))**2)
+    k = base * np.sqrt(s + 1.0)
+    kappa = base * np.sqrt(s - 1.0)
+    return k + 1j * kappa
+
+
+def skin_depth(omega, sigma, eps=_EPS0, mu=_MU0):
+    """Skin depth d = 1/kappa: the distance over which the amplitude falls by 1/e
+    (Griffiths 9.128). For a good conductor d ~ sqrt(2/(omega mu sigma))."""
+    kappa = conductor_wavenumber(omega, sigma, eps, mu).imag
+    if np.any(kappa <= 0):
+        raise ValueError("no attenuation (sigma = 0?): skin depth undefined")
+    return 1.0 / kappa
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
