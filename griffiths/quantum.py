@@ -259,3 +259,48 @@ def spin_state(theta, phi=0.0):
     """Spin-1/2 spinor pointing along direction (theta, phi) on the Bloch sphere:
     |chi> = (cos(theta/2), e^{i phi} sin(theta/2)). theta=0 is spin-up."""
     return np.array([np.cos(theta / 2), np.exp(1j * phi) * np.sin(theta / 2)])
+
+
+# ── the statistics under QM: expectation, spread, Heisenberg (hbar=1) ──
+# Born's rule makes |psi(x)|^2 a probability density, so a wavefunction is a
+# statistical object: a mean position <x>, a spread sigma_x, a mean momentum <p>,
+# obeying the uncertainty principle sigma_x sigma_p >= 1/2. This is the
+# "statistics class that comes before Griffiths Ch.1 QM".
+def expectation_x(psi, x):
+    """<x> = integral x |psi|^2 dx (probability-weighted mean position)."""
+    x = np.asarray(x, dtype=float)
+    p = np.abs(psi)**2
+    return float(np.trapezoid(x * p, x) / np.trapezoid(p, x))
+
+
+def sigma_x(psi, x):
+    """Position spread sqrt(<x^2> - <x>^2) -- the standard deviation of position."""
+    x = np.asarray(x, dtype=float)
+    p = np.abs(psi)**2
+    norm = np.trapezoid(p, x)
+    mean = np.trapezoid(x * p, x) / norm
+    x2 = np.trapezoid(x**2 * p, x) / norm
+    return float(np.sqrt(max(x2 - mean**2, 0.0)))
+
+
+def expectation_p(psi, x):
+    """<p> = integral psi* (-i d/dx) psi dx  (hbar=1); real for any state."""
+    x = np.asarray(x, dtype=float)
+    dpsi = np.gradient(np.asarray(psi, dtype=complex), x)
+    num = np.trapezoid(np.conj(psi) * (-1j * dpsi), x)
+    return float(np.real(num / np.trapezoid(np.abs(psi)**2, x)))
+
+
+def sigma_p(psi, x):
+    """Momentum spread sqrt(<p^2> - <p>^2); <p^2> = integral |dpsi/dx|^2 dx."""
+    x = np.asarray(x, dtype=float)
+    dpsi = np.gradient(np.asarray(psi, dtype=complex), x)
+    norm = np.trapezoid(np.abs(psi)**2, x)
+    p2 = np.real(np.trapezoid(np.abs(dpsi)**2, x) / norm)
+    return float(np.sqrt(max(p2 - expectation_p(psi, x)**2, 0.0)))
+
+
+def uncertainty_product(psi, x):
+    """sigma_x * sigma_p. Heisenberg: always >= 1/2 (hbar/2), with equality only
+    for a Gaussian -- the minimum-uncertainty (most 'classical') state."""
+    return sigma_x(psi, x) * sigma_p(psi, x)
