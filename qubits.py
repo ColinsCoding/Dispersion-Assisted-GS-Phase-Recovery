@@ -121,6 +121,58 @@ def bloch_vector(state):
                      expectation(state, Z).real])
 
 
+# ── the quantum Fourier transform: the FFT on amplitudes ────────────
+def controlled_phase(state, qa, qb, phi):
+    """Apply phase e^{i phi} to the |..1..1..> component (qubits qa AND qb both 1).
+    A diagonal, symmetric two-qubit gate -- the building block of the QFT."""
+    n = int(round(np.log2(len(state))))
+    idx = np.arange(len(state))
+    both = ((idx >> (n - 1 - qa)) & 1) & ((idx >> (n - 1 - qb)) & 1)
+    return state * np.where(both == 1, np.exp(1j * phi), 1.0)
+
+
+def swap(state, a, b):
+    """Swap two qubits (three CNOTs)."""
+    return cnot(cnot(cnot(state, a, b), b, a), a, b)
+
+
+def qft_matrix(n):
+    """The QFT unitary on n qubits: W[j,k] = exp(2 pi i j k / N)/sqrt(N), N=2^n.
+    It's the DFT matrix of fourier_tools, normalized to be unitary."""
+    N = 2**n
+    j, k = np.meshgrid(np.arange(N), np.arange(N), indexing="ij")
+    return np.exp(2j * np.pi * j * k / N) / np.sqrt(N)
+
+
+def qft(state):
+    """Quantum Fourier transform via the matrix. Equals sqrt(N) * numpy.fft.ifft."""
+    n = int(round(np.log2(len(state))))
+    return qft_matrix(n) @ np.asarray(state, dtype=complex)
+
+
+def inverse_qft(state):
+    """Inverse QFT (the conjugate-transpose unitary)."""
+    n = int(round(np.log2(len(state))))
+    return qft_matrix(n).conj().T @ np.asarray(state, dtype=complex)
+
+
+def qft_circuit(state):
+    """QFT built as an actual gate circuit: per qubit, an H then controlled phase
+    rotations from the lower qubits, finished by reversing the qubit order.
+
+    Uses n Hadamards + n(n-1)/2 controlled-phase gates = O(n^2) gates -- vs the
+    classical FFT's O(N log N) = O(n 2^n). Returns the same state as qft()."""
+    s = np.asarray(state, dtype=complex).copy()
+    n = int(round(np.log2(len(s))))
+    for j in range(n):
+        s = apply_1q(s, H, j)
+        for k in range(j + 1, n):
+            s = controlled_phase(s, j, k, 2 * np.pi / 2**(k - j + 1))
+    for i in range(n // 2):
+        s = swap(s, i, n - 1 - i)
+    return s
+
+
 if __name__ == "__main__":
     psi = bell_state()
     print("Bell state amplitudes:", np.round(psi, 3))
