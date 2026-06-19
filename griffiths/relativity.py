@@ -128,3 +128,17 @@ def speed_from_kinetic_ratio(n):
         raise ValueError(f"n must be positive, got {n}")
     gamma = n + 1                       # (gamma - 1) m c^2 = n m c^2
     return sp.simplify(sp.sqrt(1 - 1 / gamma**2))
+
+
+def velocity_from_rapidity(theta):
+    """beta = tanh(theta): the inverse of rapidity. As theta -> infinity, beta -> 1
+    but never reaches it -- why c is a speed limit even though rapidity is unbounded."""
+    return sp.tanh(theta)
+
+
+def add_rapidities(b1, b2):
+    """Compose two boosts: rapidities simply ADD. Returns rapidity(b1)+rapidity(b2);
+    its tanh is exactly Einstein velocity addition. The whole point: velocities do
+    not add, but the spacetime-rotation angle (rapidity) does -- like ordinary
+    rotation angles. boost2(t1) @ boost2(t2) = boost2(t1+t2)."""
+    return rapidity(b1) + rapidity(b2)
