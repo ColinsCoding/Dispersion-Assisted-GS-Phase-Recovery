@@ -61,12 +61,11 @@ jupyter notebook notebooks/phase_retrieval.ipynb
 |---|---|
 | [`dgs/`](dgs/) | The toolkit package — `gs_core` (dispersion operator, GS loop), plus the physics/ML/hardware modules. Install with `pip install -e .` |
 | [`dgs/gs_core.py`](dgs/gs_core.py) | Physics engine — dispersion operator, GS loop, QPSK test data generator |
-| [`phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb) | Main Colab notebook (project deliverable) |
-| [`optical_dashboard/dsp.py`](optical_dashboard/dsp.py) | QPSK modem, DWDM simulation, digital logic |
-| [`pic_design/sim/gs_surface.py`](pic_design/sim/gs_surface.py) | GS error surface 3D plot |
-| [`pic_design/sim/gs_animate.py`](pic_design/sim/gs_animate.py) | Convergence animation |
-| [`pic_design/sim/fdtd_dispersion.py`](pic_design/sim/fdtd_dispersion.py) | FDTD dispersion model |
-| [`notebooks/experimental/seals_simulation.ipynb`](notebooks/experimental/seals_simulation.ipynb) | SEALS Mie/Rayleigh scattering (Project 1) |
+| [`notebooks/phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb) | Main notebook — the project deliverable |
+| [`notebooks/ml_course_on_receiver.ipynb`](notebooks/ml_course_on_receiver.ipynb) | AI notebook — train/classify on the recovered-signal data |
+| [`griffiths/`](griffiths/) | Physics engine — EM, QM, Bessel, relativity, fields (SymPy) |
+| [`hardware/`](hardware/) | 8-point FFT: C golden model (`fft8.c`) + Verilog RTL (`fft8.v`) + Makefile |
+| [`tests/`](tests/) | Smoke tests for every module (`python tests/test_*.py`) |
 | [`sample_data/`](sample_data/) | Synthetic two-arm `.mat` files for testing |
 | [`references/README.md`](references/README.md) | Paper citations with DOI links |
 
