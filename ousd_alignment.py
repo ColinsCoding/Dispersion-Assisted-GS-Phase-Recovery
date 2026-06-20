@@ -16,15 +16,27 @@ Usage
 
 from __future__ import annotations
 import json
+import sys
 from typing import Sequence
 
+# The alignment table uses box-drawing/star glyphs; force UTF-8 so it prints on
+# a legacy Windows cp1252 console instead of raising UnicodeEncodeError.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (ValueError, OSError):
+        pass
+
 # ── CTA registry ──────────────────────────────────────────────────────────────
-# Arrowed items from ECE279 midterm slide = highest priority
+# Priority 1 = the six CTAs marked (red arrows) on the OUSD(R&E) Critical
+# Technology Areas list this project targets: FutureG, Trusted AI & Autonomy,
+# Advanced Computing & Software, Integrated Sensing & Cyber, Directed Energy,
+# and Human-Machine Interfaces. Priority 2 = adjacent areas the repo touches.
 CTA = {
     "FutureG": {
         "priority": 1,
         "description": "Next-generation communications and sensing at optical bandwidth",
-        "repo_components": ["tsdft", "gs_core", "gs_fno", "rogue_wave", "adc_timing"],
+        "repo_components": ["tsdft", "gs_core", "gs_fno", "rogue_wave", "adc_timing", "griffiths_em"],
     },
     "Trusted_AI_and_Autonomy": {
         "priority": 1,
@@ -33,8 +45,9 @@ CTA = {
     },
     "Advanced_Computing_and_Software": {
         "priority": 1,
-        "description": "GPU-accelerated phase retrieval; SymPy analytic validation",
-        "repo_components": ["gs_core", "gs_fno", "gs_torch", "repl", "sympy_physics"],
+        "description": "GPU-accelerated phase retrieval; SymPy analytic validation "
+                       "(Maxwell -> dispersion operator H(f)=exp(i pi D f^2))",
+        "repo_components": ["gs_core", "gs_fno", "gs_torch", "repl", "sympy_physics", "griffiths_em"],
     },
     "Integrated_Sensing_and_Cyber": {
         "priority": 1,
@@ -113,9 +126,13 @@ def stamp(stats: dict, components: Sequence[str] | None = None) -> dict:
         "aligned_ctas":   ctas,
         "priority_1_ctas": priority_1,
         "n_ctas":         len(ctas),
-        "sbir_phase":     "Phase I — $275K",
+        "sbir_phase":     "Phase I — $275K (prospective)",
         "program":        "Dispersion-Assisted GS Phase Recovery",
-        "classification": "UNCLASSIFIED // FOR OFFICIAL USE ONLY",
+        # Honest marking: this is a PUBLIC UCLA/Jalali-Lab academic project (the
+        # repo is itself a course deliverable), not government-controlled data.
+        # "FOUO" was both deprecated (-> CUI, DoDI 5200.48) and wrong here.
+        "classification": "UNCLASSIFIED // DISTRIBUTION A — Approved for Public Release",
+        "note": "CTA tags are technology-area relevance, not a claim of DoD funding or endorsement.",
     }
     return stats
 
@@ -129,7 +146,7 @@ def print_alignment(components: Sequence[str] | None = None) -> None:
     W = 72
     print("═" * W)
     print("  OUSD(R&E) CRITICAL TECHNOLOGY AREA ALIGNMENT")
-    print("  Dispersion-Assisted GS Phase Recovery  |  UNCLASSIFIED//FOUO")
+    print("  Dispersion-Assisted GS Phase Recovery  |  UNCLASSIFIED // DIST A")
     print("═" * W)
     print(f"  {'CTA':<38} {'PRI':<5} REPO COMPONENTS")
     print("  " + "─" * (W - 2))
