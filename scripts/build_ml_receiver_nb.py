@@ -23,7 +23,7 @@ import torch, torch.nn as nn
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
-import gs_core as gs, dispersion_gs_prototype as dg
+from dgs import gs_core as gs, dispersion_gs_prototype as dg
 plt.rcParams.update({"figure.dpi": 120, "font.size": 11})
 print("torch", torch.__version__)"""),
 
@@ -131,6 +131,35 @@ fig, ax = plt.subplots(figsize=(4, 4))
 ConfusionMatrixDisplay(confusion_matrix(y, cv_pred),
                        display_labels=["not", "recoverable"]).plot(ax=ax, colorbar=False)
 ax.set_title("Random Forest (cross-validated)"); plt.tight_layout(); plt.show()"""),
+
+md("""## 5. ROC / AUC — the honest discrimination metric
+
+Accuracy is misleading when the classes aren't 50/50. **AUC** = the probability
+the model ranks a random recoverable shot above a random un-recoverable one
+(0.5 = chance, 1.0 = perfect), and it's the number that actually answers
+*"can a model predict recoverability?"*. We use **out-of-fold** probabilities so
+it's honest (no peeking)."""),
+co("""from sklearn.metrics import roc_auc_score, roc_curve
+# out-of-fold predicted probabilities -> unbiased AUC
+proba_rf = cross_val_predict(RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1),
+                             X, y, cv=5, method="predict_proba")[:, 1]
+proba_gb = cross_val_predict(GradientBoostingClassifier(n_estimators=200, random_state=42),
+                             X, y, cv=5, method="predict_proba")[:, 1]
+auc_rf, auc_gb = roc_auc_score(y, proba_rf), roc_auc_score(y, proba_gb)
+with torch.no_grad():
+    mlp_proba = torch.softmax(net(Xte_t), 1)[:, 1].numpy()
+auc_mlp = roc_auc_score(yte, mlp_proba)
+print(f"ROC-AUC   RF={auc_rf:.3f}   GB={auc_gb:.3f}   MLP={auc_mlp:.3f}   (0.5 = chance)")
+
+plt.figure(figsize=(5.2, 5))
+for proba, lab, c in [(proba_rf, f"RF  (AUC={auc_rf:.2f})", "#2ca02c"),
+                      (proba_gb, f"GB  (AUC={auc_gb:.2f})", "#8c564b")]:
+    fpr, tpr, _ = roc_curve(y, proba); plt.plot(fpr, tpr, color=c, lw=2, label=lab)
+fpr, tpr, _ = roc_curve(yte, mlp_proba); plt.plot(fpr, tpr, color="#1f77b4", lw=2, label=f"MLP (AUC={auc_mlp:.2f})")
+plt.plot([0, 1], [0, 1], "--", c="grey", lw=1, label="chance")
+plt.xlabel("false positive rate"); plt.ylabel("true positive rate")
+plt.title("Recoverability prediction — ROC"); plt.legend(loc="lower right")
+plt.tight_layout(); plt.show()"""),
 
 md("""## Takeaway (honest version)
 
