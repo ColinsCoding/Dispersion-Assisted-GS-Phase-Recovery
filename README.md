@@ -17,7 +17,7 @@ No local oscillator. No 90° hybrid. Just fiber, a photodetector, and math.
 
 | Notebook | What it does |
 |---|---|
-| **[`phase_retrieval.ipynb`](phase_retrieval.ipynb)** | The mission deliverable: time-domain Gerchberg–Saxton recovers φ(t) from two intensity-only measurements (the carrier-less coherent receiver). |
+| **[`phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb)** | The mission deliverable: time-domain Gerchberg–Saxton recovers φ(t) from two intensity-only measurements (the carrier-less coherent receiver). |
 | **[`notebooks/ml_course_on_receiver.ipynb`](notebooks/ml_course_on_receiver.ipynb)** | The AI notebook: trains/​classifies on the recovered-signal data (MLP + random forest + boosting). |
 
 *Everything else (the `griffiths/` physics package, `hardware/` C+Verilog FFT, `qubits.py`, etc.) is supporting work; these two are the project.*
@@ -49,7 +49,7 @@ python gs_core.py          # runs self-test, saves gs_core_test.png
 To open the main notebook:
 
 ```bash
-jupyter notebook phase_retrieval.ipynb
+jupyter notebook notebooks/phase_retrieval.ipynb
 ```
 
 ---
@@ -59,7 +59,7 @@ jupyter notebook phase_retrieval.ipynb
 | File | What it is |
 |---|---|
 | [`gs_core.py`](gs_core.py) | Physics engine — dispersion operator, GS loop, QPSK test data generator |
-| [`phase_retrieval.ipynb`](phase_retrieval.ipynb) | Main Colab notebook (project deliverable) |
+| [`phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb) | Main Colab notebook (project deliverable) |
 | [`optical_dashboard/dsp.py`](optical_dashboard/dsp.py) | QPSK modem, DWDM simulation, digital logic |
 | [`pic_design/sim/gs_surface.py`](pic_design/sim/gs_surface.py) | GS error surface 3D plot |
 | [`pic_design/sim/gs_animate.py`](pic_design/sim/gs_animate.py) | Convergence animation |
