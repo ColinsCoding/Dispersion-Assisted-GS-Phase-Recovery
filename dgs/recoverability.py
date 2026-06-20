@@ -59,14 +59,19 @@ def _recovery_rms(I1, I2, D1, D2, phi_true):
 
 
 def make_recoverability_dataset(n_samples=300, rms_thresh=0.35, seed=0):
-    """Simulate measurements across a range of diversity and noise; return
-    (X features, y recoverable-labels, feature_names). y=1 if GS RMS < rms_thresh.
-    Ranges chosen so recoverability is a balanced (~40%) classification problem."""
+    """Simulate measurements at working diversity but a WIDE noise range; return
+    (X features, y recoverable-labels, names). y=1 if GS RMS < rms_thresh.
+
+    NOTE (empirical): widening the dispersion-diversity range does NOT help -- corr
+    fails to separate the classes (the QPSK shots stay weakly correlated either
+    way), and AUC drops toward chance. Recoverability here is noise-limited, and
+    the SNR proxies (hf_noise, bandwidth, dynamic range) carry the signal. Keeping
+    fixed good diversity + wide SNR gives the cleanest, most honest AUC ~ 0.65-0.7."""
     rng = np.random.default_rng(seed)
     D1 = -5000.0
     X, y = [], []
     for _ in range(n_samples):
-        D2 = D1 - rng.uniform(600, 1100)                # good (working) dispersion diversity
+        D2 = D1 - rng.uniform(600, 1100)                # fixed good dispersion diversity
         snr = rng.uniform(3, 45)                        # WIDE noise range -> the deciding factor
         data = gs_core.make_qpsk_measurements(n_symbols=64, D1=D1, D2=D2,
                                               snr_db=snr, rng_seed=int(rng.integers(2**31)))
@@ -107,5 +112,8 @@ if __name__ == "__main__":
     print(f"dataset: {len(y)} shots, {int(y.sum())} recoverable / {int((1-y).sum())} not")
     w, acc, auc, _ = fit_recoverability_classifier(X, y)
     print(f"classifier test accuracy: {acc:.2f}   AUC: {auc:.2f}  (1.0 = perfect, 0.5 = chance)")
-    # the corr feature alone separates the classes
+    # which intensity features the model leans on (|standardized weight|)
+    order = np.argsort(np.abs(w[:-1]))[::-1]
+    print("top predictive features:",
+          ", ".join(f"{names[i]}({w[i]:+.2f})" for i in order[:4]))
     print(f"mean corr(I1,I2): recoverable={X[y==1,0].mean():.3f}, not={X[y==0,0].mean():.3f}")
