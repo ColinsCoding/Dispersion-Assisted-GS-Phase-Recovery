@@ -387,6 +387,45 @@ def loop_current(emf, R):
     return np.asarray(emf, dtype=float) / R
 
 
+# ── 11. extending Maxwell: magnetic monopoles + electric-magnetic duality ──
+def maxwell_with_monopoles(medium=False):
+    """Maxwell's equations IF magnetic charge existed (Griffiths 7.44).
+
+    The glaring asymmetry of the real equations (electric charge but no magnetic
+    charge) vanishes if we add a magnetic charge density rho_m and current J_m:
+        div E   = rho_e / eps0
+        div B   = mu0 rho_m            <- no longer zero (monopoles!)
+        curl E  = -mu0 J_m - dB/dt     <- a magnetic current curls E
+        curl B  =  mu0 J_e + mu0 eps0 dE/dt
+    Returns a dict of sympy Eq. No monopole has ever been found, but the *symmetry*
+    is what makes electric-magnetic duality work.
+    """
+    e, m = (eps, mu) if medium else (eps0, mu0)
+    rho_e, rho_m, Je, Jm = sp.symbols("rho_e rho_m J_e J_m")
+    divE, divB, curlE, curlB = sp.symbols("div_E div_B curl_E curl_B")
+    dB_dt, dE_dt = sp.symbols("dB/dt dE/dt")
+    return {
+        "Gauss_E":  sp.Eq(divE, rho_e / e),
+        "Gauss_B":  sp.Eq(divB, m * rho_m),
+        "Faraday":  sp.Eq(curlE, -m * Jm - dB_dt),
+        "Ampere":   sp.Eq(curlB, m * Je + m * e * dE_dt),
+    }
+
+
+def duality_rotation(E, cB, theta):
+    """Electric-magnetic duality: rotate (E, cB) by angle theta in field space.
+
+        E'  =  E cos(theta) + cB sin(theta)
+        cB' = -E sin(theta) + cB cos(theta)
+    The symmetric (monopole) Maxwell equations are invariant under this rotation;
+    theta = pi/2 is the famous swap E -> cB, B -> -E/c. Returns (E', cB')."""
+    E = np.asarray(E, dtype=float)
+    cB = np.asarray(cB, dtype=float)
+    Ep = E * np.cos(theta) + cB * np.sin(theta)
+    cBp = -E * np.sin(theta) + cB * np.cos(theta)
+    return Ep, cBp
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
