@@ -142,4 +142,3 @@ This repository is an independent student implementation for ECE 279AS.
 It does not represent the lab's official code or results.
 Errors are my own.
 
-Contact for the project: Yiming Zhou and Callen MacPhee (Jalali Lab, UCLA).
