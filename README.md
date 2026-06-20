@@ -66,7 +66,7 @@ jupyter notebook notebooks/phase_retrieval.ipynb
 | [`pic_design/sim/gs_surface.py`](pic_design/sim/gs_surface.py) | GS error surface 3D plot |
 | [`pic_design/sim/gs_animate.py`](pic_design/sim/gs_animate.py) | Convergence animation |
 | [`pic_design/sim/fdtd_dispersion.py`](pic_design/sim/fdtd_dispersion.py) | FDTD dispersion model |
-| [`notebooks/seals_simulation.ipynb`](notebooks/seals_simulation.ipynb) | SEALS Mie/Rayleigh scattering (Project 1) |
+| [`notebooks/experimental/seals_simulation.ipynb`](notebooks/experimental/seals_simulation.ipynb) | SEALS Mie/Rayleigh scattering (Project 1) |
 | [`sample_data/`](sample_data/) | Synthetic two-arm `.mat` files for testing |
 | [`references/README.md`](references/README.md) | Paper citations with DOI links |
 
