@@ -35,7 +35,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import xray_phase as xp
+from dgs import xray_phase as xp
 
 print("xray_phase loaded")""")
 

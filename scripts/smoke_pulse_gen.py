@@ -3,7 +3,7 @@ import sys, pathlib, tempfile, os
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import pulse_gen as pg
+from dgs import pulse_gen as pg
 
 # 1. pulse shape is well-formed
 t, x, A, phi = pg.generate_pulse(N=512, chirp=18.0, seed=1)

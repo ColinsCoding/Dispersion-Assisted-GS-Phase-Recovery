@@ -35,7 +35,7 @@ import sympy as sp
 import matplotlib.pyplot as plt
 from IPython.display import display, Math
 
-import opt_recursion as opt
+from dgs import opt_recursion as opt
 
 sp.init_printing(use_latex="mathjax")
 x, a, eta, x0 = sp.symbols("x a eta x_0", positive=True)

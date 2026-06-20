@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import manifesto_vector as mv
+from dgs import manifesto_vector as mv
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 

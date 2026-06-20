@@ -37,7 +37,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
-import digital_logic as dl
+from dgs import digital_logic as dl
 
 print("digital_logic loaded")""")
 

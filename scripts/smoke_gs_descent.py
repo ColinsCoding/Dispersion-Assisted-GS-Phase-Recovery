@@ -3,8 +3,8 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import dispersion_gs_prototype as dg
-import dispersion_gs_descent as gd
+from dgs import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_descent as gd
 
 t, x, A, phi = dg.make_field(2048, seed=0)
 I1 = np.abs(x)**2

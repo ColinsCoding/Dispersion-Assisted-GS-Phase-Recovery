@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import dc_motor as dm
+from dgs import dc_motor as dm
 
 # a small PMDC motor (SI): Ke=Kt=0.05, R=1, L=1e-3, J=1e-4, b=1e-5
 V, R, L, Ke, Kt, J, b = 12.0, 1.0, 1e-3, 0.05, 0.05, 1e-4, 1e-5

@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 sp.init_printing()
 
 from griffiths import electrodynamics as ed
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 mu, eps, omega, k, z, t = ed.mu, ed.eps, ed.omega, ed.k, ed.z, ed.t
 print("loaded griffiths.electrodynamics")"""),
 

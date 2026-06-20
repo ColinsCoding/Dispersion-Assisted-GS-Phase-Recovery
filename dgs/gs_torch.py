@@ -134,7 +134,7 @@ def retrieve_phase_batch(
 
 if __name__ == "__main__":
     import time
-    from gs_core import make_qpsk_measurements
+    from dgs.gs_core import make_qpsk_measurements
 
     print(f"Device: {DEVICE}")
     print(f"PyTorch: {torch.__version__}")

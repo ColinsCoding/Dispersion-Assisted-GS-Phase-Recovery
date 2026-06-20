@@ -31,7 +31,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import lennard_jones as lj
+from dgs import lennard_jones as lj
 
 print("lennard_jones loaded; equilibrium r_min =", round(lj.equilibrium_distance(), 4), "sigma")""")
 

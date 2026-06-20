@@ -32,7 +32,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import dc_motor as dm
+from dgs import dc_motor as dm
 
 # a small PMDC motor (SI units), e.g. driving a robot leg joint
 V, R, L, Ke, Kt, J, b = 12.0, 1.0, 1e-3, 0.05, 0.05, 1e-4, 1e-5

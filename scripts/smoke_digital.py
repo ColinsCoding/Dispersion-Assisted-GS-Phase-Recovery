@@ -3,7 +3,7 @@ import sys, pathlib, itertools
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import sympy as sp
-import digital_logic as dl
+from dgs import digital_logic as dl
 
 # 1. full adder truth table matches a+b+cin
 print("full adder truth table (a b cin -> sum cout):")

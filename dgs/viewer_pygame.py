@@ -11,8 +11,8 @@ Keys: UP/DOWN = change |D2| (diversity),  R = re-run recovery,  ESC = quit.
 
 import numpy as np
 
-import dispersion_gs_prototype as dg
-import gs_core as gs
+from dgs import dispersion_gs_prototype as dg
+from dgs import gs_core as gs
 
 
 def _polyline(surface, color, ys, x0, y0, w, h, lo=None, hi=None):

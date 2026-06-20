@@ -183,7 +183,7 @@ def gs_gradient_descent(I1, I2, D1, D2, n_iter=100, lr=0.05,
 
 if __name__ == '__main__':
     import time
-    from gs_core import make_measurements
+    from dgs.gs_core import make_measurements
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Device: {device}')

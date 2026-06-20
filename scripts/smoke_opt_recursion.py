@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import sympy as sp
-import opt_recursion as opt
+from dgs import opt_recursion as opt
 
 a, eta, x0 = sp.symbols("a eta x_0", positive=True)
 

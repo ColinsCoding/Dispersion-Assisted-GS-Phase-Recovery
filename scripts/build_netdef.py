@@ -31,7 +31,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import network_defense_sim as nd
+from dgs import network_defense_sim as nd
 
 steps = nd.generate_traffic(T=200, n_legit=200, legit_rate=0.3,
                             attack_window=(80, 150), n_bots=60, bot_rate=40.0, seed=0)

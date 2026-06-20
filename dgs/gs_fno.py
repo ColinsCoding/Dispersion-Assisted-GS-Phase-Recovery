@@ -227,7 +227,7 @@ def make_fno_dataset(modulations=None, n_per_format=50, N_t=512,
     if not TORCH_AVAILABLE:
         raise RuntimeError("PyTorch required for FNO dataset generation.")
     import torch
-    from gs_core import make_measurements
+    from dgs.gs_core import make_measurements
 
     if modulations is None:
         modulations = ['QPSK', 'DPSK', '6PSK', 'STEAM', 'Soliton']
@@ -260,7 +260,7 @@ def test_resolution_invariance(model, D1=-5000., D2=-5750., snr_db=25.):
     if not TORCH_AVAILABLE:
         return
     import torch
-    from gs_core import make_measurements, retrieve_phase
+    from dgs.gs_core import make_measurements, retrieve_phase
 
     print("Resolution invariance test (trained at N=512):")
     for N_test in [256, 512, 1024]:

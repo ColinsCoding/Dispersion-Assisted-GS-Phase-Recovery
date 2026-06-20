@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import snr
+from dgs import snr
 
 # 1. basic dB: equal power -> 0 dB; 10x power -> 10 dB
 assert abs(snr.snr_db(1.0, 1.0)) < 1e-12

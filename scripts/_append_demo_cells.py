@@ -30,7 +30,7 @@ MD12 = textwrap.dedent("""\
 """)
 
 CODE12_BUILD = textwrap.dedent("""\
-    from gs_core import retrieve_phase_pipe, pipe_surface_plot
+    from dgs.gs_core import retrieve_phase_pipe, pipe_surface_plot
 
     N_THETA, N_Z, N_T = 8, 6, 512
     D1_p, D2_p = -5000.0, -5750.0

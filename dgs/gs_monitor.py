@@ -27,7 +27,7 @@ try:
 except ImportError:
     TORCH_OK = False
 
-from gs_core import make_measurements, retrieve_phase
+from dgs.gs_core import make_measurements, retrieve_phase
 
 # ── ANSI terminal colors ───────────────────────────────────────────────────────
 R  = '\033[91m'
@@ -109,7 +109,7 @@ def fno_throughput_benchmark(n_symbols, sps, D1, D2, snr_db,
     if not TORCH_OK:
         return None
 
-    from gs_fno import FNO1d, make_fno_dataset, train_fno
+    from dgs.gs_fno import FNO1d, make_fno_dataset, train_fno
 
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'

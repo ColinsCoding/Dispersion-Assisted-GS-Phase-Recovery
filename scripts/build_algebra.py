@@ -35,7 +35,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import algebra as al
+from dgs import algebra as al
 
 def show_cayley(ax, elements, op, labels=None, title=""):
     raw = [[op(a, b) for b in elements] for a in elements]

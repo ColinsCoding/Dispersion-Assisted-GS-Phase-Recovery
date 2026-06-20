@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import autograd_kinematics as ak
+from dgs import autograd_kinematics as ak
 
 # 1. autograd v, a, jerk of sin(2t) match the exact analytic forms
 t = np.linspace(0, 2 * np.pi, 200)

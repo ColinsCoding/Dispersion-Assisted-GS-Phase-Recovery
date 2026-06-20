@@ -2,7 +2,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-import digital_logic as dl
+from dgs import digital_logic as dl
 
 # 1. arithmetic: 3 + 4 = 7
 r = dl.run_program([("LOADI", 3), ("STORE", 0), ("LOADI", 4), ("ADD", 0), ("HALT", 0)])

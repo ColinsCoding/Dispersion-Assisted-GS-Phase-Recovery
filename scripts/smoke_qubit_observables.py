@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import qubits as q
+from dgs import qubits as q
 
 # 1. observables are Hermitian; gates are unitary (the two algebra families)
 for A in (q.X, q.Y, q.Z):

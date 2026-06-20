@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 from matplotlib.colors import rgb_to_hsv
-import neon_photonics as neon
+from dgs import neon_photonics as neon
 
 # 1. RGB output is well-formed and in range
 phi = np.linspace(-np.pi, np.pi, 64)

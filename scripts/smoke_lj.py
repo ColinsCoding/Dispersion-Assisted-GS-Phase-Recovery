@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import lennard_jones as lj
+from dgs import lennard_jones as lj
 
 # minimum at r = 2^(1/6) sigma, depth -eps, force zero there
 rmin = lj.equilibrium_distance(1.0)

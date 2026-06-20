@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import sympy as sp
-import taylor as t
+from dgs import taylor as t
 
 x = sp.Symbol("x")
 

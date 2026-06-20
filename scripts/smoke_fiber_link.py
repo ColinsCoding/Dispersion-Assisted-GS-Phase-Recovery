@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import fiber_link as fl
+from dgs import fiber_link as fl
 
 # 1. dBm anchors: 1 mW -> 0 dBm, 1 W -> 30 dBm, 1 uW -> -30 dBm
 assert abs(fl.watt_to_dbm(1e-3) - 0.0) < 1e-12

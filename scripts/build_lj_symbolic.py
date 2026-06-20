@@ -37,7 +37,7 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 from IPython.display import display, Math
-import lennard_jones as lj
+from dgs import lennard_jones as lj
 
 sp.init_printing(use_latex="mathjax")
 S = lj.symbolic_lj()                     # fully symbolic eps, sigma, r

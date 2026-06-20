@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import supervised as sl
+from dgs import supervised as sl
 
 rng = np.random.default_rng(0)
 

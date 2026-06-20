@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import complex_numerics as cx
+from dgs import complex_numerics as cx
 
 # 1. the fundamental fact: oint z^n dz = 0 for n != -1, = 2 pi i for n = -1
 for nexp in (-3, 0, 2, 5):

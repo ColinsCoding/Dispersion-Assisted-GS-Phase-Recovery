@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import quantum_statistics as qs
+from dgs import quantum_statistics as qs
 
 # 1. Fermi-Dirac: always in [0,1], exactly 1/2 at E=mu (Pauli)
 E = np.linspace(-5, 5, 200)

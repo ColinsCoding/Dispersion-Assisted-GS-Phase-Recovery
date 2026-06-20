@@ -3,8 +3,8 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import qubits as q
-import fourier_tools as ft
+from dgs import qubits as q
+from dgs import fourier_tools as ft
 
 rng = np.random.default_rng(0)
 

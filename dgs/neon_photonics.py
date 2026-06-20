@@ -23,7 +23,7 @@ import pathlib
 import numpy as np
 from matplotlib.colors import hsv_to_rgb
 
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 
 # ── neon colour map: complex value -> RGB ────────────────────────────
