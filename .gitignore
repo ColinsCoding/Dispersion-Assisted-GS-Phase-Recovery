@@ -166,3 +166,7 @@ repl/_repl_java_js_verilog_bessel2.ipynb
 notebooks/raytracer_output.json
 notebooks/raytracer_stats.json
 figures/_smoke*.png
+
+# compiled C binaries
+*.exe
+hardware/fft8_c
