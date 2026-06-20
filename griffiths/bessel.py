@@ -248,3 +248,42 @@ def circular_membrane_frequencies(m, n_radial, radius=1.0, speed=1.0):
     if radius <= 0 or speed <= 0:
         raise ValueError("radius and speed must be > 0")
     return [speed * a / (2 * mp.pi.__float__() * radius) for a in bessel_zeros(m, n_radial)]
+
+
+# ── other shapes of wave: cylindrical (Bessel) and spherical ────────
+def cylindrical_wave_residual(m):
+    """Verify the cylindrical wave psi = J_m(k rho) e^{i m phi} solves the 2-D
+    Helmholtz equation  (1/rho) d/drho(rho dpsi/drho) + (1/rho^2) d^2psi/dphi^2
+    + k^2 psi = 0.  Returns the simplified residual (0 = it's a valid wave).
+
+    This is the 'other shape': not a flat plane wave but a wave on circular
+    wavefronts -- the field radiating from a line source, or a fibre/waveguide mode.
+    """
+    rho, phi, k = sp.symbols("rho phi k", positive=True)
+    psi = sp.besselj(m, k * rho) * sp.exp(sp.I * m * phi)
+    lap = (sp.diff(rho * sp.diff(psi, rho), rho) / rho
+           + sp.diff(psi, phi, 2) / rho**2)
+    return sp.simplify(lap + k**2 * psi)
+
+
+def spherical_wave_residual():
+    """Verify the outgoing spherical wave psi = e^{i k r}/r solves the 3-D radial
+    Helmholtz equation  (1/r^2) d/dr(r^2 dpsi/dr) + k^2 psi = 0  (for r > 0).
+    Returns the simplified residual (0 confirms it). The wave from a point source."""
+    r, k = sp.symbols("r k", positive=True)
+    psi = sp.exp(sp.I * k * r) / r
+    lap = sp.diff(r**2 * sp.diff(psi, r), r) / r**2
+    return sp.simplify(lap + k**2 * psi)
+
+
+def wave_amplitude_decay(geometry):
+    """Far-field amplitude decay exponent p in |psi| ~ 1/distance^p, set by energy
+    conservation as the wavefront spreads:
+        'plane'       -> 0    (flat front, no spreading)
+        'cylindrical' -> 1/2  (energy over a line: intensity~1/rho, amplitude~1/sqrt(rho))
+        'spherical'   -> 1    (energy over a sphere: intensity~1/r^2, amplitude~1/r)
+    """
+    table = {"plane": 0.0, "cylindrical": 0.5, "spherical": 1.0}
+    if geometry not in table:
+        raise ValueError(f"geometry must be one of {sorted(table)}")
+    return table[geometry]
