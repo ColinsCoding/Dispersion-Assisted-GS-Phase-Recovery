@@ -13,6 +13,15 @@ No local oscillator. No 90° hybrid. Just fiber, a photodetector, and math.
  H(ν) = exp(i π D ν²)      transfer function of dispersive fiber
 ```
 
+## ▶ Start here — the two notebooks
+
+| Notebook | What it does |
+|---|---|
+| **[`phase_retrieval.ipynb`](phase_retrieval.ipynb)** | The mission deliverable: time-domain Gerchberg–Saxton recovers φ(t) from two intensity-only measurements (the carrier-less coherent receiver). |
+| **[`notebooks/ml_course_on_receiver.ipynb`](notebooks/ml_course_on_receiver.ipynb)** | The AI notebook: trains/​classifies on the recovered-signal data (MLP + random forest + boosting). |
+
+*Everything else (the `griffiths/` physics package, `hardware/` C+Verilog FFT, `qubits.py`, etc.) is supporting work; these two are the project.*
+
 ---
 
 ## How it works
