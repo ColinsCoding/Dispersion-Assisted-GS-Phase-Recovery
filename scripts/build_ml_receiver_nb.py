@@ -161,6 +161,46 @@ plt.xlabel("false positive rate"); plt.ylabel("true positive rate")
 plt.title("Recoverability prediction — ROC"); plt.legend(loc="lower right")
 plt.tight_layout(); plt.show()"""),
 
+md("""## 6. More algorithms — a model bake-off
+
+Are there *other* ML algorithms worth trying? Let's benchmark eight, all by the
+same honest 5-fold cross-validated **AUC**: Logistic Regression, SVM (RBF), k-NN,
+Naive Bayes, Extra Trees, AdaBoost, plus the Random Forest and Gradient Boosting
+from before. Scale-sensitive models get a `StandardScaler` pipeline."""),
+co("""from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import ExtraTreesClassifier, AdaBoostClassifier
+
+models = {
+    "Logistic":      make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
+    "SVM (RBF)":     make_pipeline(StandardScaler(), SVC(probability=True, random_state=42)),
+    "k-NN (k=15)":   make_pipeline(StandardScaler(), KNeighborsClassifier(15)),
+    "Naive Bayes":   GaussianNB(),
+    "Extra Trees":   ExtraTreesClassifier(n_estimators=300, random_state=42, n_jobs=-1),
+    "AdaBoost":      AdaBoostClassifier(n_estimators=200, random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1),
+    "Grad Boosting": GradientBoostingClassifier(n_estimators=200, random_state=42),
+}
+aucs = {}
+for name, m in models.items():
+    p = cross_val_predict(m, X, y, cv=5, method="predict_proba")[:, 1]
+    aucs[name] = roc_auc_score(y, p)
+order = sorted(aucs, key=aucs.get, reverse=True)
+for n in order:
+    print(f"{n:16s} AUC = {aucs[n]:.3f}")
+plt.figure(figsize=(7.5, 3.8))
+plt.bar(order, [aucs[n] for n in order], color="#4c72b0")
+plt.axhline(0.5, ls="--", c="grey", lw=1)
+plt.ylim(0.45, 0.75); plt.ylabel("ROC-AUC (5-fold CV)")
+plt.xticks(rotation=35, ha="right"); plt.title("Recoverability — ML algorithm bake-off")
+plt.tight_layout(); plt.show()
+print(f"\\nbest: {order[0]} (AUC={aucs[order[0]]:.3f}); they cluster near ~0.65 -- the")
+print("aleatoric ceiling, not a model-choice problem. More algorithms != more signal.")"""),
+
 md("""## Takeaway (honest version)
 
 The models from my AI course beat the majority-class **baseline** — but only
