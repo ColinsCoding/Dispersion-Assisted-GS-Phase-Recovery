@@ -7,7 +7,7 @@ Reference: OUSD(R&E) Critical Technology Areas (2023)
 
 Usage
 -----
-    from ousd_alignment import stamp, print_alignment
+    from dgs.ousd_alignment import stamp, print_alignment
 
     stats = {"exit_code": 0, ...}
     stats = stamp(stats, components=["td_gs", "fno", "tsdft"])

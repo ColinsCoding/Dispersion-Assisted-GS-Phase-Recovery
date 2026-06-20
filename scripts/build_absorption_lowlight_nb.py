@@ -28,8 +28,8 @@ co("""import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd().parent))
 import numpy as np, matplotlib.pyplot as plt
 from griffiths import electrodynamics as ed
-import dispersion_gs_prototype as dg
-import gs_core as gs
+from dgs import dispersion_gs_prototype as dg
+from dgs import gs_core as gs
 print("loaded")"""),
 
 md("""## 1. The two shapes: dispersion $n(\\omega)$ and absorption $\\kappa(\\omega)$"""),

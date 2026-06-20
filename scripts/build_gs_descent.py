@@ -36,8 +36,8 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-import dispersion_gs_prototype as dg
-import dispersion_gs_descent as gd
+from dgs import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_descent as gd
 
 dev = "cuda" if torch.cuda.is_available() else "cpu"
 print("torch", torch.__version__, "| device:", dev)

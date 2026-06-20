@@ -33,7 +33,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import Image, display
-import gs_core as gs
+from dgs import gs_core as gs
 
 root = pathlib.Path.cwd().parent; (root / "figures").mkdir(exist_ok=True)
 
@@ -108,7 +108,7 @@ lingers (here, a constant-envelope ring since $|x|=1$).""")
 
 code(r"""# constant-envelope field e^{i phi}, plus the prototype's varying-envelope field for contrast
 x_ce = np.exp(1j*phi_true)
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 d2 = dg.make_measurements(N=4096, seed=3)
 x_va = d2["x"]
 

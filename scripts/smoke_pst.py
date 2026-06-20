@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import pst
+from dgs import pst
 
 # 1. kernels are well-formed
 ph = pst.pst_phase_kernel(64, 64, warp=15, strength=0.48)

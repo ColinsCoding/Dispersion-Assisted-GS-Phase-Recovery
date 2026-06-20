@@ -2,7 +2,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-import digital_logic as dl
+from dgs import digital_logic as dl
 
 # 1. D flip-flop remembers D
 assert dl.d_flip_flop(1, 0) == 1 and dl.d_flip_flop(0, 1) == 0

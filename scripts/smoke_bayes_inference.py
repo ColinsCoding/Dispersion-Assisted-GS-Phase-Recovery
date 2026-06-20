@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import bayes_inference as bi
+from dgs import bayes_inference as bi
 
 # 1. discrete Bayes normalizes; uniform prior -> posterior proportional to likelihood
 post = bi.bayes_posterior([0.5, 0.5], [0.2, 0.8])

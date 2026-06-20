@@ -43,7 +43,8 @@ From the videos alone, GS figures out how the rope was twisted.
 
 ```bash
 pip install -r requirements.txt
-python gs_core.py          # runs self-test, saves gs_core_test.png
+pip install -e .           # makes the `dgs` package importable
+python -c "from dgs import gs_core; gs_core"   # smoke-check the import
 ```
 
 To open the main notebook:
@@ -58,7 +59,8 @@ jupyter notebook notebooks/phase_retrieval.ipynb
 
 | File | What it is |
 |---|---|
-| [`gs_core.py`](gs_core.py) | Physics engine — dispersion operator, GS loop, QPSK test data generator |
+| [`dgs/`](dgs/) | The toolkit package — `gs_core` (dispersion operator, GS loop), plus the physics/ML/hardware modules. Install with `pip install -e .` |
+| [`dgs/gs_core.py`](dgs/gs_core.py) | Physics engine — dispersion operator, GS loop, QPSK test data generator |
 | [`phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb) | Main Colab notebook (project deliverable) |
 | [`optical_dashboard/dsp.py`](optical_dashboard/dsp.py) | QPSK modem, DWDM simulation, digital logic |
 | [`pic_design/sim/gs_surface.py`](pic_design/sim/gs_surface.py) | GS error surface 3D plot |
@@ -70,10 +72,10 @@ jupyter notebook notebooks/phase_retrieval.ipynb
 
 ---
 
-## Core algorithm (`gs_core.py`)
+## Core algorithm (`dgs/gs_core.py`)
 
 ```python
-from gs_core import retrieve_phase, make_qpsk_measurements
+from dgs.gs_core import retrieve_phase, make_qpsk_measurements
 
 data = make_qpsk_measurements(n_symbols=128, D1=-695.0, D2=-800.0, snr_db=30.0)
 phi, errors = retrieve_phase(data["I1"], data["I2"], data["D1"], data["D2"], n_iter=20)
@@ -82,7 +84,7 @@ phi, errors = retrieve_phase(data["I1"], data["I2"], data["D1"], data["D2"], n_i
 The transfer function, derived with SymPy:
 
 ```python
-from gs_core import show_transfer_function
+from dgs.gs_core import show_transfer_function
 H, latex_str = show_transfer_function()
 # H(ν) = exp(i π D ν²)
 ```
@@ -96,7 +98,7 @@ decrease monotonically, reaching a noise floor around iteration 15–20.
 
 This project maps onto **six** of the OUSD(R&E) Critical Technology Areas (the
 priority-1 set, ★★). Tagging is generated programmatically — run
-`python ousd_alignment.py` for the live table and JSON stamp.
+`python dgs/ousd_alignment.py` for the live table and JSON stamp.
 
 | ★ | Critical Technology Area | How this repo contributes | Evidence |
 |---|---|---|---|
@@ -110,7 +112,7 @@ priority-1 set, ★★). Tagging is generated programmatically — run
 
 Source of truth: the OUSD(R&E) Critical Technology Areas list (priority-1 = the
 six arrowed items targeted here). The registry and component→CTA reverse map live
-in [`ousd_alignment.py`](ousd_alignment.py); `stamp()` attaches CTA metadata to any
+in [`ousd_alignment.py`](dgs/ousd_alignment.py); `stamp()` attaches CTA metadata to any
 run's stats block for traceability.
 
 > **Scope / honesty note.** This is a public UCLA / Jalali-Lab academic project

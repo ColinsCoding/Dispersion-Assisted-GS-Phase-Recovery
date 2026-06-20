@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 from griffiths import electrodynamics as ed
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 # Lorentz medium: resonance at w0=1, weak damping
 w = np.linspace(0.2, 2.0, 4000)

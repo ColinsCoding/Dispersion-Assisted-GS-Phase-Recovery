@@ -37,7 +37,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import gs_core as gs
+from dgs import gs_core as gs
 
 def align_phase(phi_rec, phi_true, weight):
     # GS recovers phase up to a global offset and a conjugate (twin) ambiguity

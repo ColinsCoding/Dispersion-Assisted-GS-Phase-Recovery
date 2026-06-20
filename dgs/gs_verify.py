@@ -119,7 +119,7 @@ def verify_transfer_function():
 def verify_disperse_roundtrip():
     _section('S2 . disperse/undisperse numerical round-trip')
     try:
-        from gs_core import disperse, undisperse
+        from dgs.gs_core import disperse, undisperse
 
         rng = np.random.default_rng(42)
         for N in [64, 256, 1024]:
@@ -140,7 +140,7 @@ def verify_disperse_roundtrip():
 def verify_amplitude_constraint():
     _section('S3 . apply_amplitude_constraint preserves phase')
     try:
-        from gs_core import apply_amplitude_constraint
+        from dgs.gs_core import apply_amplitude_constraint
         from sympy import symbols, exp, I, Abs, arg, simplify, sqrt
 
         rng = np.random.default_rng(7)
@@ -180,7 +180,7 @@ def verify_amplitude_constraint():
 def verify_parseval():
     _section('S4 . Parseval -- energy conserved through dispersion')
     try:
-        from gs_core import disperse
+        from dgs.gs_core import disperse
 
         rng = np.random.default_rng(13)
         for N in [128, 512]:
@@ -240,7 +240,7 @@ def verify_fno_loss():
     _section('S6 . FNO wrapped-phase loss = 0 when phi? = phi')
     try:
         import torch
-        from gs_fno import wrapped_phase_loss
+        from dgs.gs_fno import wrapped_phase_loss
 
         # Perfect prediction: loss should be 0
         phi_true = torch.randn(4, 1, 256)
@@ -326,7 +326,7 @@ def verify_complex_completeness():
                f'max|recovered - expected| = {max_err:.2e}')
 
         # Numerical: unit-amplitude after apply_amplitude_constraint with I=1
-        from gs_core import apply_amplitude_constraint
+        from dgs.gs_core import apply_amplitude_constraint
         rng = np.random.default_rng(99)
         E_num = rng.standard_normal(256) + 1j*rng.standard_normal(256)
         E_out = apply_amplitude_constraint(E_num, np.ones(256))
@@ -345,7 +345,7 @@ def verify_complex_completeness():
 def verify_gs_convergence():
     _section('S8 . GS convergence -- error must decrease monotonically (on average)')
     try:
-        from gs_core import make_qpsk_measurements, retrieve_phase
+        from dgs.gs_core import make_qpsk_measurements, retrieve_phase
 
         data = make_qpsk_measurements(n_symbols=128, snr_db=35.0)
         phi_est, errors = retrieve_phase(
@@ -383,7 +383,7 @@ def verify_gs_convergence():
 def verify_diversity_requirement():
     _section('S9 . Dispersion diversity -- |D|>=5000 required for convergence')
     try:
-        from gs_core import make_qpsk_measurements, retrieve_phase
+        from dgs.gs_core import make_qpsk_measurements, retrieve_phase
 
         for D_val, expect_good in [(-5000, True), (-600, False)]:
             D2_val = D_val * 1.15

@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import sonoluminescence as sl
+from dgs import sonoluminescence as sl
 
 # 1. no acoustic drive -> bubble sits at its ambient radius (equilibrium)
 quiet = sl.simulate(steps_per_period=8000, n_periods=2.0, Pa=0.0)

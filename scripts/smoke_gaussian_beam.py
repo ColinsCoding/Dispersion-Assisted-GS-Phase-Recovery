@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import gaussian_beam as gb
+from dgs import gaussian_beam as gb
 
 w0, lam = 0.5e-3, 1.55e-6
 zR = gb.rayleigh_range(w0, lam)

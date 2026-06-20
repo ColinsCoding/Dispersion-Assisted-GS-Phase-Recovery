@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import gs_core as gs
+from dgs import gs_core as gs
 
 def chirped_gaussian(N=512, width=40.0, chirp=3e-4):
     n = np.arange(N) - N / 2

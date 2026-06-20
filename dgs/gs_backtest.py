@@ -37,7 +37,7 @@ def _section(title):
 
 # ── import project modules ─────────────────────────────────────────────────────
 
-from gs_core import make_measurements, retrieve_phase
+from dgs.gs_core import make_measurements, retrieve_phase
 from gs_fno   import FNO1d, wrapped_phase_loss, make_fno_dataset, train_fno
 
 # ══════════════════════════════════════════════════════════════════════════════

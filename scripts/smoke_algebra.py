@@ -2,7 +2,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-import algebra as al
+from dgs import algebra as al
 
 # Z/n under addition: cyclic abelian group
 for n in (5, 6, 26):

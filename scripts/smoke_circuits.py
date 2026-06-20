@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import sympy as sp
-import circuits as ct
+from dgs import circuits as ct
 
 t = sp.Symbol("t", real=True)
 C, L, I0 = sp.symbols("C L I_0", positive=True)

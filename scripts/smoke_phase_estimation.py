@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import qubits as q
+from dgs import qubits as q
 
 # 1. exactly representable phases are read out exactly, with probability 1
 for phi, n in [(0.25, 3), (0.125, 4), (0.375, 3), (0.5, 2), (0.0, 3)]:

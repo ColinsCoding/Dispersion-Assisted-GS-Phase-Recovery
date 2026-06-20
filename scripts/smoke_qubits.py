@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import qubits as q
+from dgs import qubits as q
 
 # 1. single-qubit gates: X flips, Z phases, H makes superposition
 assert np.allclose(q.apply_1q(q.ket("0"), q.X, 0), q.ket("1"))      # X|0> = |1>

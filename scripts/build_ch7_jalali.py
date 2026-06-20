@@ -39,7 +39,7 @@ import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
 from IPython.display import display, Math
-import gs_core as gs
+from dgs import gs_core as gs
 sp.init_printing(use_latex="mathjax")
 print("loaded")""")
 

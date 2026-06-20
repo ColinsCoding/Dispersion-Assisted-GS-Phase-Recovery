@@ -4,7 +4,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import torch
-import delta_cuda as dc
+from dgs import delta_cuda as dc
 
 dev = dc._device()
 print("device:", dev)

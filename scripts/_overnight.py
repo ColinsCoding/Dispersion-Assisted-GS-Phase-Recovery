@@ -6,8 +6,8 @@ and logs throughput + accuracy every 60 seconds.
 import time, json, os, logging, traceback
 import numpy as np
 import torch
-from gs_fno import FNO1d, make_fno_dataset, train_fno, wrapped_phase_loss
-from gs_core import make_measurements, retrieve_phase
+from dgs.gs_fno import FNO1d, make_fno_dataset, train_fno, wrapped_phase_loss
+from dgs.gs_core import make_measurements, retrieve_phase
 
 LOG      = '_overnight_results.jsonl'
 ERR_LOG  = '_overnight_errors.log'

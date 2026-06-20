@@ -28,7 +28,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 root = pathlib.Path.cwd().parent
 (root / "data").mkdir(exist_ok=True); (root / "figures").mkdir(exist_ok=True)

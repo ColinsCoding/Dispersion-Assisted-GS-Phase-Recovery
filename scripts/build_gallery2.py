@@ -31,7 +31,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 root = pathlib.Path.cwd().parent; (root / "figures").mkdir(exist_ok=True)
 data = dg.make_measurements(N=1024, D=6000.0, seed=7)

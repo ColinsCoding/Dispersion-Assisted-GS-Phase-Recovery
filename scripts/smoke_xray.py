@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import xray_phase as xp
+from dgs import xray_phase as xp
 
 # 1. helix diffraction shows layer-line / cross structure
 rho = xp.helix_density(N=160, pitch=26, radius=14, n_strands=2)

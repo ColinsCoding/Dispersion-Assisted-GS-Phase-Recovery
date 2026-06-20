@@ -21,7 +21,7 @@ import numpy as np, matplotlib.pyplot as plt
 import torch
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd().parent))
-import gaussian_beam as gb
+from dgs import gaussian_beam as gb
 sp.init_printing()
 print("ready (sympy", sp.__version__, "| torch", torch.__version__, ")")"""),
 

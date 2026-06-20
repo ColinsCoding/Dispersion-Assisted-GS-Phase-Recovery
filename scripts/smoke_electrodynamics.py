@@ -5,7 +5,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import numpy as np
 import sympy as sp
 from griffiths import electrodynamics as ed
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 mu, eps, omega, k = ed.mu, ed.eps, ed.omega, ed.k
 

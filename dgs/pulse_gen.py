@@ -21,7 +21,7 @@ import sys
 
 import numpy as np
 
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 # the sparklines use box glyphs; force UTF-8 so they print on a cp1252 console
 if hasattr(sys.stdout, "reconfigure"):

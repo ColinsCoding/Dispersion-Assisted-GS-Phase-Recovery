@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import torch
-import manifesto_vector as mv
+from dgs import manifesto_vector as mv
 
 # 1. vector lives in the concept space and is unit-normalized
 v = mv.text_to_vector("dispersion phase retrieval gerchberg saxton torch bessel")

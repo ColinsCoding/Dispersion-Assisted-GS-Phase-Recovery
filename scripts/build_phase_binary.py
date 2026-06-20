@@ -33,7 +33,7 @@ code(r"""import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd().parent))
 import numpy as np
 import matplotlib.pyplot as plt
-import gs_core as gs
+from dgs import gs_core as gs
 
 def quantize_phase(phi, n_bits):
     L = 2**n_bits

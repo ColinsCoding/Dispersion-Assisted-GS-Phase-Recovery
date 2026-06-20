@@ -36,7 +36,7 @@ sys.path.insert(0, str(pathlib.Path.cwd().parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
-import dispersion_gs_prototype as dg
+from dgs import dispersion_gs_prototype as dg
 
 print("dispersion_gs_prototype loaded")""")
 

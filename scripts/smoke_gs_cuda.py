@@ -3,8 +3,8 @@ import sys, pathlib, time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import numpy as np
-import gs_core as gs
-import gs_cuda
+from dgs import gs_core as gs
+from dgs import gs_cuda
 import torch
 
 dev = "cuda" if torch.cuda.is_available() else "cpu"
