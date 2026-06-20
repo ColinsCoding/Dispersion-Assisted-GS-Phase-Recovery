@@ -9,6 +9,7 @@
  * Build & run:  gcc -O2 -o fft8 fft8.c -lm  &&  ./fft8
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <complex.h>
 
@@ -53,8 +54,29 @@ static int check(const char *name, double complex *x, const double *expect_mag)
     return ok;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    /* command-line mode: 8 real samples in -> their FFT out */
+    if (argc == N + 1) {
+        double complex x[N];
+        for (int i = 0; i < N; i++) x[i] = atof(argv[i + 1]);
+        fft8(x);
+        printf("FFT of [%s ...]:\n", argv[1]);
+        for (int k = 0; k < N; k++)
+            printf("  X[%d] = % .4f %+.4fi   |X|=%.4f\n",
+                   k, creal(x[k]), cimag(x[k]), cabs(x[k]));
+        return 0;
+    }
+    if (argc != 1) {
+        fprintf(stderr,
+                "usage: %s [x0 x1 x2 x3 x4 x5 x6 x7]\n"
+                "  with 8 real samples: prints their FFT\n"
+                "  with no arguments:   runs the impulse/cosine self-tests\n",
+                argv[0]);
+        return 2;
+    }
+
+    /* self-test mode (no arguments) */
     int pass = 1;
 
     /* impulse -> flat spectrum (every bin = 1) */
