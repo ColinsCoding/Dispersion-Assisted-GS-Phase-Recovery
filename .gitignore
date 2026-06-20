@@ -156,3 +156,17 @@ repl/_repl_lut_sincos.ipynb
 ############################
 repl/_repl_java_js_verilog_bessel2.py
 repl/_repl_java_js_verilog_bessel2.ipynb
+
+# iverilog compiled simulation artifacts
+*.vvp
+
+############################
+# Generated notebook outputs (raytracer etc.)
+############################
+notebooks/raytracer_output.json
+notebooks/raytracer_stats.json
+figures/_smoke*.png
+
+# compiled C binaries
+*.exe
+hardware/fft8_c

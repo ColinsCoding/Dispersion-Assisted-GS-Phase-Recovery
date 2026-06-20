@@ -83,6 +83,37 @@ decrease monotonically, reaching a noise floor around iteration 15–20.
 
 ---
 
+## OUSD(R&E) Critical Technology Area alignment
+
+This project maps onto **six** of the OUSD(R&E) Critical Technology Areas (the
+priority-1 set, ★★). Tagging is generated programmatically — run
+`python ousd_alignment.py` for the live table and JSON stamp.
+
+| ★ | Critical Technology Area | How this repo contributes | Evidence |
+|---|---|---|---|
+| ★★ | **FutureG** | Optical-bandwidth sensing/comms via the dispersive Fourier transform; carrier-less phase recovery | [2] |
+| ★★ | **Trusted AI and Autonomy** | Physics-grounded ML — wrapped-phase loss, FNO with a known analytic kernel, `gs_verify` checks | [3] |
+| ★★ | **Advanced Computing and Software** | GPU phase retrieval (`gs_torch`), resolution-invariant FNO, SymPy analytic validation — Maxwell → the dispersion operator `H(f)=exp(iπDf²)` (`griffiths/electrodynamics.py`) | [1][3] |
+| ★★ | **Integrated Sensing and Cyber** | Single-shot DFT spectroscopy + rogue-wave telemetry (`gs_monitor`, `gs_backtest`) | [2] |
+| ★★ | **Directed Energy** | High-rep-rate pulsed-laser characterization and wavefront sensing from intensity only | [1][2] |
+| ★★ | **Human-Machine Interfaces** | Real-time optical dashboard, 3-D phase-surface visualization, scanner control | — |
+| ★ | Quantum Science · Microelectronics · Biotechnology | adjacent areas the repo touches (priority-2) | — |
+
+Source of truth: the OUSD(R&E) Critical Technology Areas list (priority-1 = the
+six arrowed items targeted here). The registry and component→CTA reverse map live
+in [`ousd_alignment.py`](ousd_alignment.py); `stamp()` attaches CTA metadata to any
+run's stats block for traceability.
+
+> **Scope / honesty note.** This is a public UCLA / Jalali-Lab academic project
+> (the GitHub repo is itself a course deliverable), marked **UNCLASSIFIED //
+> DISTRIBUTION A — Approved for Public Release**. The CTA tags describe
+> *technology-area relevance* — not DoD funding, endorsement, or controlled data.
+> The Directed Energy link is **diagnostic only** (characterizing a beam from
+> intensity measurements), consistent with the project's civilian optical-metrology
+> scope — not a weapon or directed-energy system.
+
+---
+
 ## References
 
 [1] Gerchberg & Saxton, *Optik* 35(2):237–246, 1972 — original GS algorithm  
