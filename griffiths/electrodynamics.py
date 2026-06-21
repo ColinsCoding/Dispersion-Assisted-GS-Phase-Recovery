@@ -426,6 +426,30 @@ def duality_rotation(E, cB, theta):
     return Ep, cBp
 
 
+# ── 12. energy in magnetic fields (Griffiths 7.2.4) -- SymPy recreates it ──
+def magnetic_energy_inductor():
+    """Derive W = 1/2 L I^2 (Griffiths 7.30) the way the book does: the work done
+    against the back-emf is dW/dt = L I dI/dt, so integrating from 0 to the final
+    current I gives W = int_0^I L i di. Returns the SymPy result (= L*I^2/2)."""
+    L, i, I = sp.symbols("L i I", positive=True)
+    W = sp.integrate(L * i, (i, 0, I))          # build current 0 -> I against back-emf
+    return sp.simplify(W)                        # = L I^2 / 2
+
+
+def magnetic_energy_density(B, mu=None):
+    """Energy stored per unit volume in a magnetic field: u = B^2 / (2 mu0)
+    (Griffiths 7.35 integrand). The total W = integral u dtau over all space."""
+    m = _MU0 if mu is None else mu
+    return np.asarray(B, dtype=float)**2 / (2.0 * m)
+
+
+def inductor_energy(L, I):
+    """Numeric W = 1/2 L I^2 for an inductor L carrying current I [joules]."""
+    if L < 0 or I < 0:
+        raise ValueError("L, I must be >= 0")
+    return 0.5 * L * I**2
+
+
 if __name__ == "__main__":
     sp.init_printing()
     disp, k_w, n = plane_wave_dispersion()
