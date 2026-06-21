@@ -10,13 +10,14 @@ def plant():
 
 N = 3000
 
-# 1. P-only leaves a steady-state ERROR (never reaches the setpoint)
+# 1. P-only leaves a steady-state ERROR -- the tail settles BELOW the setpoint
 _, yP, _ = pc.simulate(pc.PID(3.0, 0.0, 0.0, setpoint=1.0, dt=0.05), plant(), N)
-assert yP[-1] < 0.9, yP[-1]                      # offset below setpoint 1.0
+assert np.mean(yP[-N // 4:]) < 0.9, np.mean(yP[-N // 4:])    # biased low (offset)
 
-# 2. adding I removes the steady-state error (tracks the setpoint)
+# 2. adding I removes the offset: the response oscillates CENTERED on the setpoint
+#    (lightly-damped plant keeps ringing, so check the tail MEAN, not the last point)
 _, yPI, _ = pc.simulate(pc.PID(3.0, 2.0, 0.0, setpoint=1.0, dt=0.05), plant(), N)
-assert abs(yPI[-1] - 1.0) < 0.05, yPI[-1]
+assert abs(np.mean(yPI[-N // 4:]) - 1.0) < 0.05, np.mean(yPI[-N // 4:])
 peak_PI = yPI.max()
 assert peak_PI > 1.3                             # PI overshoots a lot on this plant
 
