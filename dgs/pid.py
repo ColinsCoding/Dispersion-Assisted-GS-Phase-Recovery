@@ -89,6 +89,34 @@ def second_order_plant(wn, zeta, gain=1.0, dt=0.05, y0=0.0):
     return step
 
 
+# ── the math model: transfer function + closed-loop stability ───────
+def transfer_function(kp, ki, kd, s=None):
+    """The PID controller's Laplace transfer function C(s)=Kp+Ki/s+Kd*s, returned
+    as a single rational expression (Kd s^2 + Kp s + Ki)/s. Pass a SymPy symbol s
+    or let it make one."""
+    import sympy as sp
+    s = sp.Symbol("s") if s is None else s
+    return sp.together(kp + ki / s + kd * s)
+
+
+def characteristic_polynomial(kp, ki, kd, plant_num, plant_den, s=None):
+    """Closed-loop characteristic polynomial: numerator of 1 + C(s)P(s), whose
+    roots are the closed-loop poles. plant P(s) = plant_num/plant_den (SymPy).
+    The loop is stable iff every root has negative real part."""
+    import sympy as sp
+    s = sp.Symbol("s") if s is None else s
+    C = transfer_function(kp, ki, kd, s)
+    loop = sp.together(1 + C * plant_num / plant_den)
+    return sp.expand(sp.numer(loop))
+
+
+def is_stable(poly_coeffs):
+    """Is a polynomial (given as descending-power coefficients) Hurwitz-stable --
+    do ALL its roots have negative real part? The pole-location stability test."""
+    roots = np.roots(np.asarray(poly_coeffs, dtype=float))
+    return bool(np.all(roots.real < -1e-12))
+
+
 if __name__ == "__main__":
     def mk():
         return second_order_plant(wn=1.0, zeta=0.25, dt=0.05)
