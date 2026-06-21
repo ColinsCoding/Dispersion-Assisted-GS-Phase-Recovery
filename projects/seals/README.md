@@ -11,6 +11,10 @@ encodes the full angular scattering pattern.
   limit), and the SEALS readout `I(θ(λ))`. Start here.
 - **`seals_ml_inverse.ipynb`** — ML notebook (torch, py-3.12): learn the **inverse**
   problem, recovering particle diameter from a scattering pattern (R² ≈ 0.998).
+- **`seals_ai_sensing.ipynb`** — AI/sensing notebook (sklearn, py-3.12), OUSD
+  *Integrated Sensing* angle: detect a microplastic **size band** from the scattering
+  shape — ROC/AUC baseline, multi-model bake-off (AUC ≈ 0.98), and physics-feature
+  engineering. Same toolkit as `notebooks/ml_course_on_receiver.ipynb`.
 - **`seals_stable.py`** / **`seals_stable.ipynb`** — numerically stable Python port
   of the original MATLAB, plus extensions (angular-momentum partial-wave spectrum,
   3D/4D spectral-angular maps, OAM/Laguerre–Gaussian decomposition).
