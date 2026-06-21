@@ -139,6 +139,9 @@ email_to_callen.txt
 _overnight_results.jsonl
 data/
 
+# repo_suggester.js writes this fresh each run
+SUGGESTIONS.md
+
 ############################
 # Local REPL scratch (not for commit)
 ############################
