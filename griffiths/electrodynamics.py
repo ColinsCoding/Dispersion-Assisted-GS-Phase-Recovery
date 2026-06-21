@@ -387,6 +387,19 @@ def loop_current(emf, R):
     return np.asarray(emf, dtype=float) / R
 
 
+def rotating_loop_emf(a, B0, omega, t, N=1):
+    """AC generator (Griffiths 7.10): an N-turn square loop, side a, spins at
+    angular velocity omega in a uniform static field B0. Phi = N B0 a^2 cos(omega t)
+    (flux is max when the loop normal is aligned with B at t=0), so
+    EMF = -dPhi/dt = N B0 a^2 omega sin(omega t). Peak |EMF| = N B0 a^2 omega --
+    a rotating loop in a static field is mathematically the mirror image of
+    sinusoidal_emf (static loop, oscillating field): same generator law, same
+    flux rule, traded which one moves."""
+    if a <= 0 or omega < 0 or N <= 0:
+        raise ValueError("a > 0, N > 0, omega >= 0 required")
+    return N * B0 * a ** 2 * omega * np.sin(omega * np.asarray(t, dtype=float))
+
+
 def motional_emf(B, h, v):
     """Generator EMF of a loop (width h) dragged at speed v through field B
     (Griffiths 7.11): EMF = B h v. It is the SAME flux rule -- the flux
@@ -458,6 +471,57 @@ def inductor_energy(L, I):
     if L < 0 or I < 0:
         raise ValueError("L, I must be >= 0")
     return 0.5 * L * I**2
+
+
+# ── 13. eddy-current brake: the falling loop (Griffiths Prob 7.11) ───
+def eddy_brake_terminal_velocity(m, g, R, B, s):
+    """Terminal velocity of a square loop (side s) falling out of a field B under
+    gravity (Griffiths 7.11). The edge in the field generates EMF = B s v, drives
+    current I = B s v / R, and feels a RETARDING force F = B I s = B^2 s^2 v / R
+    (Lenz: it opposes the fall). At terminal velocity gravity balances it:
+        m g = B^2 s^2 v_t / R   ->   v_t = m g R / (B^2 s^2).
+    The eddy brake -- the loop coasts down at constant speed."""
+    if min(m, g, R, B, s) <= 0:
+        raise ValueError("m, g, R, B, s must be > 0")
+    return m * g * R / (B ** 2 * s ** 2)
+
+
+def falling_loop_velocity(m, g, R, B, s, t, v0=0.0):
+    """Analytic v(t) for the falling loop. Newton's law m dv/dt = mg - (B^2 s^2/R) v
+    is linear, so the solution is an exponential approach to terminal velocity:
+        v(t) = v_t + (v0 - v_t) e^{-t/tau},   tau = m R / (B^2 s^2) = v_t / g.
+    Returns v(t) [m/s]. The 'e' here is the same exponential as RC charging."""
+    v_t = eddy_brake_terminal_velocity(m, g, R, B, s)
+    tau = m * R / (B ** 2 * s ** 2)
+    t = np.asarray(t, dtype=float)
+    return v_t + (v0 - v_t) * np.exp(-t / tau)
+
+
+def falling_loop_simulation(m, g, R, B, s, t, v0=0.0):
+    """Numerically integrate m dv/dt = mg - (B^2 s^2/R) v with RK4 (cross-checks the
+    analytic solution, and the template for a NONLINEAR drag you cannot solve by hand)."""
+    t = np.asarray(t, dtype=float)
+    dt = t[1] - t[0]
+    k = B ** 2 * s ** 2 / R
+    accel = lambda v: g - k * v / m            # gravity minus the eddy-brake force/m
+    v = np.empty_like(t); v[0] = v0
+    for n in range(1, len(t)):
+        a1 = accel(v[n - 1])
+        a2 = accel(v[n - 1] + 0.5 * dt * a1)
+        a3 = accel(v[n - 1] + 0.5 * dt * a2)
+        a4 = accel(v[n - 1] + dt * a3)
+        v[n] = v[n - 1] + dt / 6 * (a1 + 2 * a2 + 2 * a3 + a4)
+    return v
+
+
+def aluminum_loop_terminal_velocity(B, g=9.81, rho_mass=2700.0, rho_resistivity=2.65e-8):
+    """Terminal velocity of an ALUMINUM square loop, the punchline of 7.11. Build the
+    loop from square-cross-section conductor: mass m = rho_mass*(4 s)*w^2 and
+    resistance R = rho_resistivity*(4 s)/w^2, so m*R = 16 rho_mass*rho_resistivity*s^2
+    and the size CANCELS:
+        v_t = 16 * rho_mass * rho_resistivity * g / B^2   (independent of s and w!).
+    For aluminum at B = 1 T this is ~1 cm/s -- the loop barely creeps down."""
+    return 16.0 * rho_mass * rho_resistivity * g / B ** 2
 
 
 if __name__ == "__main__":
