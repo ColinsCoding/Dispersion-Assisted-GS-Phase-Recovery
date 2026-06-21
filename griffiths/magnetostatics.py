@@ -87,6 +87,16 @@ def solenoid_field(n, I):
     return sp.simplify(mu0 * n * I)
 
 
+def toroid_field(N, I, s):
+    """Toroidal solenoid (N total turns, current I): the field is purely azimuthal
+    and lives ENTIRELY inside the windings,
+        B = mu0 N I / (2 pi s)   inside the tube,   B = 0   outside,
+    with s the distance from the toroid's central axis. Ampere's law gives this in
+    one line because the symmetry makes B constant on a circle of radius s -- the
+    same move that FAILS for a finite straight solenoid (no constant-B loop exists)."""
+    return sp.simplify(mu0 * N * I / (2 * sp.pi * s))
+
+
 def ampere_enclosed_wire(I, s):
     """Ampere's law on a circle of radius s around a wire: 2 pi s B = mu0 I."""
     B = sp.Symbol("B", positive=True)
@@ -144,3 +154,29 @@ def circular_loop_path(R, n=2001, center=(0.0, 0.0, 0.0)):
     phi = np.linspace(0, 2 * np.pi, n)
     c = np.asarray(center, float)
     return np.column_stack([R * np.cos(phi), R * np.sin(phi), np.zeros(n)]) + c
+
+
+def biot_savart_multi(loops, I, field_point):
+    """Total Biot-Savart field at `field_point` from several wire paths (e.g. the N
+    turns of a toroid), summing each loop's contribution."""
+    total = np.zeros(3)
+    for lp in loops:
+        total = total + biot_savart(lp, I, field_point)
+    return total
+
+
+def toroid_loops(R, a, N, n=200):
+    """N circular turns (minor/tube radius a) wound around a torus of major radius R,
+    centered on the z-axis. Returns a list of N (n,3) loop paths -- feed to
+    biot_savart_multi to *measure* the toroid field and confirm the Ampere result
+    B = mu0 N I / (2 pi R) inside the tube and ~0 outside. Each turn lies in the
+    plane spanned by its radial direction and z."""
+    loops = []
+    for k in range(N):
+        phi = 2 * np.pi * k / N
+        er = np.array([np.cos(phi), np.sin(phi), 0.0])     # radial, in the toroid plane
+        ez = np.array([0.0, 0.0, 1.0])
+        t = np.linspace(0, 2 * np.pi, n)
+        pts = R * er + a * np.cos(t)[:, None] * er + a * np.sin(t)[:, None] * ez
+        loops.append(pts)
+    return loops
