@@ -7,11 +7,13 @@ throughout; mu0 symbolic. Deliberately parallels griffiths.electrostatics --
 the electric ring (Ch. 2) and the magnetic loop here are duals.
 """
 
+import numpy as np
 import sympy as sp
 
 from .vectors import CARTESIAN, _as_vec3, curl, div
 
 mu0 = sp.Symbol("mu_0", positive=True)
+MU0_SI = 4e-7 * np.pi          # vacuum permeability [T m / A], for numerical Biot-Savart
 
 
 # ── magnetic force and cyclotron motion ─────────────────────────────
@@ -106,3 +108,39 @@ def is_divergence_free(B, vars=CARTESIAN):
 def current_from_field(B, vars=CARTESIAN):
     """Ampere (static): J = (curl B) / mu0."""
     return sp.simplify(curl(_as_vec3(B, "B"), vars) / mu0)
+
+
+# ── numerical Biot-Savart: prove the closed forms by integrating dl x r-hat ──
+def biot_savart(path_points, I, field_point):
+    """Numerically integrate the Biot-Savart law over an arbitrary wire:
+        B(r) = (mu0 I / 4 pi) integral  dl x (r - r') / |r - r'|^3 .
+    `path_points` is an (N,3) array tracing the wire; the integral is the sum over
+    the N-1 straight segments (midpoint rule). Returns the 3-vector B at
+    `field_point` [tesla]. This is the cross-product line integral done by hand --
+    run it against the closed forms below to *prove* them rather than trust them."""
+    p = np.asarray(path_points, dtype=float)
+    r = np.asarray(field_point, dtype=float)
+    dl = np.diff(p, axis=0)                       # segment vectors dl
+    mid = 0.5 * (p[:-1] + p[1:])                  # segment midpoints r'
+    sep = r - mid                                 # r - r'
+    dist = np.linalg.norm(sep, axis=1)            # |r - r'|
+    dB = np.cross(dl, sep) / dist[:, None] ** 3   # dl x (r-r') / |r-r'|^3
+    return MU0_SI * I / (4 * np.pi) * dB.sum(axis=0)
+
+
+def straight_wire_path(length, n=20001, axis=2, offset=(0.0, 0.0, 0.0)):
+    """An (n,3) path for a straight wire of given length centered at `offset`,
+    running along `axis` (0=x,1=y,2=z). Use a large length to approximate the
+    infinite wire."""
+    t = np.linspace(-length / 2, length / 2, n)
+    p = np.zeros((n, 3))
+    p[:, axis] = t
+    return p + np.asarray(offset, float)
+
+
+def circular_loop_path(R, n=2001, center=(0.0, 0.0, 0.0)):
+    """An (n,3) closed path tracing a circular current loop of radius R in the xy
+    plane (current flows counterclockwise -> B along +z on axis)."""
+    phi = np.linspace(0, 2 * np.pi, n)
+    c = np.asarray(center, float)
+    return np.column_stack([R * np.cos(phi), R * np.sin(phi), np.zeros(n)]) + c
