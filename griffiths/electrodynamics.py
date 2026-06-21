@@ -387,6 +387,16 @@ def loop_current(emf, R):
     return np.asarray(emf, dtype=float) / R
 
 
+def motional_emf(B, h, v):
+    """Generator EMF of a loop (width h) dragged at speed v through field B
+    (Griffiths 7.11): EMF = B h v. It is the SAME flux rule -- the flux
+    Phi = B h x changes because x = v t, so -dPhi/dt = -B h v. Changing-B
+    (induced_emf) and moving-loop (this) are one law: EMF = -dPhi/dt (7.13)."""
+    if h < 0 or v < 0:
+        raise ValueError("h, v must be >= 0")
+    return B * h * v
+
+
 # ── 11. extending Maxwell: magnetic monopoles + electric-magnetic duality ──
 def maxwell_with_monopoles(medium=False):
     """Maxwell's equations IF magnetic charge existed (Griffiths 7.44).
