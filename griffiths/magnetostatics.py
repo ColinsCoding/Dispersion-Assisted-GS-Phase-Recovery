@@ -80,6 +80,23 @@ def magnetic_dipole_moment(I, R):
     return sp.simplify(I * sp.pi * R**2)
 
 
+def dipole_torque(m, B):
+    """Torque on a magnetic dipole m in a uniform field B: tau = m x B. Its magnitude
+    is m B sin(theta) -- zero when m is aligned (or anti-aligned) with B, maximum at
+    90 deg -- and it rotates the dipole TOWARD alignment. This is the torque that
+    swings a compass needle and, on a current loop (m = N I A), spins a motor rotor."""
+    m, B = _as_vec3(m, "m"), _as_vec3(B, "B")
+    return sp.simplify(m.cross(B))
+
+
+def dipole_energy(m, B):
+    """Orientation energy of a dipole in a field: U = -m . B = -m B cos(theta).
+    Lowest when m aligns with B (stable equilibrium), highest anti-aligned -- the
+    potential whose gradient is the aligning torque."""
+    m, B = _as_vec3(m, "m"), _as_vec3(B, "B")
+    return sp.simplify(-(m.T * B)[0])
+
+
 # ── Ampere's law ────────────────────────────────────────────────────
 def solenoid_field(n, I):
     """Long solenoid: uniform interior field B = mu0 n I (n = turns per length),
