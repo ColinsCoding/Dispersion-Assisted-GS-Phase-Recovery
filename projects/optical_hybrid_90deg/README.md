@@ -10,6 +10,9 @@ relative phases 0°, 90°, 180°, 270°. Balanced photodetectors on the (0°,180
 - **`optical_hybrid_90deg.ipynb`** — teaching notebook: the transmission matrix,
   balanced detection (`D1 = 4cosφ`), a proper hybrid's (I,Q) constellation circle,
   and how phase imbalance degrades the readout.
+- **`hybrid_ml_demod.ipynb`** — ML notebook (torch, py-3.12): a learned QPSK
+  demodulator that calibrates out a fixed I/Q imbalance (0.81 → 0.96 accuracy vs the
+  nearest-symbol rule).
 - **`optical_hybrid_90deg.py`** — the hybrid model (cleaned port). `optical_hybrid_90deg()`
   returns the four complex outputs with optional insertion loss and phase / loss
   imbalance; `balanced_detection()` gives the two photodiode-pair difference signals.
