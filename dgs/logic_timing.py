@@ -166,6 +166,77 @@ def barrel_shifter_levels(width):
     return levels
 
 
+# ── sequential logic: flip-flops, timing, and finite-state machines ──
+class DFlipFlop:
+    """A rising-edge D flip-flop -- the 1-bit memory that makes a circuit SEQUENTIAL.
+    Combinational gates have no memory; a flip-flop holds its value between clock
+    edges and only updates Q <- D on the edge. State is what a flip-flop adds."""
+
+    def __init__(self, q=0, t_clk_q=1.0):
+        self.q = int(q) & 1
+        self.t_clk_q = t_clk_q          # clock-to-Q propagation delay
+
+    def tick(self, d):
+        """One rising clock edge: sample D into Q and return the new Q."""
+        self.q = int(d) & 1
+        return self.q
+
+
+def setup_hold_status(data_change_t, edge_t, t_setup, t_hold):
+    """Is the data stable through the sampling window [edge - t_setup, edge + t_hold]?
+    Data that changes inside it makes the flip-flop sample garbage (metastability).
+    Returns 'ok', 'setup_violation' (changed < t_setup BEFORE the edge), or
+    'hold_violation' (changed < t_hold AFTER the edge)."""
+    if edge_t - t_setup < data_change_t < edge_t:
+        return "setup_violation"
+    if edge_t <= data_change_t < edge_t + t_hold:
+        return "hold_violation"
+    return "ok"
+
+
+def max_clock_frequency(t_comb, t_clk_q=1.0, t_setup=1.0):
+    """The sequential-timing law: between two flip-flops the clock period must clear
+        T >= t_clk_q + t_comb + t_setup
+    (launch flop's clock-to-Q + combinational path + capture flop's setup). Returns
+    fmax = 1/T. This is where logic_timing.critical_path (the t_comb) sets the clock
+    speed -- a slower combinational path means a slower maximum clock."""
+    T = t_clk_q + t_comb + t_setup
+    return 1.0 / T if T > 0 else float("inf")
+
+
+def ripple_counter(n_bits, n_pulses):
+    """An n-bit counter built from flip-flops: each clock pulse increments the stored
+    value (mod 2^n). A counter ACCUMULATES clock edges -- the digital analog of
+    integration (it 'integrates' the clock). Returns the value after each pulse."""
+    state, mask, out = 0, (1 << n_bits) - 1, []
+    for _ in range(n_pulses):
+        state = (state + 1) & mask
+        out.append(state)
+    return out
+
+
+def sequence_detector_101(bits):
+    """A Moore finite-state machine (flip-flops for state + next-state logic) that
+    outputs 1 whenever the input stream ends in '101' (overlapping). FSM = memory +
+    combinational logic; bolt on an unbounded tape and an FSM becomes a Turing
+    machine -- the bridge from gates to general computation. Returns one output bit
+    per input bit. States: S0 (start), S1 (saw 1), S2 (saw 10)."""
+    state, out = "S0", []
+    for b in bits:
+        detect = 0
+        if state == "S0":
+            state = "S1" if b == 1 else "S0"
+        elif state == "S1":
+            state = "S1" if b == 1 else "S2"
+        else:  # S2 (saw "10")
+            if b == 1:
+                state, detect = "S1", 1          # "101" completed (overlap-aware)
+            else:
+                state = "S0"
+        out.append(detect)
+    return out
+
+
 if __name__ == "__main__":
     for n in (4, 8, 16):
         add = ripple_carry_adder(n)
