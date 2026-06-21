@@ -6,6 +6,9 @@ diffracted to a different position on a spectrometer CCD, so a single spectrum
 encodes the full angular scattering pattern.
 
 ## Files
+- **`seals_intro.ipynb`** — teaching notebook (numpy only, py-3.13): the grating
+  λ→θ mapping, Rayleigh–Debye–Gans scattering (with the form factor's `u→0` Taylor
+  limit), and the SEALS readout `I(θ(λ))`. Start here.
 - **`seals_stable.py`** / **`seals_stable.ipynb`** — numerically stable Python port
   of the original MATLAB, plus extensions (angular-momentum partial-wave spectrum,
   3D/4D spectral-angular maps, OAM/Laguerre–Gaussian decomposition).

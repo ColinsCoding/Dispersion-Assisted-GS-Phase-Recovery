@@ -7,9 +7,12 @@ relative phases 0°, 90°, 180°, 270°. Balanced photodetectors on the (0°,180
 — i.e. the full complex optical field.
 
 ## Files
+- **`optical_hybrid_90deg.ipynb`** — teaching notebook: the transmission matrix,
+  balanced detection (`D1 = 4cosφ`), a proper hybrid's (I,Q) constellation circle,
+  and how phase imbalance degrades the readout.
 - **`optical_hybrid_90deg.py`** — the hybrid model (cleaned port). `optical_hybrid_90deg()`
   returns the four complex outputs with optional insertion loss and phase / loss
-  imbalance; `recover_iq()` does balanced detection.
+  imbalance; `balanced_detection()` gives the two photodiode-pair difference signals.
 - **`test_optical_hybrid.py`** — verifies the ideal transmission matrix, the 4×
   output power, the balanced-detection difference signals, and that sweeping the
   signal phase makes `D1` track the in-phase projection `4·cos(φ)`.
