@@ -304,3 +304,25 @@ def uncertainty_product(psi, x):
     """sigma_x * sigma_p. Heisenberg: always >= 1/2 (hbar/2), with equality only
     for a Gaussian -- the minimum-uncertainty (most 'classical') state."""
     return sigma_x(psi, x) * sigma_p(psi, x)
+
+
+# ── the variational principle (Griffiths Ch. 7) ─────────────────────
+def variational_energy(psi, x, V):
+    """Energy expectation <H> = <T> + <V> of a trial state (hbar = m = 1):
+
+        <T> = (1/2) integral |dpsi/dx|^2 dx / <psi|psi>      (kinetic)
+        <V> = integral V(x) |psi|^2 dx / <psi|psi>           (potential)
+
+    The variational principle: for ANY trial psi, <H> >= E_ground. So minimizing
+    <H> over a family of trial states gives an upper bound on (and often a great
+    estimate of) the ground-state energy. This is exactly what VQE and neural
+    quantum states do -- quantum mechanics as an optimization problem.
+    """
+    psi = np.asarray(psi, dtype=complex)
+    x = np.asarray(x, dtype=float)
+    V = np.asarray(V, dtype=float)
+    norm = np.trapezoid(np.abs(psi)**2, x)
+    dpsi = np.gradient(psi, x)
+    T = 0.5 * np.trapezoid(np.abs(dpsi)**2, x) / norm
+    Vexp = np.trapezoid(V * np.abs(psi)**2, x) / norm
+    return float(np.real(T + Vexp))
