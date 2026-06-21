@@ -62,11 +62,13 @@ for (const mod of [...pyModules, ...griffMods]) {
       `${mod}: ${missing.length} public fn(s) lack a docstring (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", ..." : ""})`);
 }
 
-// 3. TODO / FIXME / HACK markers in source
-for (const mod of [...pyModules, ...griffMods, ...listFiles("tools", ".js")]) {
+// 3. TODO / FIXME / HACK markers in the Python package (not this scanner itself,
+//    whose detection regex would otherwise match its own source)
+const MARKER = /\b(TODO|FIXME|XXX|HACK)\b/;
+for (const mod of [...pyModules, ...griffMods]) {
   const lines = read(path.join(ROOT, mod)).split(/\r?\n/);
   lines.forEach((ln, i) => {
-    if (/\b(TODO|FIXME|XXX|HACK)\b/.test(ln))
+    if (MARKER.test(ln))
       add(5, 1, `${mod}:${i + 1} unresolved marker -> ${ln.trim().slice(0, 70)}`);
   });
 }

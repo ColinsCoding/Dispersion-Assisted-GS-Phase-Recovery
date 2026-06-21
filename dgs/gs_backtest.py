@@ -38,13 +38,14 @@ def _section(title):
 # ── import project modules ─────────────────────────────────────────────────────
 
 from dgs.gs_core import make_measurements, retrieve_phase
-from gs_fno   import FNO1d, wrapped_phase_loss, make_fno_dataset, train_fno
+from dgs.gs_fno import FNO1d, wrapped_phase_loss, make_fno_dataset, train_fno
 
 # ══════════════════════════════════════════════════════════════════════════════
 # B1. GS accuracy across modulation formats
 # ══════════════════════════════════════════════════════════════════════════════
 
 def backtest_gs_formats():
+    """B1: GS RMS phase error across every modulation format (OOK..6PSK)."""
     _section('B1 . GS accuracy -- all modulation formats')
 
     # unit_amplitude: True for constant-envelope formats, False for amplitude-modulated
@@ -88,6 +89,7 @@ def backtest_gs_formats():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def backtest_gs_snr():
+    """B2: GS QPSK accuracy across an SNR sweep (10..40 dB)."""
     _section('B2 . GS accuracy vs SNR (QPSK)')
 
     snr_levels = [10, 20, 30, 35, 40]
@@ -116,6 +118,7 @@ def backtest_gs_snr():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def backtest_time_bandwidth():
+    """B3: longer windows (bigger N) give more temporal context and lower RMS."""
     _section('B3 . Time-bandwidth product -- longer N = better freq resolution')
 
     # Heisenberg: sigma_t * sigma_nu >= 1/(4*pi)  (Gaussian pulse)
@@ -165,6 +168,7 @@ def backtest_time_bandwidth():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def backtest_fno_resolution():
+    """B4: an FNO trained at N=512 still works at N=256/1024 (resolution invariance)."""
     _section('B4 . FNO resolution invariance (train N=512, test N=256/512/1024)')
 
     if not torch.cuda.is_available():
@@ -226,6 +230,7 @@ def backtest_fno_resolution():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def backtest_fno_vs_gs():
+    """B5: FNO vs GS head-to-head on identical QPSK data -- is the FNO adding value?"""
     _section('B5 . FNO vs GS head-to-head (QPSK, SNR=35 dB, N=512)')
 
     try:
@@ -289,6 +294,7 @@ def backtest_fno_vs_gs():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def run_all():
+    """Run every backtest section (B1-B5) and print a pass/fail tally; True if all pass."""
     print('\n' + '='*60)
     print('  gs_backtest.py -- FNO + GS backtesting suite')
     print('='*60)
