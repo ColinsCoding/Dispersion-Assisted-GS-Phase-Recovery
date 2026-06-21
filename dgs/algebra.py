@@ -13,16 +13,19 @@ import itertools
 
 # ── the group axioms, checked exhaustively ──────────────────────────
 def is_closed(elements, op):
+    """True if `op` never produces a result outside `elements` (closure axiom)."""
     s = set(elements)
     return all(op(a, b) in s for a in elements for b in elements)
 
 
 def is_associative(elements, op):
+    """True if (a*b)*c == a*(b*c) for every triple (the associativity axiom)."""
     return all(op(op(a, b), c) == op(a, op(b, c))
                for a in elements for b in elements for c in elements)
 
 
 def is_commutative(elements, op):
+    """True if a*b == b*a for every pair (the abelian/commutative condition)."""
     return all(op(a, b) == op(b, a) for a in elements for b in elements)
 
 
@@ -56,6 +59,7 @@ def is_group(elements, op):
 
 
 def is_abelian_group(elements, op):
+    """A group whose operation also commutes (a*b == b*a for all a, b)."""
     return is_group(elements, op) and is_commutative(elements, op)
 
 
@@ -108,14 +112,17 @@ def Zn(n):
 
 
 def add_mod(n):
+    """Return the addition-mod-n operation: (a, b) -> (a + b) % n."""
     return lambda a, b: (a + b) % n
 
 
 def mul_mod(n):
+    """Return the multiplication-mod-n operation: (a, b) -> (a * b) % n."""
     return lambda a, b: (a * b) % n
 
 
 def is_prime(p):
+    """Trial-division primality test: p is prime iff no divisor up to sqrt(p)."""
     return p > 1 and all(p % k for k in range(2, int(p**0.5) + 1))
 
 

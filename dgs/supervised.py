@@ -53,6 +53,7 @@ def linear_regression(X, y):
 
 
 def predict_linear(X, w):
+    """Predict y for new X with least-squares weights `w` (bias = last entry)."""
     X = _as_design(X)
     return np.hstack([X, np.ones((len(X), 1))]) @ w
 
@@ -76,20 +77,24 @@ def logistic_regression(X, y, lr=0.1, n_iter=2000):
 
 
 def predict_proba(X, w):
+    """Class-1 probabilities sigmoid(Xw) for logistic weights `w` (bias last)."""
     X = _as_design(X)
     return _sigmoid(np.hstack([X, np.ones((len(X), 1))]) @ w)
 
 
 def predict(X, w, thresh=0.5):
+    """Hard 0/1 labels from predict_proba, thresholded at `thresh`."""
     return (predict_proba(X, w) >= thresh).astype(int)
 
 
 # ── metrics ─────────────────────────────────────────────────────────
 def mse(y, yhat):
+    """Mean squared error between targets `y` and predictions `yhat`."""
     return float(np.mean((np.asarray(y) - np.asarray(yhat))**2))
 
 
 def r2(y, yhat):
+    """Coefficient of determination R^2 (1 = perfect, 0 = no better than the mean)."""
     y = np.asarray(y, dtype=float)
     ss_res = np.sum((y - np.asarray(yhat))**2)
     ss_tot = np.sum((y - y.mean())**2)
@@ -97,6 +102,7 @@ def r2(y, yhat):
 
 
 def accuracy(y, yhat):
+    """Fraction of labels predicted correctly (classification accuracy)."""
     return float(np.mean(np.asarray(y) == np.asarray(yhat)))
 
 

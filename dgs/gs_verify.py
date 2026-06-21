@@ -117,6 +117,7 @@ def verify_transfer_function():
 # -- S2 . Numerical disperse/undisperse round-trip -----------------------------
 
 def verify_disperse_roundtrip():
+    """S2: undisperse(disperse(E, D), D) returns E to ~1e-10 across N and D."""
     _section('S2 . disperse/undisperse numerical round-trip')
     try:
         from dgs.gs_core import disperse, undisperse
@@ -138,6 +139,7 @@ def verify_disperse_roundtrip():
 # -- S3 . Amplitude constraint preserves phase ---------------------------------
 
 def verify_amplitude_constraint():
+    """S3: apply_amplitude_constraint sets |E|=sqrt(I_meas) while preserving phase."""
     _section('S3 . apply_amplitude_constraint preserves phase')
     try:
         from dgs.gs_core import apply_amplitude_constraint
@@ -178,6 +180,7 @@ def verify_amplitude_constraint():
 # -- S4 . Parseval's theorem through dispersion --------------------------------
 
 def verify_parseval():
+    """S4: dispersion conserves energy (Parseval) because |H(nu)| = 1 (all-pass)."""
     _section('S4 . Parseval -- energy conserved through dispersion')
     try:
         from dgs.gs_core import disperse
@@ -200,6 +203,7 @@ def verify_parseval():
 # -- S5 . 6-PSK phase spacing --------------------------------------------------
 
 def verify_6psk():
+    """S5: the six 6-PSK constellation phases are spaced exactly pi/3 apart."""
     _section('S5 . 6-PSK -- phase spacing = pi/3 exactly')
     try:
         from sympy import pi, Rational, cos, sin, sqrt, simplify
@@ -237,6 +241,7 @@ def verify_6psk():
 # -- S6 . FNO wrapped-phase loss at zero error ---------------------------------
 
 def verify_fno_loss():
+    """S6: the wrapped-phase loss is zero at zero error, non-negative, symmetric, differentiable."""
     _section('S6 . FNO wrapped-phase loss = 0 when phi? = phi')
     try:
         import torch
@@ -284,6 +289,7 @@ def verify_fno_loss():
 # -- S7 . Complex real+imaginary completeness ----------------------------------
 
 def verify_complex_completeness():
+    """S7: Re/Im of exp(i*phi) obey cos/sin, Re^2+Im^2=1, and conj flips the phase sign."""
     _section('S7 . Complex arithmetic -- real + imaginary completeness')
     try:
         from sympy import (symbols, exp, I, re, im, conjugate,
@@ -343,6 +349,7 @@ def verify_complex_completeness():
 # -- S8 . GS convergence sanity ------------------------------------------------
 
 def verify_gs_convergence():
+    """S8: GS error decreases monotonically and the RMS phase error stays small (<30 deg)."""
     _section('S8 . GS convergence -- error must decrease monotonically (on average)')
     try:
         from dgs.gs_core import make_qpsk_measurements, retrieve_phase
@@ -381,6 +388,7 @@ def verify_gs_convergence():
 # -- S9 . Dispersion diversity requirement -------------------------------------
 
 def verify_diversity_requirement():
+    """S9: convergence needs |D|>=5000; low diversity (D=-600, corr->1) fails as expected."""
     _section('S9 . Dispersion diversity -- |D|>=5000 required for convergence')
     try:
         from dgs.gs_core import make_qpsk_measurements, retrieve_phase
@@ -413,6 +421,7 @@ def verify_diversity_requirement():
 # -- Run all verifications -----------------------------------------------------
 
 def run_all(verbose=True):
+    """Run every verification section (S1-S9) and print a pass/fail tally; True if all pass."""
     print('\n' + '='*60)
     print('  gs_verify.py -- SymPy + numerical verification suite')
     print('='*60)
