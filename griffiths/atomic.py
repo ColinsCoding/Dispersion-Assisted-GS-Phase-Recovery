@@ -110,8 +110,54 @@ def moseley_kalpha_frequency(Z):
     return moseley_kalpha_energy(Z) * _E / _H
 
 
+# ── what comes after the Bohr magneton: electron spin and the g-factor ──
+G_E = 2.00231930436          # electron spin g-factor (Dirac predicts 2; QED the rest)
+
+
+def electron_g_factor():
+    """Electron spin g-factor g_s = 2.0023... The orbital moment is one Bohr magneton
+    per unit (orbital) angular momentum; the SPIN moment is ~TWICE that (g ~ 2) -- the
+    surprise that needed electron spin (Dirac) plus a QED correction for the 0.0023."""
+    return G_E
+
+
+def spin_magnetic_moment():
+    """z-component of the electron spin moment for m_s = +1/2: mu_z = g_s mu_B (1/2) ~
+    1.001 mu_B -- about one Bohr magneton from a HALF unit of spin, because g ~ 2."""
+    return G_E * MU_B * 0.5
+
+
+def lande_g_factor(j, l, s):
+    """Lande g-factor g_J = 1 + [j(j+1)+s(s+1)-l(l+1)] / [2 j(j+1)] -- the effective
+    magnetic g for combined orbital+spin angular momentum. g=1 for pure orbital (s=0),
+    g=2 for pure spin (l=0); it sets the ANOMALOUS Zeeman splitting."""
+    if j == 0:
+        return 0.0
+    return 1.0 + (j * (j + 1) + s * (s + 1) - l * (l + 1)) / (2 * j * (j + 1))
+
+
+def anomalous_zeeman_shift(m_j, g_J, B):
+    """Energy shift with spin: Delta_E = g_J m_j mu_B B [J]. Because g_J differs
+    between levels, transitions split into MORE than three lines -- the 'anomalous'
+    Zeeman effect (really the general case; the normal 3-line triplet is the exception
+    that needs g exactly 1, i.e. no spin)."""
+    return g_J * m_j * MU_B * B
+
+
+def stern_gerlach_force(m_s, dB_dz, g=G_E):
+    """Force on a magnetic moment in a field GRADIENT: F_z = g m_s mu_B dB/dz [N]. For
+    a spin-1/2 atom, m_s = +/-1/2 gives two equal-and-opposite forces, so the beam
+    splits into TWO discrete spots -- the Stern-Gerlach result (space quantization +
+    spin), not the continuous smear classical physics predicts."""
+    return g * m_s * MU_B * dB_dz
+
+
 if __name__ == "__main__":
     print(f"Bohr magneton mu_B = {MU_B:.4e} J/T")
+    print(f"electron g-factor g_s = {G_E} (spin moment ~ {spin_magnetic_moment()/MU_B:.4f} mu_B)")
+    for term, (l, s, j) in {"2S_1/2": (0, .5, .5), "2P_1/2": (1, .5, .5),
+                            "2P_3/2": (1, .5, 1.5)}.items():
+        print(f"  Lande g({term}) = {lande_g_factor(j, l, s):.4f}")
     print(f"Rydberg energy = {rydberg_energy():.4f} eV  (hydrogen ionization from n=1)")
     print(f"  Balmer H-alpha (3->2) = {hydrogen_line_wavelength(2,3)*1e9:.1f} nm")
     print(f"  Lyman-alpha   (2->1) = {hydrogen_line_wavelength(1,2)*1e9:.1f} nm")
