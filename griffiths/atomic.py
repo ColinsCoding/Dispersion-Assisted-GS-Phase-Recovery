@@ -22,8 +22,12 @@ _E = 1.602176634e-19           # elementary charge [C]
 _HBAR = 1.054571817e-34        # reduced Planck constant [J s]
 _H = 2 * np.pi * _HBAR         # Planck constant [J s]
 _ME = 9.1093837015e-31         # electron mass [kg]
+_C = 299792458.0               # speed of light [m/s]
+_EPS0 = 8.8541878128e-12       # vacuum permittivity [F/m]
 
 MU_B = _E * _HBAR / (2 * _ME)  # Bohr magneton ~ 9.274e-24 J/T
+_RYDBERG_J = _ME * _E**4 / (8 * _EPS0**2 * _H**2)   # Rydberg energy ~ 2.18e-18 J
+_RYDBERG_EV = _RYDBERG_J / _E                        # ~ 13.606 eV
 
 
 def bohr_magneton():
@@ -67,8 +71,52 @@ def zeeman_shift_symbolic(l):
     return [(m, m * mu_B * B) for m in range(-l, l + 1)]
 
 
+# ── Bohr model and the hydrogen spectrum ────────────────────────────
+def rydberg_energy(unit="eV"):
+    """Hydrogen ground-state binding energy (the Rydberg): 13.606 eV =
+    m_e e^4 /(8 eps0^2 h^2). The energy to ionize hydrogen from n=1, and the scale of
+    every atomic transition."""
+    return _RYDBERG_EV if unit == "eV" else _RYDBERG_J
+
+
+def bohr_energy_level(n, Z=1):
+    """Bohr level E_n = -13.6 Z^2 / n^2 eV for a one-electron (hydrogenic) atom."""
+    return -_RYDBERG_EV * Z**2 / n**2
+
+
+def bohr_transition_energy(n_low, n_high, Z=1):
+    """Photon energy [eV] emitted in n_high -> n_low: 13.6 Z^2 (1/n_low^2 - 1/n_high^2)."""
+    return _RYDBERG_EV * Z**2 * (1 / n_low**2 - 1 / n_high**2)
+
+
+def hydrogen_line_wavelength(n_low, n_high):
+    """Wavelength [m] of a hydrogen line n_high -> n_low (Lyman n_low=1, Balmer n_low=2).
+    Balmer H-alpha (3->2) = 656 nm; Lyman-alpha (2->1) = 122 nm."""
+    return _H * _C / (bohr_transition_energy(n_low, n_high) * _E)
+
+
+# ── Moseley's law: characteristic X-rays pin down atomic number ──────
+def moseley_kalpha_energy(Z):
+    """K-alpha characteristic X-ray energy [eV] by Moseley's law: a 2->1 inner-shell
+    transition with the nucleus screened to (Z-1),
+        E_Kalpha = (3/4) * 13.6 eV * (Z-1)^2 .
+    Copper (Z=29) -> ~8.0 keV; molybdenum (Z=42) -> ~17.2 keV."""
+    return 0.75 * _RYDBERG_EV * (Z - 1)**2
+
+
+def moseley_kalpha_frequency(Z):
+    """K-alpha frequency [Hz]. sqrt(f) is LINEAR in (Z-1) -- Moseley's law, the result
+    that identified atomic number Z as the nuclear charge and ordered the table."""
+    return moseley_kalpha_energy(Z) * _E / _H
+
+
 if __name__ == "__main__":
     print(f"Bohr magneton mu_B = {MU_B:.4e} J/T")
+    print(f"Rydberg energy = {rydberg_energy():.4f} eV  (hydrogen ionization from n=1)")
+    print(f"  Balmer H-alpha (3->2) = {hydrogen_line_wavelength(2,3)*1e9:.1f} nm")
+    print(f"  Lyman-alpha   (2->1) = {hydrogen_line_wavelength(1,2)*1e9:.1f} nm")
+    for el, Z in [("Cu", 29), ("Mo", 42)]:
+        print(f"  Moseley K-alpha {el} (Z={Z}): {moseley_kalpha_energy(Z)/1e3:.2f} keV")
     B = 1.0
     print(f"\nat B = {B} T:")
     print(f"  level spacing mu_B B = {level_spacing(B):.4e} J = {level_spacing(B)/_E*1e6:.3f} ueV")
