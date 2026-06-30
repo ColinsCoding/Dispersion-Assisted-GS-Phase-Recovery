@@ -119,32 +119,34 @@ for rule, ok in results.items():
     print(f"  {'PASS' if ok else 'FAIL'}  {rule}")
 """))
 
-cells.append(code("""\
-# Display all 6 rules symbolically
-rules = {
-    "(i)  grad(fg)":
-        sp.Eq(sp.Symbol('nabla(fg)'),
-              sp.Symbol('f')*sp.Symbol('nabla_g') + sp.Symbol('g')*sp.Symbol('nabla_f')),
-    "(ii) grad(A.B)":
-        sp.Eq(sp.Symbol('nabla(A.B)'),
-              sp.Symbol('Ax(nabla_x_B)') + sp.Symbol('Bx(nabla_x_A)') +
-              sp.Symbol('(A.nabla)B') + sp.Symbol('(B.nabla)A')),
-    "(iii) div(fA)":
-        sp.Eq(sp.Symbol('nabla.(fA)'),
-              sp.Symbol('f')*sp.Symbol('(nabla.A)') + sp.Symbol('A.nabla_f')),
-    "(iv) div(AxB)":
-        sp.Eq(sp.Symbol('nabla.(AxB)'),
-              sp.Symbol('B.(nabla_x_A)') - sp.Symbol('A.(nabla_x_B)')),
-    "(v)  curl(fA)":
-        sp.Eq(sp.Symbol('nabla_x_(fA)'),
-              sp.Symbol('f')*sp.Symbol('(nabla_x_A)') - sp.Symbol('Ax(nabla_f)')),
-    "(vi) curl(AxB)":
-        sp.Eq(sp.Symbol('nabla_x_(AxB)'),
-              sp.Symbol('(B.nabla)A') - sp.Symbol('(A.nabla)B') +
-              sp.Symbol('A(nabla.B)') - sp.Symbol('B(nabla.A)')),
-}
-for name, eq in rules.items():
-    print(f"Rule {name}:"); display(eq)
+cells.append(code(r"""
+# Six vector product rules -- rendered as proper LaTeX via Math()
+# Using raw LaTeX strings so nabla, times, cdot render correctly in MathJax
+
+rules_latex = [
+    (r"(i)\quad\text{two gradients}",
+     r"\nabla(fg) = f\,\nabla g + g\,\nabla f"),
+    (r"(ii)\quad\text{two gradients}",
+     r"\nabla(\mathbf{A}\cdot\mathbf{B}) = "
+     r"\mathbf{A}\times(\nabla\times\mathbf{B}) + \mathbf{B}\times(\nabla\times\mathbf{A})"
+     r" + (\mathbf{A}\cdot\nabla)\mathbf{B} + (\mathbf{B}\cdot\nabla)\mathbf{A}"),
+    (r"(iii)\quad\text{two divergences}",
+     r"\nabla\cdot(f\mathbf{A}) = f(\nabla\cdot\mathbf{A}) + \mathbf{A}\cdot(\nabla f)"),
+    (r"(iv)\quad\text{two divergences}",
+     r"\nabla\cdot(\mathbf{A}\times\mathbf{B}) = "
+     r"\mathbf{B}\cdot(\nabla\times\mathbf{A}) - \mathbf{A}\cdot(\nabla\times\mathbf{B})"),
+    (r"(v)\quad\text{two curls}",
+     r"\nabla\times(f\mathbf{A}) = f(\nabla\times\mathbf{A}) - \mathbf{A}\times(\nabla f)"),
+    (r"(vi)\quad\text{two curls}",
+     r"\nabla\times(\mathbf{A}\times\mathbf{B}) = "
+     r"(\mathbf{B}\cdot\nabla)\mathbf{A} - (\mathbf{A}\cdot\nabla)\mathbf{B}"
+     r" + \mathbf{A}(\nabla\cdot\mathbf{B}) - \mathbf{B}(\nabla\cdot\mathbf{A})"),
+]
+
+print("Griffiths §1.2.4  —  Six Vector Product Rules")
+print("=" * 50)
+for label, rhs in rules_latex:
+    display(Math(label + r":\qquad" + rhs))
 """))
 
 cells.append(md(r"""### The Proof Pattern (Griffiths p. 21)
