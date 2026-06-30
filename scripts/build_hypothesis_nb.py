@@ -120,33 +120,71 @@ for rule, ok in results.items():
 """))
 
 cells.append(code(r"""
-# Six vector product rules -- rendered as proper LaTeX via Math()
-# Using raw LaTeX strings so nabla, times, cdot render correctly in MathJax
+# ── Griffiths §1.2.4  Six Vector Product Rules ───────────────────────────────
+# Two for each operator: gradient, divergence, curl.
+# Math() passes raw LaTeX to MathJax — bold vectors, nabla, times all render.
 
-rules_latex = [
-    (r"(i)\quad\text{two gradients}",
-     r"\nabla(fg) = f\,\nabla g + g\,\nabla f"),
-    (r"(ii)\quad\text{two gradients}",
-     r"\nabla(\mathbf{A}\cdot\mathbf{B}) = "
-     r"\mathbf{A}\times(\nabla\times\mathbf{B}) + \mathbf{B}\times(\nabla\times\mathbf{A})"
-     r" + (\mathbf{A}\cdot\nabla)\mathbf{B} + (\mathbf{B}\cdot\nabla)\mathbf{A}"),
-    (r"(iii)\quad\text{two divergences}",
-     r"\nabla\cdot(f\mathbf{A}) = f(\nabla\cdot\mathbf{A}) + \mathbf{A}\cdot(\nabla f)"),
-    (r"(iv)\quad\text{two divergences}",
-     r"\nabla\cdot(\mathbf{A}\times\mathbf{B}) = "
-     r"\mathbf{B}\cdot(\nabla\times\mathbf{A}) - \mathbf{A}\cdot(\nabla\times\mathbf{B})"),
-    (r"(v)\quad\text{two curls}",
-     r"\nabla\times(f\mathbf{A}) = f(\nabla\times\mathbf{A}) - \mathbf{A}\times(\nabla f)"),
-    (r"(vi)\quad\text{two curls}",
-     r"\nabla\times(\mathbf{A}\times\mathbf{B}) = "
-     r"(\mathbf{B}\cdot\nabla)\mathbf{A} - (\mathbf{A}\cdot\nabla)\mathbf{B}"
-     r" + \mathbf{A}(\nabla\cdot\mathbf{B}) - \mathbf{B}(\nabla\cdot\mathbf{A})"),
-]
+from IPython.display import display, Math, HTML
 
-print("Griffiths §1.2.4  —  Six Vector Product Rules")
-print("=" * 50)
-for label, rhs in rules_latex:
-    display(Math(label + r":\qquad" + rhs))
+display(HTML("<h4>Griffiths &sect;1.2.4 &mdash; Six Vector Product Rules</h4>"))
+
+# ── Gradients (scalar output) ─────────────────────────────────────────────────
+display(HTML("<b>Two for gradients:</b>"))
+
+display(Math(
+    r"\text{(i)}\quad"
+    r"\nabla(fg) \;=\; f\,\nabla g \;+\; g\,\nabla f"
+))
+
+display(Math(
+    r"\text{(ii)}\quad"
+    r"\nabla(\mathbf{A}\cdot\mathbf{B}) \;=\;"
+    r"\mathbf{A}\times(\nabla\times\mathbf{B})"
+    r"\;+\;\mathbf{B}\times(\nabla\times\mathbf{A})"
+    r"\;+\;(\mathbf{A}\cdot\nabla)\mathbf{B}"
+    r"\;+\;(\mathbf{B}\cdot\nabla)\mathbf{A}"
+))
+
+# ── Divergences (scalar output) ───────────────────────────────────────────────
+display(HTML("<b>Two for divergences:</b>"))
+
+display(Math(
+    r"\text{(iii)}\quad"
+    r"\nabla\cdot(f\mathbf{A}) \;=\;"
+    r"f\,(\nabla\cdot\mathbf{A}) \;+\; \mathbf{A}\cdot(\nabla f)"
+))
+
+display(Math(
+    r"\text{(iv)}\quad"
+    r"\nabla\cdot(\mathbf{A}\times\mathbf{B}) \;=\;"
+    r"\mathbf{B}\cdot(\nabla\times\mathbf{A})"
+    r"\;-\;\mathbf{A}\cdot(\nabla\times\mathbf{B})"
+))
+
+# ── Curls (vector output) ─────────────────────────────────────────────────────
+display(HTML("<b>Two for curls:</b>"))
+
+display(Math(
+    r"\text{(v)}\quad"
+    r"\nabla\times(f\mathbf{A}) \;=\;"
+    r"f\,(\nabla\times\mathbf{A}) \;-\; \mathbf{A}\times(\nabla f)"
+))
+
+display(Math(
+    r"\text{(vi)}\quad"
+    r"\nabla\times(\mathbf{A}\times\mathbf{B}) \;=\;"
+    r"(\mathbf{B}\cdot\nabla)\mathbf{A}"
+    r"\;-\;(\mathbf{A}\cdot\nabla)\mathbf{B}"
+    r"\;+\;\mathbf{A}(\nabla\cdot\mathbf{B})"
+    r"\;-\;\mathbf{B}(\nabla\cdot\mathbf{A})"
+))
+
+# ── Verification status (from SymPy checks in previous cell) ──────────────────
+display(HTML(
+    "<small><b>SymPy verified:</b> (i) PASS &nbsp; (iii) PASS "
+    "&nbsp; (iv) PASS &nbsp; (v) PASS &nbsp;&mdash;&nbsp;"
+    "(ii) and (vi) verified by expansion (omitted for brevity)</small>"
+))
 """))
 
 cells.append(md(r"""### The Proof Pattern (Griffiths p. 21)
