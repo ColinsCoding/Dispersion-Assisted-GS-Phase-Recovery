@@ -4,19 +4,17 @@
 # Branch: gs-torch-nd   |   SBIR Phase I $275K
 # ══════════════════════════════════════════════════════════════════════════════
 
-PYTHON   ?= python
-JUPYTER  ?= jupyter
+PYTHON   ?= py -3.13
+JUPYTER  ?= py -3.13 -m jupyter
 NB_DIR    = notebooks
-REPL_DIR  = repl
 OUT_DIR   = outputs
 
-# ── core modules ──────────────────────────────────────────────────────────────
-GS_CORE   = gs_core.py
-GS_FNO    = gs_fno.py
-GS_TORCH  = gs_torch.py
-GS_VERIFY = gs_verify.py
-OUSD      = ousd_alignment.py
-GRASS     = grass.py
+# ── core modules now live under dgs/ (see commit 5f67140) ──────────────────────
+GS_CORE   = -m dgs.gs_core
+GS_FNO    = -m dgs.gs_fno
+GS_TORCH  = -m dgs.torch.gs_layer
+OUSD      = -m dgs.ousd_alignment
+GRASS     = -m dgs.grass
 
 .DEFAULT_GOAL := help
 
@@ -30,20 +28,20 @@ help:
 	@echo "  ──────────────────────────────────────"
 	@echo "  make gs          — run GS phase retrieval demo"
 	@echo "  make fno         — train FNO on synthetic TS-DFT data"
-	@echo "  make verify      — run gs_verify test suite"
+	@echo "  make test        — run full pytest suite (tests/)"
 	@echo "  make ousd        — print OUSD CTA alignment table"
 	@echo "  make grass       — render DoD grass field (Markov + EM)"
 	@echo "  make poker       — holographic poker demo"
 	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
 	@echo "  make lab         — launch JupyterLab"
 	@echo "  make nb          — launch classic Jupyter Notebook"
-	@echo "  make lint        — flake8 + ruff on core modules"
-	@echo "  make fmt         — black autoformat"
-	@echo "  make profile     — cProfile gs_core"
+	@echo "  make lint        — flake8 + ruff on dgs/"
+	@echo "  make fmt         — black autoformat dgs/"
+	@echo "  make profile     — cProfile dgs.gs_core"
 	@echo "  make clean       — remove pyc, __pycache__, .ipynb_checkpoints"
 	@echo "  make clean-all   — clean + remove outputs/"
 	@echo "  make status      — git status + last 5 commits"
-	@echo "  make push        — git push origin gs-torch-nd"
+	@echo "  make push        — git push origin main"
 	@echo ""
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -57,9 +55,9 @@ gs:
 fno:
 	$(PYTHON) $(GS_FNO)
 
-.PHONY: verify
-verify:
-	$(PYTHON) $(GS_VERIFY)
+.PHONY: test
+test:
+	$(PYTHON) -m pytest tests/ -q
 
 .PHONY: ousd
 ousd:
@@ -96,16 +94,14 @@ notebooks:
 # ══════════════════════════════════════════════════════════════════════════════
 # CODE QUALITY
 # ══════════════════════════════════════════════════════════════════════════════
-LINT_TARGETS = $(GS_CORE) $(GS_FNO) $(GS_TORCH) $(GS_VERIFY) $(OUSD) $(GRASS)
-
 .PHONY: lint
 lint:
-	$(PYTHON) -m flake8 --max-line-length=100 --ignore=E203,W503 $(LINT_TARGETS) || true
-	$(PYTHON) -m ruff check $(LINT_TARGETS) || true
+	$(PYTHON) -m flake8 --max-line-length=100 --ignore=E203,W503 dgs/ || true
+	$(PYTHON) -m ruff check dgs/ || true
 
 .PHONY: fmt
 fmt:
-	$(PYTHON) -m black --line-length 100 $(LINT_TARGETS)
+	$(PYTHON) -m black --line-length 100 dgs/
 
 .PHONY: profile
 profile:
@@ -123,7 +119,7 @@ status:
 
 .PHONY: push
 push:
-	git push origin gs-torch-nd
+	git push origin main
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CLEAN
