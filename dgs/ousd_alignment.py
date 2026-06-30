@@ -79,6 +79,15 @@ CTA = {
         "description": "Lab-on-chip microfluidic scanner; single-cell optical barcoding",
         "repo_components": ["lab_on_chip", "microfluidics", "mujoco_scanner"],
     },
+    "Threat_Reduction_Adjacent": {
+        "priority": 2,
+        "description": "NOT one of OUSD(R&E)'s 14 Critical Technology Areas — counter-WMD "
+                       "threat reduction is DTRA's mission, a separate DoD component. Listed "
+                       "here only because rogue-wave/anomaly detection and high-rep-rate "
+                       "ADC timing are dual-use sensing capabilities DTRA-adjacent programs "
+                       "could plausibly draw on (single-shot transient detection).",
+        "repo_components": ["rogue_wave", "gs_monitor", "adc_timing"],
+    },
 }
 
 # ── Component → CTA reverse map ───────────────────────────────────────────────
