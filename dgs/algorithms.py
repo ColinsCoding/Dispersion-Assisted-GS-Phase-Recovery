@@ -173,6 +173,35 @@ def dfs(graph, start):
     return order
 
 
+# ── Collatz 3x+1 conjecture ─────────────────────────────────────────
+
+def collatz_sequence(n):
+    """Collatz (3x+1) sequence starting at n. Terminate at 1.
+
+    Rule: if n even -> n/2; if n odd -> 3n+1.
+    Conjecture: every positive integer eventually reaches 1.
+    Proven for all n up to ~2^68 by computation; no proof for all n.
+    The stopping time (sequence length) is erratic -- no closed-form pattern.
+    """
+    if not isinstance(n, int) or n < 1:
+        raise ValueError("n must be a positive integer")
+    seq = [n]
+    while n != 1:
+        n = n // 2 if n % 2 == 0 else 3 * n + 1
+        seq.append(n)
+    return seq
+
+
+def collatz_stopping_time(n):
+    """Number of steps for the Collatz sequence to reach 1."""
+    return len(collatz_sequence(n)) - 1
+
+
+def collatz_max_value(n):
+    """Maximum value reached in the Collatz sequence for starting value n."""
+    return max(collatz_sequence(n))
+
+
 # ── the repo connection ─────────────────────────────────────────────
 def fft_is_divide_and_conquer():
     """Why this module matters HERE: the FFT (np.fft, the heart of the dispersion

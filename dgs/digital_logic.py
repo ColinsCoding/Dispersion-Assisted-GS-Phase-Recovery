@@ -138,6 +138,28 @@ GATES = {"NOT": NOT, "AND": AND, "OR": OR, "NAND": NAND, "NOR": NOR,
          "XOR": XOR, "XNOR": XNOR}
 
 
+# ── parity: error detection from nothing but a chain of XORs ────────
+def parity_bit(data_bits, even=True):
+    """Compute the parity bit for `data_bits` by XOR-ing them all together
+    (a ripple of the XOR gate above -- the same gate, just chained). Even
+    parity: total 1-count of (data + parity bit) is even. Odd parity: total
+    1-count is odd. Returns the single bit to append/transmit alongside the
+    data."""
+    running = 0
+    for b in data_bits:
+        running = XOR(running, _bit(b))
+    return running if even else NOT(running)
+
+
+def check_parity(received_bits, parity, even=True):
+    """Recompute the expected parity bit from `received_bits` and compare
+    against the received `parity` bit. Returns True if they match (no
+    detected error), False if they disagree (an odd number of bits flipped
+    -- a detected, though not correctable, error)."""
+    expected = parity_bit(received_bits, even=even)
+    return expected == _bit(parity)
+
+
 def gate(name, *inputs):
     """Apply a named basic gate. NOT takes 1 input, the rest take 2."""
     g = GATES.get(name.upper())
@@ -414,3 +436,61 @@ def fsm_run(transitions, outputs, start, input_seq, mealy=False):
         if not mealy:
             out_seq.append(outputs[state])
     return state, out_seq, trace
+
+
+# ── C macro templates for the 7 basic gates ─────────────────────────
+
+GATE_MACROS_C = r"""/*
+ * gate_macros.h -- the 7 basic digital logic gates as C preprocessor macros.
+ *
+ * All gates operate on boolean-typed int (0 or 1).
+ * Use these in educational simulators or hardware-model C code.
+ * WARNING: macro arguments are evaluated more than once -- use only simple vars.
+ */
+#ifndef GATE_MACROS_H
+#define GATE_MACROS_H
+
+#define GATE_AND(a, b)   ((a) & (b))
+#define GATE_OR(a,  b)   ((a) | (b))
+#define GATE_NOT(a)      (!(a))
+#define GATE_NAND(a, b)  (!((a) & (b)))
+#define GATE_NOR(a,  b)  (!((a) | (b)))
+#define GATE_XOR(a,  b)  ((a) ^ (b))
+#define GATE_XNOR(a, b)  (!((a) ^ (b)))
+
+/* Half adder from gates: sum = XOR, carry = AND */
+#define HALF_ADDER_SUM(a,   b)  GATE_XOR(a, b)
+#define HALF_ADDER_CARRY(a, b)  GATE_AND(a, b)
+
+/* Full adder (no intermediate vars -- use only with simple inputs) */
+#define FULL_ADDER_SUM(a, b, cin)  \
+    GATE_XOR(GATE_XOR(a, b), cin)
+#define FULL_ADDER_CARRY(a, b, cin) \
+    GATE_OR(GATE_AND(a, b), GATE_AND(GATE_XOR(a, b), cin))
+
+#endif /* GATE_MACROS_H */
+"""
+
+GATE_TRUTH_TABLES = {
+    "AND":  {(0,0):0, (0,1):0, (1,0):0, (1,1):1},
+    "OR":   {(0,0):0, (0,1):1, (1,0):1, (1,1):1},
+    "NOT":  {(0,):1,  (1,):0},
+    "NAND": {(0,0):1, (0,1):1, (1,0):1, (1,1):0},
+    "NOR":  {(0,0):1, (0,1):0, (1,0):0, (1,1):0},
+    "XOR":  {(0,0):0, (0,1):1, (1,0):1, (1,1):0},
+    "XNOR": {(0,0):1, (0,1):0, (1,0):0, (1,1):1},
+}
+
+
+def verify_gate_macro(gate_name, *inputs):
+    """Verify a gate output against its truth table. Gate names: AND OR NOT NAND NOR XOR XNOR."""
+    gate_name = gate_name.upper()
+    if gate_name not in GATE_TRUTH_TABLES:
+        raise ValueError(f"Unknown gate '{gate_name}'")
+    inputs = tuple(int(bool(x)) for x in inputs)
+    return GATE_TRUTH_TABLES[gate_name][inputs]
+
+
+def print_gate_macros_c():
+    """Print the C header text to stdout."""
+    print(GATE_MACROS_C)
