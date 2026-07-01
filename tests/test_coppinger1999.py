@@ -9,8 +9,35 @@ from dgs.coppinger1999 import (
     simulate_fig2, dispersive_transfer_function,
     appendix_gamma_definition, mzm_cmos_specs,
     mzm_transfer_function, eq7_detected_intensity,
+    derive_eq1_from_convolution,
     t, f, tau, beta2, L1, L2,
 )
+
+
+def test_derive_eq1_convolution_keys():
+    result = derive_eq1_from_convolution(verbose=False)
+    for key in ['complex_width_W', 'E_exact_time', 'E_approx_eq1',
+                'output_pulse_width_tau', 'instantaneous_frequency']:
+        assert key in result
+
+
+def test_derive_eq1_complex_width():
+    import sympy as sp
+    result = derive_eq1_from_convolution(verbose=False)
+    tau0 = sp.Symbol('tau_0', positive=True)
+    W = result['complex_width_W']
+    # W = tau0^2 - j*2*beta2*L1 -- imaginary part should be negative (for real beta2>0)
+    # Real part should be tau0^2
+    assert sp.re(W) == tau0**2 or sp.simplify(sp.re(W) - tau0**2) == 0
+
+
+def test_derive_eq1_instantaneous_freq_linear():
+    import sympy as sp
+    result = derive_eq1_from_convolution(verbose=False)
+    f_inst = result['instantaneous_frequency']
+    # f_inst = t / (2*pi*L1*beta2) -- linear in t, derivative is constant
+    df_dt = sp.diff(f_inst, t)
+    assert sp.simplify(df_dt + 1/(2*sp.pi*L1*beta2)) == 0  # df/dt = -1/(2*pi*L1*b2)
 
 
 def test_eq1_is_gaussian():

@@ -26,6 +26,130 @@ PI = sp.pi
 # Note: paper writes -jf^2 / (2*L1/beta2), but in time domain uses exp(-t^2/tau^2)
 # The chirp is embedded in the frequency-domain Gaussian below.
 # ---------------------------------------------------------------------------
+def derive_eq1_from_convolution(verbose=True):
+    """
+    Derive Eq(1) from first principles — the part the paper hand-waves.
+
+    STEP 0: Start with transform-limited Gaussian input (width tau_0):
+        E_in(t) = exp(-t^2 / tau_0^2)
+        FT -> E_in(f) = tau_0 * sqrt(pi) * exp(-pi^2 * f^2 * tau_0^2)
+
+    STEP 1: Fiber impulse response / transfer function.
+        Propagation constant: beta(omega) = beta0 + beta1*omega + (1/2)*beta2*omega^2
+        Drop beta0 (global phase), beta1 (group delay = frame choice).
+        Transfer function in FREQUENCY domain:
+            H_fiber(f) = exp(+j * (1/2) * beta2 * L1 * (2*pi*f)^2)
+                       = exp(+j * 2*pi^2 * beta2 * L1 * f^2)
+        (sign: anomalous dispersion beta2<0 gives exp(-j*|...| ) — faster for high freq)
+
+    STEP 2: Multiply in frequency domain (convolution theorem):
+        E_ch(L1, f) = E_in(f) * H_fiber(f)
+        = tau_0*sqrt(pi) * exp(-pi^2*f^2*tau_0^2) * exp(+j*2*pi^2*beta2*L1*f^2)
+        = tau_0*sqrt(pi) * exp(-pi^2*f^2 * (tau_0^2 - j*2*beta2*L1))
+
+        Define complex width: W = tau_0^2 - j*2*beta2*L1
+        E_ch(L1, f) = tau_0*sqrt(pi) * exp(-pi^2*f^2*W)
+
+    STEP 3: Inverse FT back to time domain.
+        Standard Gaussian FT pair: FT[exp(-pi*f^2/A)] = sqrt(A)*exp(-pi*A*t^2)
+        Here: exp(-pi^2*f^2*W) = exp(-pi*(pi*W)*f^2)  so  A = 1/(pi*W)
+        IFT -> (1/sqrt(pi*W)) * exp(-t^2/W)
+
+        Full result:
+            E_ch(L1, t) = (tau_0 / sqrt(W)) * exp(-t^2 / W)   [exact]
+            where W = tau_0^2 - j*2*beta2*L1
+
+    STEP 4: Separate W into real + imaginary parts.
+        1/W = (tau_0^2 + j*2*beta2*L1) / (tau_0^4 + 4*beta2^2*L1^2)
+           = tau_0^2 / (tau_0^4 + 4*b^2*L^2)  +  j*2*beta2*L1 / (tau_0^4 + 4*b^2*L^2)
+
+        Apply HIGHLY-CHIRPED APPROXIMATION: tau_0^2 << 2*|beta2|*L1
+        i.e. tau_0^4 << 4*beta2^2*L1^2  ->  denominator -> 4*beta2^2*L1^2
+
+        Real part of 1/W -> tau_0^2 / (4*beta2^2*L1^2) = 1/tau^2
+            where tau = 2*|beta2|*L1/tau_0  (output pulse width, tau >> tau_0)
+
+        Imaginary part of 1/W -> 2*beta2*L1 / (4*beta2^2*L1^2) = 1/(2*beta2*L1)
+
+        Therefore: -t^2/W -> -t^2 * (1/tau^2 + j/(2*beta2*L1))
+                           = -t^2/tau^2  -  j*t^2/(2*beta2*L1)
+
+    STEP 5: Final result — this IS Eq(1):
+        E_ch(L1, t) = exp(-t^2/tau^2) * exp(-j*t^2 / (2*L1*beta2))
+                         ^^^envelope^^^    ^^^chirp phase^^^
+
+        The two exponentials are NOT separate physical effects —
+        they are the REAL and IMAGINARY parts of one complex Gaussian.
+        Real part -> amplitude envelope (pulse duration tau = 2|beta2|L1/tau_0)
+        Imaginary part -> quadratic phase = LINEAR FREQUENCY CHIRP
+            d(phase)/dt = -2t/(2*L1*beta2) = -t/(L1*beta2)
+            instantaneous freq: f_inst(t) = t/(2*pi*L1*beta2)  [linear in t]
+            -> FREQUENCY IS TIME. This is the time-stretch mapping.
+    """
+    tau0 = sp.Symbol('tau_0', positive=True)  # input (transform-limited) width
+
+    # Complex Gaussian width after propagation (EXACT, no approximation)
+    W = tau0**2 - sp.I * 2 * beta2 * L1
+    E_exact = (tau0 / sp.sqrt(W)) * sp.exp(-t**2 / W)
+
+    # Separate 1/W
+    W_conj = tau0**2 + sp.I * 2 * beta2 * L1
+    one_over_W = W_conj / (tau0**4 + 4*beta2**2*L1**2)
+    re_W = sp.re(one_over_W)
+    im_W = sp.im(one_over_W)
+
+    # Under tau_0^2 << 2*|beta2|*L1 (denominator -> 4*beta2^2*L1^2)
+    re_approx = tau0**2 / (4*beta2**2*L1**2)  # = 1/tau^2, tau=2*|b2|*L1/tau_0
+    im_approx = 2*beta2*L1 / (4*beta2**2*L1**2)  # = 1/(2*beta2*L1)
+
+    tau_out = 2*beta2*L1 / tau0  # output pulse width
+
+    # Reconstructed approximate E_ch (this is Eq 1)
+    E_approx = sp.exp(-t**2 / tau_out**2) * sp.exp(-sp.I * t**2 / (2*L1*beta2))
+
+    # Instantaneous frequency (chirp rate)
+    phase = -t**2 / (2*L1*beta2)
+    f_inst = sp.diff(phase, t) / (2*sp.pi)  # omega = dphi/dt, f = omega/2pi
+
+    result = {
+        'E_in_time': sp.exp(-t**2/tau0**2),
+        'H_fiber_freq': sp.exp(sp.I * 2*PI**2 * beta2 * L1 * f**2),
+        'complex_width_W': W,
+        'E_exact_time': E_exact,
+        'approx_real_part_1_over_W': re_approx,
+        'approx_imag_part_1_over_W': im_approx,
+        'output_pulse_width_tau': tau_out,
+        'E_approx_eq1': E_approx,
+        'instantaneous_frequency': f_inst,
+        'key_insight': 'exp(-t^2/tau^2) * exp(-jt^2/2Lb2) = ONE complex Gaussian, '
+                       'split into real (envelope) + imaginary (chirp) parts after '
+                       'highly-chirped approximation tau_0^2 << 2|b2|L1',
+    }
+
+    if verbose:
+        print("=== DERIVING EQ(1): WHERE DOES exp(-jt^2/2Lb2) COME FROM? ===")
+        print("\nSTEP 0: Transform-limited input")
+        print("  E_in(t) =", result['E_in_time'])
+        print("\nSTEP 1: Fiber transfer function H(f)")
+        print("  H_fiber(f) = exp(+j * 2*pi^2 * beta2 * L1 * f^2)")
+        print("  (Multiply in freq domain = convolve in time)")
+        print("\nSTEP 2-3: Multiply E_in(f)*H(f), inverse FT")
+        print("  Complex width W = tau_0^2 - j*2*beta2*L1")
+        print("  E_ch(L1,t) [EXACT] = (tau_0/sqrt(W)) * exp(-t^2/W)")
+        print("\nSTEP 4: Split 1/W under highly-chirped approx (tau_0^2 << 2|b2|L1)")
+        print("  Re(1/W) -> tau_0^2/(4*beta2^2*L1^2) = 1/tau^2,  tau =", tau_out)
+        print("  Im(1/W) -> 1/(2*beta2*L1)")
+        print("  So: -t^2/W = -t^2/tau^2  - j*t^2/(2*beta2*L1)")
+        print("\nSTEP 5: Eq(1) result")
+        print("  E_ch(L1,t) = exp(-t^2/tau^2) * exp(-j*t^2/(2*L1*beta2))")
+        print("  |-envelope-|   |------chirp phase------|")
+        print("\nInstantaneous frequency (LINEAR chirp):")
+        print("  f_inst(t) = t / (2*pi*L1*beta2)")
+        print("  -> frequency IS proportional to time -> STEAM mapping")
+        print("\nKey insight:", result['key_insight'])
+    return result
+
+
 def eq1_chirped_pulse_time():
     """Eq(1): Gaussian pulse in TIME domain after first dispersive fiber."""
     E = sp.exp(-t**2 / tau**2)
