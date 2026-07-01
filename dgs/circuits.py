@@ -123,10 +123,114 @@ def resonant_frequency(L, C):
     return 1.0 / np.sqrt(L * C)
 
 
+# ── Seven-segment display: numbers 0-9 and hex letters A-F ───────────────────
+#
+# Segment layout:
+#   _
+#  |_|   segments: a=top, b=top-right, c=bot-right,
+#  |_|             d=bottom, e=bot-left, f=top-left, g=middle
+#
+# Each entry: (a, b, c, d, e, f, g) -- 1=ON, 0=OFF
+
+_SEG7 = {
+    '0': (1,1,1,1,1,1,0),
+    '1': (0,1,1,0,0,0,0),
+    '2': (1,1,0,1,1,0,1),
+    '3': (1,1,1,1,0,0,1),
+    '4': (0,1,1,0,0,1,1),
+    '5': (1,0,1,1,0,1,1),
+    '6': (1,0,1,1,1,1,1),
+    '7': (1,1,1,0,0,0,0),
+    '8': (1,1,1,1,1,1,1),
+    '9': (1,1,1,1,0,1,1),
+    'A': (1,1,1,0,1,1,1),
+    'B': (0,0,1,1,1,1,1),
+    'C': (1,0,0,1,1,1,0),
+    'D': (0,1,1,1,1,0,1),
+    'E': (1,0,0,1,1,1,1),
+    'F': (1,0,0,0,1,1,1),
+}
+
+SEVEN_SEG_CHARS = list(_SEG7.keys())
+
+
+def seven_seg_encode(char):
+    """Return (a,b,c,d,e,f,g) tuple for a digit or hex letter.
+
+    Inputs: '0'-'9', 'A'-'F' (case-insensitive).
+    Each bit: 1=segment ON, 0=OFF.
+    Hardware: connect each bit to a transistor driving the LED segment.
+    """
+    c = str(char).upper()
+    if c not in _SEG7:
+        raise ValueError(f"'{char}' not in 0-9, A-F")
+    return _SEG7[c]
+
+
+def seven_seg_decode(segments):
+    """Reverse lookup: (a,b,c,d,e,f,g) tuple -> character or '?'."""
+    t = tuple(int(bool(s)) for s in segments)
+    for ch, segs in _SEG7.items():
+        if segs == t:
+            return ch
+    return '?'
+
+
+def seven_seg_ascii(char):
+    """Return 3-line ASCII art of a seven-segment digit/letter.
+
+    Example for '8':
+      _
+     |_|
+     |_|
+    """
+    a, b, c, d, e, f, g = seven_seg_encode(char)
+    top    = f" {'_' if a else ' '} "
+    middle = f"{'|' if f else ' '}{'_' if g else ' '}{'|' if b else ' '}"
+    bottom = f"{'|' if e else ' '}{'_' if d else ' '}{'|' if c else ' '}"
+    return [top, middle, bottom]
+
+
+def seven_seg_display(text):
+    """Render a string of digits/hex letters as ASCII seven-segment art."""
+    text = str(text).upper()
+    rows = [[], [], []]
+    for ch in text:
+        if ch == ' ':
+            for r in rows:
+                r.append('   ')
+            continue
+        lines = seven_seg_ascii(ch)
+        for i, line in enumerate(lines):
+            rows[i].append(line)
+    return '\n'.join(' '.join(r) for r in rows)
+
+
+def seven_seg_truth_table():
+    """Return list of dicts: char, binary index, segments a-g, hex byte."""
+    table = []
+    for i, ch in enumerate(SEVEN_SEG_CHARS):
+        a, b, c, d, e, f, g = _SEG7[ch]
+        byte = (a<<6)|(b<<5)|(c<<4)|(d<<3)|(e<<2)|(f<<1)|g
+        table.append({
+            'char': ch, 'index': i,
+            'a': a, 'b': b, 'c': c, 'd': d, 'e': e, 'f': f, 'g': g,
+            'hex_byte': f"0x{byte:02X}",
+        })
+    return table
+
+
 if __name__ == "__main__":
     sp.init_printing()
     print("RC step solution:", solve_rc_symbolic())
-    R, C = 1e3, 1e-9                                # 1 kohm, 1 nF
+    R, C = 1e3, 1e-9
     print(f"tau = {R*C*1e9:.0f} ns,  f_3dB = {rc_bandwidth(R, C)/1e3:.1f} kHz")
     print("at t=tau, V/Vin =", round(float(rc_step(R*C, R, C)), 4), "(~0.632)")
     print("RLC (R=10,L=1m,C=1u):", rlc_damping(10, 1e-3, 1e-6))
+    print("\nSeven-segment 0-F:")
+    print(seven_seg_display("0123456789ABCDEF"))
+    print("\nTruth table (first 4):")
+    for row in seven_seg_truth_table()[:4]:
+        print(f"  {row['char']}: a={row['a']} b={row['b']} c={row['c']} "
+              f"d={row['d']} e={row['e']} f={row['f']} g={row['g']}  "
+              f"-> {row['hex_byte']}")
