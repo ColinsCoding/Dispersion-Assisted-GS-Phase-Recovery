@@ -35,7 +35,7 @@ HUCKEL THEORY (the FEM of molecular orbitals):
 
 ORGANIC SEMICONDUCTORS (photonics relevance):
   Pentacene: 5 fused benzene rings, gap ~1.9 eV, OPV donor material
-  PCBM ([60]PCBM): fullerene derivative, gap ~1.7 eV, OPV acceptor
+  PCBM ([60]PCBM): fullerene derivative, gap ~2.0 eV, OPV acceptor
   Alq3: Al chelate, OLED green emitter (~520 nm, gap 2.7 eV)
   P3HT: polythiophene, gap ~1.9 eV, flexible electronics
   TIPS-pentacene: soluble, high mobility (5 cm^2/Vs), used in organic TFTs
@@ -218,8 +218,8 @@ ORGANIC_SEMICONDUCTORS = {
     },
     "PCBM": {
         "formula": "C61H23NO2 (C60 derivative)", "n_rings": 1,
-        "gap_eV": 1.7, "lambda_abs_nm": 730,
-        "HOMO_eV": -6.1, "LUMO_eV": -4.4,
+        "gap_eV": 2.0, "lambda_abs_nm": 620,
+        "HOMO_eV": -6.1, "LUMO_eV": -4.1,
         "mobility_cm2_Vs": 1e-3, "type": "acceptor",
         "use": "OPV acceptor, electron transport",
     },
