@@ -297,11 +297,10 @@ def probability_of_funding(p_per_submission, n_submissions):
     independent with probability p. The probability of winning at least
     once in n tries is 1 - (1-p)^n.
     """
-    from dgs.probability_combinatorics import prob_success_within_n
     return {
         "p_per_submission": p_per_submission,
         "n_submissions": n_submissions,
-        "p_at_least_one_award": prob_success_within_n(p_per_submission, n_submissions),
+        "p_at_least_one_award": 1.0 - (1.0 - p_per_submission) ** n_submissions,
         "expected_submissions_to_win": 1.0 / p_per_submission,
     }
 
