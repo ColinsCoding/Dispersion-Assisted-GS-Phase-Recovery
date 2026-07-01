@@ -498,4 +498,216 @@ if __name__ == "__main__":
     att = attention_span_model(tau_s=20.0, t_max_s=90.0)
     print(f"  Half-attention time: {att['t_half_s']:.1f} s")
     print(f"  90s session efficiency: {att['efficiency']:.1%}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# §8  BINARY SEARCH TREE
+# ════════════════════════════════════════════════════════════════════════════
+
+class BSTNode:
+    __slots__ = ("val", "left", "right")
+    def __init__(self, val):
+        self.val = val
+        self.left = None
+        self.right = None
+
+
+class BST:
+    """Binary Search Tree: insert O(log n) avg, search O(log n) avg.
+
+    Physics connection: BST ~ divide-and-conquer frequency search;
+    same idea as FFT splitting even/odd indices at each level.
+    """
+    def __init__(self):
+        self.root = None
+
+    def insert(self, val):
+        def _ins(node, v):
+            if node is None:
+                return BSTNode(v)
+            if v < node.val:
+                node.left = _ins(node.left, v)
+            elif v > node.val:
+                node.right = _ins(node.right, v)
+            return node
+        self.root = _ins(self.root, val)
+
+    def search(self, val):
+        node = self.root
+        while node:
+            if val == node.val:
+                return True
+            node = node.left if val < node.val else node.right
+        return False
+
+    def inorder(self):
+        result = []
+        def _dfs(n):
+            if n:
+                _dfs(n.left)
+                result.append(n.val)
+                _dfs(n.right)
+        _dfs(self.root)
+        return result
+
+    def height(self):
+        def _h(n):
+            return 0 if n is None else 1 + max(_h(n.left), _h(n.right))
+        return _h(self.root)
+
+    def ascii_lines(self):
+        """Return list of strings showing the tree structure."""
+        if self.root is None:
+            return ["(empty)"]
+        lines = []
+        def _draw(node, prefix, is_left):
+            if node is None:
+                return
+            _draw(node.right, prefix + ("    " if is_left else "|   "), False)
+            lines.append(prefix + ("+-- " if is_left else "\\-- ") + str(node.val))
+            _draw(node.left,  prefix + ("|   " if is_left else "    "), True)
+        lines.append(str(self.root.val))
+        _draw(self.root.right, "    ", False)
+        _draw(self.root.left,  "    ", True)
+        return lines
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# §9  PCA via SVD
+# ════════════════════════════════════════════════════════════════════════════
+
+def pca(X, n_components=None):
+    """Principal Component Analysis via numpy SVD (no scipy).
+
+    Physics connection: PCA eigenvectors ARE the normal modes of the
+    data covariance matrix -- same math as solving coupled oscillators.
+    The Hermitian operator C = X^T X / (n-1) has eigenvalues = variances.
+
+    Returns dict: components, explained_var, explained_ratio, scores, mean
+    """
+    X = np.asarray(X, dtype=float)
+    if X.ndim != 2:
+        raise ValueError("X must be 2-D (n_samples, n_features)")
+    n, p = X.shape
+    if n_components is None:
+        n_components = min(n, p)
+    n_components = int(n_components)
+    if not (1 <= n_components <= min(n, p)):
+        raise ValueError(f"n_components must be in [1, {min(n,p)}]")
+    mean = X.mean(axis=0)
+    Xc = X - mean
+    U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+    explained_var = (S ** 2) / max(n - 1, 1)
+    total_var = explained_var.sum() + 1e-300
+    return {
+        "components":      Vt[:n_components],
+        "explained_var":   explained_var[:n_components],
+        "explained_ratio": explained_var[:n_components] / total_var,
+        "scores":          (Xc @ Vt.T)[:, :n_components],
+        "mean":            mean,
+        "singular_values": S[:n_components],
+    }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# §10  CHI-SQUARED GOODNESS OF FIT
+# ════════════════════════════════════════════════════════════════════════════
+
+def chi_squared_goodness_of_fit(observed, expected):
+    """Pearson chi-squared test for goodness of fit.
+
+    Physics use: "Do my counting experiment results match the Poisson model?"
+    Rule: expected counts >= 5 per bin (merge bins if not).
+
+    Returns dict: chi2, p_value, df, reduced_chi2, good_fit
+    """
+    import math
+    obs = np.asarray(observed, float)
+    exp = np.asarray(expected, float)
+    if obs.shape != exp.shape:
+        raise ValueError("observed and expected must be the same shape")
+    if np.any(exp < 1):
+        raise ValueError("expected counts must be >= 1; merge low-count bins")
+    chi2 = float(np.sum((obs - exp) ** 2 / exp))
+    df = len(obs) - 1
+    try:
+        from scipy.stats import chi2 as chi2_dist
+        p = float(chi2_dist.sf(chi2, df))
+    except ImportError:
+        z = (chi2 - df) / math.sqrt(2 * df + 1e-12)
+        p = float(0.5 * math.erfc(z / math.sqrt(2)))
+    return {
+        "chi2": chi2,
+        "p_value": p,
+        "df": df,
+        "reduced_chi2": chi2 / df if df > 0 else float("nan"),
+        "good_fit": bool(0.05 < p < 0.95),
+    }
+
+
+def poisson_counting_experiment(true_rate, n_measurements, rng=None):
+    """Simulate a Poisson counting experiment (radioactive decay, photon counting).
+
+    Returns observed and expected bin counts ready for chi_squared_goodness_of_fit.
+    """
+    import math
+    if rng is None:
+        rng = np.random.default_rng(0)
+    if true_rate <= 0:
+        raise ValueError("true_rate must be positive")
+    if n_measurements < 10:
+        raise ValueError("n_measurements must be >= 10")
+    observed = rng.poisson(true_rate, size=n_measurements)
+    max_k = int(true_rate * 3) + 1
+    bins = np.arange(max_k + 1)
+    counts, _ = np.histogram(observed, bins=bins)
+    k_vals = bins[:-1].astype(float)
+    log_rate = math.log(true_rate) if true_rate > 0 else 0.0
+    expected = n_measurements * np.array([
+        math.exp(-true_rate + k * log_rate - sum(math.log(i+1) for i in range(int(k))))
+        for k in k_vals
+    ])
+    mask = (expected >= 5) & (counts > 0)
+    if mask.sum() < 2:
+        mask = counts > 0
+    return {
+        "observed": counts[mask],
+        "expected": expected[mask],
+        "k_vals":   k_vals[mask],
+        "true_rate": true_rate,
+    }
+
+
+def t_test_two_sample(data_a, data_b):
+    """Welch two-sample t-test (unequal variances).
+
+    Physics use: "Do two experimental conditions give different results?"
+    Returns dict: t_stat, p_value, mean_a, mean_b, df, significant_at_5pct
+    """
+    import math
+    a, b = np.asarray(data_a, float), np.asarray(data_b, float)
+    na, nb = len(a), len(b)
+    if na < 2 or nb < 2:
+        raise ValueError("Need at least 2 points per group")
+    ma, mb = a.mean(), b.mean()
+    va, vb = a.var(ddof=1), b.var(ddof=1)
+    se = math.sqrt(va / na + vb / nb + 1e-300)
+    t_stat = (ma - mb) / se
+    num = (va/na + vb/nb)**2
+    den = (va/na)**2/(na-1) + (vb/nb)**2/(nb-1)
+    df = num / (den + 1e-300)
+    try:
+        from scipy.stats import t as t_dist
+        p = float(t_dist.sf(abs(t_stat), df) * 2)
+    except ImportError:
+        import math
+        p = float(math.erfc(abs(t_stat) / math.sqrt(2)))
+    return {
+        "t_stat": float(t_stat),
+        "p_value": float(p),
+        "mean_a": float(ma),
+        "mean_b": float(mb),
+        "df": float(df),
+        "significant_at_5pct": bool(p < 0.05),
+    }
     print(f"  Optimal chunk duration: {att['optimal_chunk_s']:.0f} s")
