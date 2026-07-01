@@ -1,45 +1,188 @@
-"""Test statics: equilibrium (sum F=0, sum tau=0), lever, beam reactions, bracket."""
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-
+"""Tests for dgs/statics.py"""
 import numpy as np
-from dgs import statics as st
+import pytest
 
-# 1. simply-supported beam: central load splits 50/50; reactions always sum to the load
-Ra, Rb = st.beam_reactions([(5.0, 100.0)], 0.0, 10.0)
-assert np.isclose(Ra, 50) and np.isclose(Rb, 50)
-Ra, Rb = st.beam_reactions([(8.0, 100.0)], 0.0, 10.0)            # load near B -> B takes more
-assert np.isclose(Ra, 20) and np.isclose(Rb, 80) and np.isclose(Ra + Rb, 100)
-# two loads: reactions still sum to the total
-Ra, Rb = st.beam_reactions([(2.0, 60.0), (7.0, 40.0)], 0.0, 10.0)
-assert np.isclose(Ra + Rb, 100)
+try:
+    from dgs.statics import (
+        equilibrium_2d, beam_reactions, shear_moment_diagram,
+        truss_method_of_joints, three_bar_truss, moment_of_inertia_shapes,
+        distribution_sifting, importance_sampling_demo,
+        jane_street_tech_stack, autograd_truss_sensitivity,
+    )
+except ImportError:
+    from statics import (
+        equilibrium_2d, beam_reactions, shear_moment_diagram,
+        truss_method_of_joints, three_bar_truss, moment_of_inertia_shapes,
+        distribution_sifting, importance_sampling_demo,
+        jane_street_tech_stack, autograd_truss_sensitivity,
+    )
 
-# 2. lever / torque balance: F1 d1 = F2 d2
-F2 = st.lever(200.0, 1.0, 2.5)
-assert np.isclose(200.0 * 1.0, F2 * 2.5) and np.isclose(F2, 80.0)
 
-# 3. hinged bracket: T = weight/sin(theta), Hx = T cos(theta), Hy = 0
-T, Hx, Hy = st.hinged_bracket(2.0, 500.0, 30.0)
-assert np.isclose(T, 500.0 / np.sin(np.radians(30)))            # 1000 N
-assert np.isclose(Hx, T * np.cos(np.radians(30))) and abs(Hy) < 1e-9
+class TestEquilibrium2D:
+    def test_balanced(self):
+        forces = [{'Fx':10,'Fy':5,'x':0,'y':0}, {'Fx':-10,'Fy':-5,'x':0,'y':0}]
+        r = equilibrium_2d(forces)
+        assert r['in_equilibrium']
+        assert r['check'] == 'PASS'
 
-# 4. equilibrium check: the solved beam balances; perturb a reaction and it does not
-Ra, Rb = st.beam_reactions([(5.0, 100.0)], 0.0, 10.0)
-forces = [(0, Ra), (0, -100.0), (0, Rb)]; pts = [(0, 0), (5, 0), (10, 0)]
-assert st.in_equilibrium(forces, pts)
-bad = [(0, Ra + 5), (0, -100.0), (0, Rb)]                       # 5 N off -> not balanced
-assert not st.in_equilibrium(bad, pts)
+    def test_unbalanced(self):
+        forces = [{'Fx':5,'Fy':0,'x':0,'y':0}]
+        r = equilibrium_2d(forces)
+        assert not r['in_equilibrium']
 
-# 5. a balanced seesaw has zero net torque about the pivot
-forces_ss = [(0, -200.0), (0, -80.0)]; pts_ss = [(-1.0, 0), (2.5, 0)]   # 200@-1, 80@+2.5
-assert abs(st.net_torque(forces_ss, pts_ss, pivot=(0, 0))) < 1e-9       # 200*1 = 80*2.5
+    def test_moment_check(self):
+        forces = [{'Fx':0,'Fy':100,'x':0,'y':0}, {'Fx':0,'Fy':-100,'x':1,'y':0}]
+        r = equilibrium_2d(forces)
+        assert not r['in_equilibrium']
 
-# 6. when forces balance, net torque is independent of the chosen pivot
-assert np.allclose(np.abs(st.net_force(forces)), 0)
-tau0 = st.net_torque(forces, pts, pivot=(0, 0))
-tau1 = st.net_torque(forces, pts, pivot=(3.7, 1.2))
-assert np.isclose(tau0, tau1)                                  # pivot-independent (and ~0)
 
-print(f"TEST PASS  (beam 50/50 + 20/80 + sum=load; lever 200*1=80*2.5; bracket "
-      f"T={T:.0f}N Hx={Hx:.0f}N Hy=0; equilibrium detects 5N imbalance; "
-      f"torque pivot-independent when F balances)")
+class TestBeamReactions:
+    def test_center_load(self):
+        r = beam_reactions(L=4.0, loads=[{'P':1000.0,'x':2.0}])
+        assert r['Ay_N'] == pytest.approx(500.0, rel=1e-6)
+        assert r['By_N'] == pytest.approx(500.0, rel=1e-6)
+
+    def test_load_sum(self):
+        loads = [{'P':3000,'x':1.0},{'P':2000,'x':3.0}]
+        r = beam_reactions(L=6.0, loads=loads)
+        assert r['Ay_N'] + r['By_N'] == pytest.approx(5000.0, rel=1e-6)
+
+    def test_distributed_load(self):
+        r = beam_reactions(L=5.0, loads=[{'w':200.0,'x_start':0,'x_end':5.0}])
+        assert r['Ay_N'] == pytest.approx(500.0, rel=1e-4)
+        assert r['By_N'] == pytest.approx(500.0, rel=1e-4)
+
+    def test_invalid_length(self):
+        with pytest.raises(ValueError):
+            beam_reactions(L=0.0, loads=[])
+
+
+class TestShearMomentDiagram:
+    def test_boundary_M0(self):
+        smd = shear_moment_diagram(6.0, [{'P':5000,'x':3.0}])
+        assert abs(smd['M'][0]) < 1.0
+
+    def test_max_moment_near_center(self):
+        smd = shear_moment_diagram(4.0, [{'P':4000,'x':2.0}])
+        assert 1.5 < smd['x_max_moment'] < 2.5
+
+    def test_lesson_has_FTC(self):
+        smd = shear_moment_diagram(4.0, [{'P':1000,'x':2.0}])
+        assert 'FTC' in smd['lesson'] or 'dM' in smd['lesson']
+
+
+class TestTruss:
+    def test_three_bar_no_error(self):
+        t = three_bar_truss()
+        assert 'error' not in t
+
+    def test_reaction_sum(self):
+        t = three_bar_truss()
+        rxns = t['reactions_N']
+        Ay = rxns.get('R_A_y', 0)
+        By = rxns.get('R_B_y', 0)
+        assert Ay + By == pytest.approx(10000.0, rel=1e-3)
+
+    def test_member_count(self):
+        t = three_bar_truss()
+        assert t['n_members'] == 3
+        assert t['n_reactions'] == 3
+
+    def test_tension_positive(self):
+        assert three_bar_truss()['tension_positive'] is True
+
+
+class TestMomentOfInertia:
+    def test_rectangle(self):
+        import sympy as sp
+        shapes = moment_of_inertia_shapes()
+        b, h = sp.symbols('b h', positive=True)
+        expected = sp.Rational(1,12)*b*h**3
+        assert sp.simplify(shapes['rectangle']['I_x'] - expected) == 0
+
+    def test_parallel_axis(self):
+        shapes = moment_of_inertia_shapes()
+        formula_str = str(shapes['parallel_axis_theorem']['formula'])
+        assert 'd' in formula_str
+
+    def test_statistics_connection(self):
+        shapes = moment_of_inertia_shapes()
+        conn = shapes['statistics_connection']
+        assert 'MSE' in conn or 'variance' in conn.lower()
+
+
+class TestDistributionSifting:
+    def test_keys(self):
+        ds = distribution_sifting()
+        for k in ['sifting_property','attention','finance','importance_sampling','greens_function']:
+            assert k in ds
+
+    def test_softmax_in_attention(self):
+        ds = distribution_sifting()
+        assert 'softmax' in ds['attention']['soft']
+
+    def test_photonics_greens(self):
+        ds = distribution_sifting()
+        gf = ds['greens_function']['photonics']
+        assert 'H(f)' in gf or 'dispersive' in gf
+
+    def test_cost_connection_three_domains(self):
+        ds = distribution_sifting()
+        conn = ds['cost_connection']
+        assert 'Statics' in conn and 'Finance' in conn and 'ML' in conn
+
+
+class TestImportanceSampling:
+    def test_true_prob_order(self):
+        r = importance_sampling_demo(N=1000)
+        assert 1e-4 < r['true_prob'] < 1e-3
+
+    def test_is_fewer_samples(self):
+        r = importance_sampling_demo(N=2000)
+        assert r['is_N'] < r['naive_N']
+
+    def test_is_se_better(self):
+        r = importance_sampling_demo(N=5000)
+        # IS should estimate more accurately than naive (which often gets 0 hits)
+        assert r['is_se'] < r['true_prob'] * 0.5  # IS SE < 50% of true value
+
+    def test_lesson_has_sift(self):
+        r = importance_sampling_demo(N=1000)
+        assert 'sift' in r['lesson'].lower() or 'efficient' in r['lesson'].lower()
+
+
+class TestJaneStreetStack:
+    def test_three_languages(self):
+        js = jane_street_tech_stack()
+        for lang in ['OCaml', 'C', 'Python_torch_JAX']:
+            assert lang in js
+
+    def test_levels_0_1_2(self):
+        js = jane_street_tech_stack()
+        for lvl in [0, 1, 2]:
+            assert lvl in js['levels']
+
+    def test_autodiff_in_python(self):
+        js = jane_street_tech_stack()
+        ad = js['Python_torch_JAX']['autodiff']
+        assert 'grad' in ad.lower()
+
+    def test_physics_connection(self):
+        js = jane_street_tech_stack()
+        assert 'H(f)' in js['physics_connection'] or 'dispersion' in js['physics_connection'].lower()
+
+
+class TestAdjointSensitivity:
+    def test_positive_strain_energy(self):
+        r = autograd_truss_sensitivity()
+        assert 'error' not in r
+        assert r['strain_energy_J'] > 0
+
+    def test_sensitivities_negative(self):
+        r = autograd_truss_sensitivity()
+        for m, s in r['dU_dA'].items():
+            assert s < 0, f"{m}: dU/dA={s} should be < 0"
+
+    def test_lesson_backprop(self):
+        r = autograd_truss_sensitivity()
+        assert 'backprop' in r['lesson'] or 'backward' in r['lesson']
