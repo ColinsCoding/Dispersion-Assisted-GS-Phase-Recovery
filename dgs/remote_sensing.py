@@ -28,6 +28,7 @@ Harsh environment applications:
   - Wildfire perimeter (thermal + SAR through smoke)
 """
 import numpy as np
+import sympy as sp
 
 PI = np.pi
 
@@ -382,6 +383,116 @@ FUNDING_PATHS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# JONSWAP spectrum (wind-sea PSD) -- ocean analog of |E(f)|^2
+# ---------------------------------------------------------------------------
+def jonswap_spectrum(f_arr, Hs=2.0, Tp=10.0, gamma=3.3):
+    """
+    JONSWAP PSD S(f) -- ocean wave power at each frequency.
+    S(f) is the ocean analog of |E(f)|^2 in optics.
+    GS phase retrieval from S(f): recover E(f)=sqrt(S)*exp(j*phi) exactly
+    as dgs/gs_core.py does for |E_out(f)|^2 after dispersive fiber.
+
+    Hs: significant wave height [m]  Tp: peak period [s]
+    gamma: peak enhancement (3.3 = North Sea average; 1 = Pierson-Moskowitz)
+    """
+    fp = 1.0 / Tp
+    # Compute alpha to match target Hs exactly (two-pass normalization)
+    sigma = np.where(f_arr <= fp, 0.07, 0.09)
+    r = np.exp(-((f_arr - fp)**2) / (2 * sigma**2 * fp**2))
+    S_unnorm = (9.81**2 / (2*PI)**4
+                / (f_arr**5 + 1e-30)
+                * np.exp(-5/4 * (fp / (f_arr + 1e-30))**4)
+                * gamma**r)
+    m0_unit = np.trapezoid(S_unnorm, f_arr)
+    alpha_pm = (Hs / 4)**2 / m0_unit  # normalize so Hs = 4*sqrt(m0)
+    S = alpha_pm * S_unnorm
+    m0 = np.trapezoid(S, f_arr)
+    Hs_check = 4 * np.sqrt(m0)
+    return S, {'Hs_input': Hs, 'Hs_recovered': round(Hs_check, 3), 'fp_Hz': fp}
+
+
+# ---------------------------------------------------------------------------
+# GIS coordinate transforms as matrix / linear algebra
+# ---------------------------------------------------------------------------
+def wgs84_to_ecef(lat_deg, lon_deg, h_m=0.0):
+    """
+    WGS84 geodetic -> ECEF (Earth-Centered Earth-Fixed) Cartesian.
+    This is the coordinate transform GPS and SAR both use.
+    Nonlinear (trig), but Jacobian at any point is a 3x3 matrix.
+
+    Linear algebra connection:
+      Jacobian J = d(X,Y,Z)/d(lat,lon,h) -- same structure as Jones matrix
+      (2x2 complex matrix for optical polarization states, same Lie group SU(2)).
+      det(J) = local area scaling factor = Jacobian determinant from calc 3.
+    """
+    a = 6378137.0
+    e2 = 0.00669437999014
+    lat, lon = np.radians(lat_deg), np.radians(lon_deg)
+    N = a / np.sqrt(1 - e2 * np.sin(lat)**2)
+    X = (N + h_m) * np.cos(lat) * np.cos(lon)
+    Y = (N + h_m) * np.cos(lat) * np.sin(lon)
+    Z = (N*(1 - e2) + h_m) * np.sin(lat)
+    return np.array([X, Y, Z])
+
+
+def mercator_projection(lat_deg, lon_deg, R=6371000.0):
+    """
+    Mercator projection: conformal (angle-preserving) map of sphere to plane.
+    x = R * lon,  y = R * ln(tan(pi/4 + lat/2))
+    Used in Google Maps, OSM, most web mapping.
+    Fails at poles (y -> infinity as lat -> 90).
+    """
+    x = R * np.radians(lon_deg)
+    y = R * np.log(np.tan(np.pi/4 + np.radians(lat_deg)/2))
+    return x, y
+
+
+def gis_jacobian(lat_deg, lon_deg):
+    """
+    3x3 Jacobian of WGS84->ECEF at given point.
+    Condition number = how much this transform distorts distances locally.
+    Same math as: Hermitian matrix eigenvalues, Jones matrix SVD.
+    """
+    h = 1e-5  # finite difference step [degrees]
+    p0 = wgs84_to_ecef(lat_deg, lon_deg)
+    p_dlat = wgs84_to_ecef(lat_deg + h, lon_deg)
+    p_dlon = wgs84_to_ecef(lat_deg, lon_deg + h)
+    p_dh = wgs84_to_ecef(lat_deg, lon_deg, h_m=1.0)
+    J = np.column_stack([
+        (p_dlat - p0) / np.radians(h),
+        (p_dlon - p0) / np.radians(h),
+        p_dh - p0
+    ])
+    return J, np.linalg.cond(J)
+
+
+# ---------------------------------------------------------------------------
+# SymPy: symbolic ocean dispersion and GVD
+# ---------------------------------------------------------------------------
+def sympy_ocean_gvd():
+    """
+    Symbolic d^2(omega)/dk^2 for deep-water ocean waves.
+    omega = sqrt(g*k) -> GVD = d^2omega/dk^2 = -(1/4)*sqrt(g/k^3)
+    Negative -> anomalous dispersion (same sign as SMF-28 at 1550nm, beta2<0).
+    Long waves travel faster (v_g proportional to 1/sqrt(k)).
+    """
+    k, g = sp.symbols('k g', positive=True)
+    omega = sp.sqrt(g * k)
+    vg = sp.diff(omega, k)
+    beta2_ocean = sp.diff(omega, k, 2)
+    # Verify sign
+    beta2_num = float(beta2_ocean.subs([(k, 0.1), (g, 9.81)]))
+    return {
+        'omega_deep': omega,
+        'group_velocity': sp.simplify(vg),
+        'GVD_symbolic': sp.simplify(beta2_ocean),
+        'GVD_at_k01_g981': round(beta2_num, 4),
+        'sign': 'anomalous (negative)' if beta2_num < 0 else 'normal',
+        'fiber_analogy': 'beta2_ocean<0 like SMF-28 at 1550nm -- both spread wave packets',
+    }
+
+
 def demo():
     print("=== SAR Chirp = Coppinger 1999 Chirp ===")
     t, chirp = sar_chirp(K_hz_per_s=4e11, T_s=50e-6, fs_hz=250e6)
@@ -407,6 +518,29 @@ def demo():
     frames, meta = simulate_ocean_surface_gis(nx=64, ny=64, n_frames=5)
     print(f"Frames shape: {frames.shape}")
     print(f"Hs estimate: {4*frames.std():.2f} m (target {meta['Hs_m']} m)")
+
+    print("\n=== JONSWAP Spectrum (ocean |E(f)|^2 analog) ===")
+    f_arr = np.linspace(0.02, 0.5, 500)
+    S, smeta = jonswap_spectrum(f_arr, Hs=3.0, Tp=12.0)
+    print(f"  Hs input=3.0m, recovered={smeta['Hs_recovered']}m, peak f={smeta['fp_Hz']:.4f}Hz")
+    print(f"  S(f) is the ocean |E(f)|^2 -- GS can recover wave phase from it")
+
+    print("\n=== GIS Transforms as Linear Algebra ===")
+    ecef = wgs84_to_ecef(38.5816, -121.4944, 8)
+    print(f"  Sacramento ECEF: {ecef.round(0)} m")
+    J, cond = gis_jacobian(38.5816, -121.4944)
+    print(f"  Jacobian condition number: {cond:.2f}")
+    x, y = mercator_projection(38.5816, -121.4944)
+    print(f"  Mercator: x={x/1e3:.1f}km, y={y/1e3:.1f}km")
+    print(f"  det(J) = {np.linalg.det(J):.0f} (local area scale factor)")
+
+    print("\n=== Symbolic Ocean GVD ===")
+    sym = sympy_ocean_gvd()
+    print(f"  omega(k) = {sym['omega_deep']}")
+    print(f"  v_group = {sym['group_velocity']}")
+    print(f"  GVD = {sym['GVD_symbolic']}")
+    print(f"  At k=0.1,g=9.81: GVD = {sym['GVD_at_k01_g981']} ({sym['sign']})")
+    print(f"  Fiber analogy: {sym['fiber_analogy']}")
 
     print("\n=== Funding Paths ===")
     for name, info in FUNDING_PATHS.items():
