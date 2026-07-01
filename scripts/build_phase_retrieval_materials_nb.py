@@ -122,7 +122,7 @@ def make_absorption_spectrum(material_name, N_freq=1024, noise_level=0.02, rng=N
     width = 0.3  # eV (typical organic semiconductor broadening)
     alpha = 1.0 / ((E_axis - gap_eV)**2 + width**2)
     # vibronic sideband (0.17 eV above main peak, 40% amplitude)
-    alpha += 0.4 / ((E_axis - (gap_eV + 0.17))**2 + (width/2)**2)
+    alpha += 0.4 / ((E_axis - (gap_eV + 0.17))**2 + width**2)
     # normalize and add noise
     alpha = alpha / alpha.max()
     alpha += noise_level * rng.standard_normal(N_freq)
