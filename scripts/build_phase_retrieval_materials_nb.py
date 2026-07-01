@@ -68,9 +68,8 @@ cells.append(md(
 # ── §1 Setup ──────────────────────────────────────────────────────────
 cells.append(md("## §1 Setup and Imports"))
 cells.append(code("""\
+%matplotlib inline
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import sympy as sp
 sp.init_printing(use_unicode=False, use_latex=False)
