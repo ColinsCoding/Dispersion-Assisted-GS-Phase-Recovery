@@ -32,6 +32,8 @@ help:
 	@echo "  make ousd        — print OUSD CTA alignment table"
 	@echo "  make grass       — render DoD grass field (Markov + EM)"
 	@echo "  make poker       — holographic poker demo"
+	@echo "  make uncertainty — HUP, TBP, vector spaces, Wigner, Bayes, stats"
+	@echo "  make cuda-ai     — GPU GS + attention + Bayesian + publishable pipeline"
 	@echo "  make jalali      — run Jalali modern physics demo (DFT/STEAM/rogue)"
 	@echo "  make coppinger   — run Coppinger/Jalali 1999 TS-ADC paper demo"
 	@echo "  make grammar     — run PDL grammar parser demo (parse photonic system)"
@@ -148,6 +150,14 @@ clean-all: clean
 # ══════════════════════════════════════════════════════════════════════════════
 # JALALI / COPPINGER / PDL GRAMMAR  (added 2026-07-02)
 # ══════════════════════════════════════════════════════════════════════════════
+
+.PHONY: uncertainty
+uncertainty:
+	$(PYTHON) -m dgs.uncertainty_qm
+
+.PHONY: cuda-ai
+cuda-ai:
+	$(PYTHON) -m dgs.cuda_photonic_ai
 
 .PHONY: jalali
 jalali:
