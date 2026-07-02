@@ -32,6 +32,14 @@ help:
 	@echo "  make ousd        — print OUSD CTA alignment table"
 	@echo "  make grass       — render DoD grass field (Markov + EM)"
 	@echo "  make poker       — holographic poker demo"
+	@echo "  make jalali      — run Jalali modern physics demo (DFT/STEAM/rogue)"
+	@echo "  make coppinger   — run Coppinger/Jalali 1999 TS-ADC paper demo"
+	@echo "  make grammar     — run PDL grammar parser demo (parse photonic system)"
+	@echo "  make pts-grammar — evaluate Coppinger 1999 system via PDL grammar"
+	@echo "  make notebook-jalali  — build + execute rogue_wave_ai_detection.ipynb"
+	@echo "  make notebook-rogue   — alias for notebook-jalali"
+	@echo "  make smoke-jalali     — quick smoke tests for jalali + grammar"
+	@echo "  make smoke-coppinger  — quick smoke tests for coppinger_jalali_1999"
 	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
 	@echo "  make lab         — launch JupyterLab"
 	@echo "  make nb          — launch classic Jupyter Notebook"
@@ -136,6 +144,44 @@ clean:
 clean-all: clean
 	rm -rf $(OUT_DIR)/
 	@echo "  clean-all ✓"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# JALALI / COPPINGER / PDL GRAMMAR  (added 2026-07-02)
+# ══════════════════════════════════════════════════════════════════════════════
+
+.PHONY: jalali
+jalali:
+	$(PYTHON) -m dgs.jalali_modern_physics
+
+.PHONY: coppinger
+coppinger:
+	$(PYTHON) -m dgs.coppinger_jalali_1999
+
+.PHONY: grammar
+grammar:
+	$(PYTHON) -m dgs.grammar_pts
+
+.PHONY: pts-grammar
+pts-grammar:
+	$(PYTHON) -c "from dgs.grammar_pts import evaluate; import json; r=evaluate('LASER(P=0.001) -> EDFA(G=30) -> FIBER(D=17,L=5) -> EOM(Vpi=3.5,IL=3) -> FIBER(D=17,L=45) -> PD(R=0.8) -> ADC(fs=2,ENOB=8) -> GS(n=50,D=5000)'); print('M =', r['stretch']['M']); print('B_RF =', r['stretch']['B_RF_GHz'], 'GHz'); print('SNR =', round(r['power']['SNR_dB'],1), 'dB'); print('warnings:', r['warnings'])"
+
+.PHONY: smoke-jalali
+smoke-jalali:
+	$(PYTHON) -m pytest tests/test_jalali_modern_physics.py tests/test_grammar_pts.py -q
+
+.PHONY: smoke-coppinger
+smoke-coppinger:
+	$(PYTHON) -m pytest tests/test_coppinger_jalali_1999.py -q 2>/dev/null || \
+		$(PYTHON) -c "from dgs.coppinger_jalali_1999 import coppinger_1999_stretch_factor; r=coppinger_1999_stretch_factor(); print('M =', r['M'], '(paper: 10)'); print('T_w =', r['T_window_ps'], 'ps (paper: 850 ps)')"
+
+.PHONY: notebook-jalali
+notebook-jalali:
+	$(PYTHON) scripts/build_rogue_wave_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute $(NB_DIR)/rogue_wave_ai_detection.ipynb --output $(NB_DIR)/rogue_wave_ai_detection.ipynb --ExecutePreprocessor.timeout=300
+	@echo "  notebook-jalali done: $(NB_DIR)/rogue_wave_ai_detection.ipynb"
+
+.PHONY: notebook-rogue
+notebook-rogue: notebook-jalali
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INCOMPLETE — TODO for Phase I delivery
