@@ -5,6 +5,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 
 PYTHON   ?= py -3.13
+PYTHON312 ?= py -3.12
 JUPYTER  ?= py -3.13 -m jupyter
 NB_DIR    = notebooks
 OUT_DIR   = outputs
@@ -15,6 +16,35 @@ GS_FNO    = -m dgs.gs_fno
 GS_TORCH  = -m dgs.torch.gs_layer
 OUSD      = -m dgs.ousd_alignment
 GRASS     = -m dgs.grass
+FDTD      = -m dgs.fdtd
+GRATING   = -m dgs.diffraction_grating
+GRATING_VIEWER = -m dgs.viewer_diffraction_pygame
+BENCH_GS  = -m dgs.photonic_pipeline_benchmark
+FOOD      = -m dgs.food_science_kinetics
+SOLIDSTATE = -m dgs.solid_state_physics
+MICHELSON = -m dgs.michelson_morley
+BANDTHEORY = -m dgs.band_theory
+PST       = -m dgs.phase_stretch_transform
+CHARGE    = -m dgs.charge_fundamentals
+CYLCAP    = -m dgs.cylindrical_capacitor_bessel
+PARAXIAL  = -m dgs.paraxial_optics_abcd
+QINTERNET = -m dgs.quantum_internet_link_budget
+LTI       = -m dgs.lti_systems
+HEATFT    = -m dgs.heat_equation_fourier
+DOPPLERNUM = -m dgs.doppler_numerical_derivation
+DUALAD    = -m dgs.dual_autodiff
+PIERCE    = -m dgs.pierce_oscillator
+CTYPES    = -m dgs.c_type_precision
+DIMANALYSIS = -m dgs.dimensional_analysis
+VECGEOM   = -m dgs.vector_calculus_geometric
+CHIRPLOG  = -m dgs.chirp_log_diff
+ANALOGCOMP = -m dgs.analog_computing_universality
+TDR       = -m dgs.transmission_line_tdr
+CURLDIVQM = -m dgs.curl_div_modern_physics
+POLYGLOT  = -m dgs.circuits_polyglot
+TRUSS_FEM = -m dgs.torch.truss_fem
+GRADXFORM = -m dgs.torch.gradient_transform_verify
+HARMONICGRAD = -m dgs.torch.harmonic_gradient_fields
 
 .DEFAULT_GOAL := help
 
@@ -31,6 +61,35 @@ help:
 	@echo "  make test        — run full pytest suite (tests/)"
 	@echo "  make ousd        — print OUSD CTA alignment table"
 	@echo "  make grass       — render DoD grass field (Markov + EM)"
+	@echo "  make fdtd        — 1D Yee-grid FDTD vs analytic Fabry-Perot slab spectrum"
+	@echo "  make grating     — N-slit diffraction grating physics demo"
+	@echo "  make grating-viewer — interactive Pygame N-slit diffraction grating viewer"
+	@echo "  make bench-gs    — measured wall-clock timing of the cuda_photonic_ai GS pipeline"
+	@echo "  make food        — food science kinetics demo (D/z/F-value, Q10, shelf life)"
+	@echo "  make solidstate  — solid state physics (crystal packing, Fermi energy, semiconductors)"
+	@echo "  make michelson   — Michelson-Morley interferometer geometry + historical null result"
+	@echo "  make bandtheory  — Kronig-Penney band theory: SymPy-derived, NumPy/Torch swept"
+	@echo "  make pst         — Phase-Stretch Transform (PhyCV-style physics edge detection)"
+	@echo "  make charge      — Griffiths' 3 charge facts: quantization, conservation, XNOR sign rule"
+	@echo "  make cylcap      — Bessel-function BVP: potential inside a grounded cylindrical can"
+	@echo "  make paraxial    — ABCD ray matrices + Gaussian beam q-parameter (binomial-derived)"
+	@echo "  make qinternet   — entangled-photon link budget: UC Merced<->Riverside, fiber vs satellite"
+	@echo "  make lti         — impulse/step/frequency response of RC filter, convolution theorem verified"
+	@echo "  make heatft      — heat/diffusion PDE solved as Fourier-space per-mode decay, 3 methods cross-checked"
+	@echo "  make dopplernum  — relativistic Doppler shift derived numerically from a simulated emitter/receiver couple"
+	@echo "  make dualad      — the derivative, 3 ways: math (limit), physics (rate of change), computer (autodiff/finite-diff)"
+	@echo "  make pierce      — Pierce crystal oscillator: series/parallel resonance, inductive region, load-cap frequency pulling"
+	@echo "  make ctypes      — char/int/float/double compiled+run in real gcc, IEEE 754 vs NumPy, ties to precision bugs found this session"
+	@echo "  make dimanalysis — dimensional analysis of Maxwell's-equations-adjacent formulas + Mars Climate Orbiter case study"
+	@echo "  make gradxform   — Griffiths 1.14 verified 3 ways: SymPy symbolic, torch autograd (original + direct rotated frame)"
+	@echo "  make vecgeom     — geometric div/curl/Laplacian via flux/circulation/neighbor-avg + Faraday's law curl check"
+	@echo "  make chirplog    — chirp instantaneous frequency via log-differentiation of analytic signal + matrix exp/log"
+	@echo "  make analogcomp  — molecular/mechanical/RLC/op-amp analog computer all solve the SAME ODE, verified"
+	@echo "  make tdr         — skin effect (log-differentiation) + transmission lines + a simulated TDR measurement"
+	@echo "  make curldivqm   — curl/div in modern physics: QM probability continuity + Aharonov-Bohm effect"
+	@echo "  make harmonicgrad — Problem 1.20 as linear algebra (Jacobian trace/antisymmetric part) via torch, + generator theorem"
+	@echo "  make polyglot    — series RLC RK4 run for real in C, MATLAB, and Python, cross-checked"
+	@echo "  make bridge      — torch differentiable truss FEM demo (py-3.12) + Unreal trajectory export"
 	@echo "  make poker       — holographic poker demo"
 	@echo "  make uncertainty — HUP, TBP, vector spaces, Wigner, Bayes, stats"
 	@echo "  make cuda-ai     — GPU GS + attention + Bayesian + publishable pipeline"
@@ -76,6 +135,122 @@ ousd:
 .PHONY: grass
 grass:
 	$(PYTHON) $(GRASS)
+
+.PHONY: fdtd
+fdtd:
+	$(PYTHON) $(FDTD)
+
+.PHONY: grating
+grating:
+	$(PYTHON) $(GRATING)
+
+.PHONY: grating-viewer
+grating-viewer:
+	$(PYTHON) $(GRATING_VIEWER)
+
+.PHONY: bench-gs
+bench-gs:
+	$(PYTHON) $(BENCH_GS)
+
+.PHONY: food
+food:
+	$(PYTHON) $(FOOD)
+
+.PHONY: solidstate
+solidstate:
+	$(PYTHON) $(SOLIDSTATE)
+
+.PHONY: michelson
+michelson:
+	$(PYTHON) $(MICHELSON)
+
+.PHONY: bandtheory
+bandtheory:
+	$(PYTHON) $(BANDTHEORY)
+
+.PHONY: pst
+pst:
+	$(PYTHON) $(PST)
+
+.PHONY: charge
+charge:
+	$(PYTHON) $(CHARGE)
+
+.PHONY: cylcap
+cylcap:
+	$(PYTHON) $(CYLCAP)
+
+.PHONY: paraxial
+paraxial:
+	$(PYTHON) $(PARAXIAL)
+
+.PHONY: qinternet
+qinternet:
+	$(PYTHON) $(QINTERNET)
+
+.PHONY: lti
+lti:
+	$(PYTHON) $(LTI)
+
+.PHONY: heatft
+heatft:
+	$(PYTHON) $(HEATFT)
+
+.PHONY: dopplernum
+dopplernum:
+	$(PYTHON) $(DOPPLERNUM)
+
+.PHONY: dualad
+dualad:
+	$(PYTHON) $(DUALAD)
+
+.PHONY: pierce
+pierce:
+	$(PYTHON) $(PIERCE)
+
+.PHONY: ctypes
+ctypes:
+	$(PYTHON) $(CTYPES)
+
+.PHONY: dimanalysis
+dimanalysis:
+	$(PYTHON) $(DIMANALYSIS)
+
+.PHONY: polyglot
+polyglot:
+	$(PYTHON) $(POLYGLOT)
+
+.PHONY: bridge
+bridge:
+	$(PYTHON312) $(TRUSS_FEM)
+
+.PHONY: gradxform
+gradxform:
+	$(PYTHON312) $(GRADXFORM)
+
+.PHONY: harmonicgrad
+harmonicgrad:
+	$(PYTHON312) $(HARMONICGRAD)
+
+.PHONY: vecgeom
+vecgeom:
+	$(PYTHON) $(VECGEOM)
+
+.PHONY: chirplog
+chirplog:
+	$(PYTHON) $(CHIRPLOG)
+
+.PHONY: analogcomp
+analogcomp:
+	$(PYTHON) $(ANALOGCOMP)
+
+.PHONY: tdr
+tdr:
+	$(PYTHON) $(TDR)
+
+.PHONY: curldivqm
+curldivqm:
+	$(PYTHON) $(CURLDIVQM)
 
 .PHONY: poker
 poker:
