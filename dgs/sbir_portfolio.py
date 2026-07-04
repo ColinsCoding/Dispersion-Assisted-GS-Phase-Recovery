@@ -60,8 +60,11 @@ PROPOSALS = {
             "Month 6:   Bayesian classifier on phase+intensity features for CTC detection",
         ],
         "team": [
-            "PI: Colin Casey -- GS phase retrieval (this repo, 156 modules)",
-            "Co-I: Jalali Lab collaborator (letter of support from Prof. Jalali UCLA)",
+            "PI: Colin Casey -- GS phase retrieval (this repo, 156 modules); "
+            "former undergraduate researcher in Prof. Jalali's UCLA lab (STEAM/photonic "
+            "time-stretch group) -- real prior relationship, but NO letter of support or "
+            "formal Co-I commitment exists yet. Do not represent one as secured in any "
+            "submitted proposal until it is actually obtained.",
         ],
         "milestones": {
             "M1": "Simulated STEAM forward model, SNR analysis",
