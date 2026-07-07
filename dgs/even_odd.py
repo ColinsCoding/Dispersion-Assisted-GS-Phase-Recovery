@@ -60,6 +60,52 @@ def even_integral_shortcut(f, a, n=4001):
     return 2 * nm.trapezoid(even_part(f, xh), xh)
 
 
+# ----------------------------------------------------------------------
+# The linear-algebra view: even/odd = eigenspaces of the PARITY OPERATOR
+# ----------------------------------------------------------------------
+
+def parity_matrix(n):
+    """The parity operator P: f(x) -> f(-x) as an n x n matrix on a grid
+    symmetric about 0 -- it just REVERSES the samples (the exchange matrix).
+    P is symmetric, orthogonal, and P @ P = I, so its eigenvalues are +/-1:
+    eigenvectors with eigenvalue +1 are the EVEN vectors, -1 the ODD ones.
+    (n odd puts a sample at x=0, giving one extra +1 eigenvalue.)"""
+    if n < 2:
+        raise ValueError("need n >= 2 grid points")
+    return np.eye(n)[::-1]
+
+
+def parity_projectors(n):
+    """(E, O) with E = (I+P)/2 and O = (I-P)/2 -- the projectors onto the
+    even and odd eigenspaces. They are idempotent (E@E=E), complementary
+    (E+O=I), and orthogonal (E@O=0): the matrix form of f = f_e + f_o.
+    Applying E to sampled f(x) IS even_part(f, x)."""
+    P = parity_matrix(n)
+    I = np.eye(n)
+    return (I + P) / 2, (I - P) / 2
+
+
+def central_diff_matrix(x):
+    """d/dx as a matrix D on grid x: interior rows carry the (-1, 0, 1)/(2h)
+    central-difference stencil (one-sided at the two ends). On a symmetric
+    grid D ANTICOMMUTES with parity on the interior: P@D = -D@P, which is
+    the matrix statement that DIFFERENTIATION FLIPS PARITY -- the derivative
+    of an even function is odd and vice versa (cosh' = sinh)."""
+    x = np.asarray(x, float)
+    n = len(x)
+    if n < 3:
+        raise ValueError("need >= 3 grid points for a central difference")
+    h = x[1] - x[0]
+    if not np.allclose(np.diff(x), h):
+        raise ValueError("grid must be uniformly spaced")
+    D = np.zeros((n, n))
+    for i in range(1, n - 1):
+        D[i, i - 1], D[i, i + 1] = -1 / (2 * h), 1 / (2 * h)
+    D[0, 0], D[0, 1] = -1 / h, 1 / h          # one-sided ends
+    D[-1, -2], D[-1, -1] = -1 / h, 1 / h
+    return D
+
+
 if __name__ == "__main__":
     x = np.linspace(-3, 3, 2001)
     # cos is even, sin is odd
