@@ -136,6 +136,64 @@ def sensitivity(target_snr, resp, R_f, C, B, I_dark=0.0, e_n=0.0, T=300.0):
     return P
 
 
+# ── stability & feedback compensation (the op-amp part of the "photonic op-amp") ──────────
+# A TIA is an op-amp inside a feedback loop, and the photodiode capacitance C_in makes that loop
+# want to RING. The feedback factor rolls off at the input pole 1/(2 pi R_f C_in), adding phase lag
+# that eats the loop's phase margin, so the closed-loop response peaks (or oscillates). The fix is a
+# small feedback capacitor C_f across R_f, whose zero 1/(2 pi R_f C_f) boosts the phase back before
+# crossover. The best achievable bandwidth is the GEOMETRIC MEAN of the amplifier's gain-bandwidth
+# and the input pole -- you cannot out-run the op-amp.
+
+def input_pole_frequency(R_f, C_in):
+    """The input-network pole f_in = 1/(2 pi R_f C_in) (Hz) -- where the feedback factor starts
+    rolling off and the loop begins to lose phase margin."""
+    if R_f <= 0 or C_in <= 0:
+        raise ValueError("R_f and C_in must be > 0")
+    return 1.0 / (2 * np.pi * R_f * C_in)
+
+
+def closed_loop_bandwidth(R_f, C_in, f_gbw):
+    """Maximally-flat closed-loop -3 dB bandwidth of a compensated TIA: the geometric mean of the
+    op-amp gain-bandwidth f_gbw and the input pole, f_3dB = sqrt(f_gbw / (2 pi R_f C_in)). You
+    can't beat the op-amp: bandwidth is limited by sqrt(f_gbw * f_input_pole)."""
+    if f_gbw <= 0:
+        raise ValueError("f_gbw must be > 0")
+    return np.sqrt(f_gbw * input_pole_frequency(R_f, C_in))
+
+
+def compensation_capacitor(R_f, C_in, f_gbw):
+    """Feedback capacitor C_f for a maximally-flat (Butterworth) response: place its zero at the
+    closed-loop bandwidth, C_f = sqrt(C_in / (2 pi R_f f_gbw)). Bigger C_in or slower op-amp
+    needs more compensation (and costs bandwidth)."""
+    if f_gbw <= 0:
+        raise ValueError("f_gbw must be > 0")
+    return np.sqrt(C_in / (2 * np.pi * R_f * f_gbw))
+
+
+def phase_margin(R_f, C_in, C_f, f_gbw):
+    """Loop phase margin (degrees) for a single-pole op-amp model A(s)=2 pi f_gbw/s with feedback
+    factor beta(s)=(1+s R_f C_f)/(1+s R_f (C_in+C_f)). Finds the 0 dB crossover of |A*beta| and
+    reports 180 + angle. ~65 deg is maximally flat; below ~45 deg the TIA rings."""
+    if R_f <= 0 or C_in <= 0 or C_f < 0 or f_gbw <= 0:
+        raise ValueError("need R_f>0, C_in>0, C_f>=0, f_gbw>0")
+    f_in = input_pole_frequency(R_f, C_in)
+    f = np.logspace(np.log10(f_in) - 3, np.log10(f_gbw) + 2, 6000)
+    s = 2j * np.pi * f
+    L = (2 * np.pi * f_gbw / s) * (1 + s * R_f * C_f) / (1 + s * R_f * (C_in + C_f))
+    mag = np.abs(L)
+    crossings = np.where(np.diff(np.sign(mag - 1.0)))[0]
+    if len(crossings) == 0:
+        return 180.0
+    k = crossings[-1]                                        # last (highest-f) unity crossing
+    # log-interpolate the crossover frequency
+    m0, m1 = np.log(mag[k]), np.log(mag[k + 1])
+    frac = (0.0 - m0) / (m1 - m0)
+    f_c = f[k] * (f[k + 1] / f[k]) ** frac
+    phase = -90.0 + np.degrees(np.arctan2(2 * np.pi * f_c * R_f * C_f, 1.0)) \
+        - np.degrees(np.arctan2(2 * np.pi * f_c * R_f * (C_in + C_f), 1.0))
+    return 180.0 + phase
+
+
 if __name__ == "__main__":
     lam, eta = 1550.0, 0.8
     R = responsivity(lam, eta)
@@ -159,3 +217,13 @@ if __name__ == "__main__":
           f"SNR = {snr(P,R,R_f,C,B,e_n=e_n):.1f} ({20*np.log10(snr(P,R,R_f,C,B,e_n=e_n)):.1f} dB)")
     print(f"  NEP = {noise_equivalent_power(R,R_f,C,B,e_n=e_n)*1e9:.3f} nW ; "
           f"sensitivity (SNR=7) = {sensitivity(7,R,R_f,C,B,e_n=e_n)*1e9:.1f} nW")
+
+    print("\nstability / compensation (R_f = 10 kohm, C_in = 2 pF, op-amp GBW = 1 GHz):")
+    R_f, C_in, f_gbw = 1e4, 2e-12, 1e9
+    Cf = compensation_capacitor(R_f, C_in, f_gbw)
+    print(f"  input pole            = {input_pole_frequency(R_f, C_in)/1e6:6.2f} MHz")
+    print(f"  best closed-loop BW   = {closed_loop_bandwidth(R_f, C_in, f_gbw)/1e6:6.2f} MHz "
+          f"(geometric mean of GBW and input pole)")
+    print(f"  recommended C_f       = {Cf*1e15:6.1f} fF")
+    print(f"  phase margin: uncompensated (C_f=0) = {phase_margin(R_f,C_in,0.0,f_gbw):5.1f} deg "
+          f"(rings) ;  with C_f = {phase_margin(R_f,C_in,Cf,f_gbw):5.1f} deg (flat)")

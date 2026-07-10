@@ -85,4 +85,34 @@ for bad in (lambda: tia.responsivity(0),
     except ValueError:
         pass
 
+# 10. stability & compensation
+Rf2, Cin, fgbw = 1e4, 2e-12, 1e9
+assert math.isclose(tia.input_pole_frequency(Rf2, Cin), 1/(2*np.pi*Rf2*Cin), rel_tol=1e-12)
+# closed-loop bandwidth is the geometric mean of GBW and the input pole
+fbw = tia.closed_loop_bandwidth(Rf2, Cin, fgbw)
+assert math.isclose(fbw, math.sqrt(fgbw * tia.input_pole_frequency(Rf2, Cin)), rel_tol=1e-12)
+assert tia.input_pole_frequency(Rf2, Cin) < fbw < fgbw          # between the two
+# compensation capacitor closed form, and its zero sits at the closed-loop bandwidth
+Cf = tia.compensation_capacitor(Rf2, Cin, fgbw)
+assert math.isclose(Cf, math.sqrt(Cin/(2*np.pi*Rf2*fgbw)), rel_tol=1e-12)
+assert math.isclose(1/(2*np.pi*Rf2*Cf), fbw, rel_tol=1e-9)      # f_zero = f_3dB
+# phase margin: uncompensated rings (small PM), C_f restores a healthy margin
+pm_uncomp = tia.phase_margin(Rf2, Cin, 0.0, fgbw)
+pm_comp = tia.phase_margin(Rf2, Cin, Cf, fgbw)
+assert pm_uncomp < 20.0, f"uncompensated PM {pm_uncomp}"        # near-oscillatory
+assert 45.0 < pm_comp < 90.0, f"compensated PM {pm_comp}"       # stable, ~maximally flat
+assert pm_comp > pm_uncomp
+# bigger photodiode capacitance -> more compensation, less bandwidth
+assert tia.compensation_capacitor(Rf2, 4*Cin, fgbw) > Cf
+assert tia.closed_loop_bandwidth(Rf2, 4*Cin, fgbw) < fbw
+# faster op-amp -> more bandwidth
+assert tia.closed_loop_bandwidth(Rf2, Cin, 4*fgbw) > fbw
+for bad in (lambda: tia.input_pole_frequency(0, Cin),
+            lambda: tia.closed_loop_bandwidth(Rf2, Cin, 0),
+            lambda: tia.phase_margin(Rf2, Cin, -1.0, fgbw)):
+    try:
+        bad(); assert False
+    except ValueError:
+        pass
+
 print("test_transimpedance_amplifier: all checks passed")
