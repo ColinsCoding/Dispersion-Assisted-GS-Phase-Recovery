@@ -72,16 +72,25 @@ intensity; GPU computes FFT).
 
 ## Reproduce
 
+The notebooks are **self-contained**: each begins with a prelude that defines the physical constants,
+a dimensional-analysis layer, linear-algebra helpers, and a plotting style inline, using only trusted
+packages that a scientific-Python kernel already has:
+
 ```
-pip install -r requirements.txt
-pip install -e src            # installs physkit
-make test                     # run unit tests
+pip install numpy scipy sympy pandas matplotlib
 make notebooks                # regenerate and execute all notebooks
 ```
 
-The `pip install -e src` step is recommended but not required for the notebooks: each notebook's
-setup cell walks up to the repository `src/` folder and adds it to `sys.path`, so `import physkit`
-works under any kernel that has the scientific-Python stack, installed or not.
+No custom package needs to be installed to run a notebook -- open it in any kernel with the standard
+stack and run all cells.
 
-PyTorch is optional. Notebooks import it through `physkit.optional_torch()` and degrade to NumPy when
-it is absent, so the repository runs on a CPU-only scientific-Python install.
+The same helpers are also available as an optional, tested library `physkit` in `src/` for reuse
+outside the notebooks:
+
+```
+pip install -e src            # optional: installs physkit
+make test                     # run the physkit unit tests
+```
+
+PyTorch is optional throughout. Each prelude imports it in a `try/except`; when it is absent the
+NumPy path stays authoritative, so the repository runs on a CPU-only install.

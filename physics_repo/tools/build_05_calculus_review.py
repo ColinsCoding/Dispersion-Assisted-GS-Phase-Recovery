@@ -75,14 +75,18 @@ print(f"trapezoid int f' [0,1] = {I:.6f} | f(1)-f(0) = {fnum(1)-fnum(0):.6f}")""
 section("Pandas tables"),
 md("""Integration error falls with the number of panels: trapezoid as $O(N^{-2})$, Simpson as
 $O(N^{-4})$."""),
-co("""from scipy.integrate import simpson
+co("""def simpson(y, x):
+    n = len(x) - 1                       # number of panels (even)
+    h = (x[-1] - x[0]) / n
+    return h/3 * (y[0] + y[-1] + 4*np.sum(y[1:-1:2]) + 2*np.sum(y[2:-1:2]))
+
 exact = fnum(1) - fnum(0)
 rows = []
 for N in (10, 20, 40, 80, 160):
     xg = np.linspace(0, 1, N+1)
     y = fp_exact(xg)
     rows.append({"N": N, "trapezoid_err": abs(np.trapezoid(y, xg) - exact),
-                 "simpson_err": abs(simpson(y, x=xg) - exact)})
+                 "simpson_err": abs(simpson(y, xg) - exact)})
 df = pd.DataFrame(rows)
 print(df.to_string(index=False))"""),
 
