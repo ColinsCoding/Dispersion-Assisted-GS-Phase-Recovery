@@ -1,0 +1,18 @@
+# Core scientific-Python stack (required)
+numpy>=1.26
+scipy>=1.11
+sympy>=1.12
+pandas>=2.0
+matplotlib>=3.7
+
+# Notebook execution / build
+nbformat>=5.9
+nbconvert>=7.0
+jupyter-client>=8.0
+ipykernel>=6.25
+pytest>=7.4
+
+# Optional acceleration. The repository runs without it; chapter 27 and a few
+# cross-checks use it when present. Install separately if a GPU/CPU build is available:
+#   pip install torch
+# torch>=2.1
