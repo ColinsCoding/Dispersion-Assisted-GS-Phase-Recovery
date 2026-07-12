@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "physkit"
+version = "0.1.0"
+description = "Reusable library for the physics_repo educational notebooks."
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "matplotlib>=3.7"]
+
+[tool.setuptools]
+packages = ["physkit"]
