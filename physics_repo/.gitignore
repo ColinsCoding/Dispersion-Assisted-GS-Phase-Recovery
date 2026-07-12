@@ -6,3 +6,5 @@ __pycache__/
 src/*.egg-info/
 figures/*.png
 data/*.tmp
+src/build/
+src/*.egg-link
