@@ -79,5 +79,9 @@ make test                     # run unit tests
 make notebooks                # regenerate and execute all notebooks
 ```
 
+The `pip install -e src` step is recommended but not required for the notebooks: each notebook's
+setup cell walks up to the repository `src/` folder and adds it to `sys.path`, so `import physkit`
+works under any kernel that has the scientific-Python stack, installed or not.
+
 PyTorch is optional. Notebooks import it through `physkit.optional_torch()` and degrade to NumPy when
 it is absent, so the repository runs on a CPU-only scientific-Python install.

@@ -41,8 +41,17 @@ results of earlier chapters.""")
 
 
 def setup_cell():
-    """Standard imports: the scientific-Python stack, physkit, and an optional PyTorch."""
-    return co("""import numpy as np, pandas as pd, sympy as sp
+    """Standard imports: the scientific-Python stack, physkit, and an optional PyTorch.
+
+    The first lines make ``physkit`` importable whether or not it is pip-installed, by walking up
+    from the notebook's working directory to the repository ``src/`` folder. This lets the notebook
+    run under any kernel that has the scientific-Python stack, without ``pip install -e src``.
+    """
+    return co("""import sys, pathlib
+for _p in [pathlib.Path.cwd(), *pathlib.Path.cwd().parents]:
+    if (_p / "src" / "physkit" / "__init__.py").exists():
+        sys.path.insert(0, str(_p / "src")); break     # locate physkit without installation
+import numpy as np, pandas as pd, sympy as sp
 import matplotlib.pyplot as plt
 import physkit
 from physkit import constants as C, units as U, linalg as la
