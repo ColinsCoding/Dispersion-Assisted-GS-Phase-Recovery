@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photonics-ml-pipeline"
+version = "0.1.0"
+description = "Research-grade pipeline: physics -> SymPy -> numerics -> features -> ML -> generated C -> benchmarks."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Photonics ML Lab" }]
+dependencies = [
+    "numpy>=1.26",
+    "sympy>=1.12",
+    "scipy>=1.11",
+    "torch>=2.1",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+vision = ["opencv-python>=4.8"]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools]
+packages = [
+    "physics", "optics", "photonics", "feature_extraction",
+    "ml", "c_codegen", "visualization", "datasets",
+]
+py-modules = ["config"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Pipeline artifacts
+outputs/
+
+# Generated C (regenerate with examples/run_pipeline.py); keep the folders via .gitkeep
+src/*.c
+include/*.h
+!.gitkeep
