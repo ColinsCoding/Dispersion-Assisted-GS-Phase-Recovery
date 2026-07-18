@@ -1,0 +1,22 @@
+# Default configuration for the photonics-ML pipeline.
+# All spatial quantities are in micrometers (um).
+beam:
+  wavelength_um: 1.55
+  waist_um: 10.0
+  z_min_um: -2000.0
+  z_max_um: 2000.0
+  n_axial: 256
+  n_transverse: 256
+  transverse_half_width_um: 60.0
+
+ml:
+  hidden_dims: [32, 16]
+  n_classes: 3
+  epochs: 60
+  learning_rate: 0.001
+  batch_size: 32
+  n_samples: 900
+  val_fraction: 0.25
+  seed: 0
+
+output_dir: outputs
