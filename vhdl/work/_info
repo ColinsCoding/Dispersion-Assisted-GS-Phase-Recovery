@@ -1,0 +1,308 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dD:/Summer2026/Dispersion-Assisted-GS-Phase-Recovery/vhdl
+Ecomparator
+Z1 w1783193910
+Z2 DPx3 std 6 textio 0 22 zE1`LPoLg^DX3Oz^4Fj1K3
+Z3 DPx4 ieee 14 std_logic_1164 0 22 eNV`TJ_GofJTzYa?f<@Oe1
+R0
+Z4 8comparator.vhd
+Z5 Fcomparator.vhd
+l0
+L11
+V=gP]71@=z]Mj;kGRQIAT?2
+!s100 QfJ;c_i]:8B;IXgZ>j?DE2
+Z6 OV;C;10.5b;63
+32
+Z7 !s110 1783194034
+!i10b 1
+Z8 !s108 1783194033.000000
+Z9 !s90 comparator.vhd|flash_adc_behavioral.vhd|flash_adc_structural.vhd|tb_flash_adc.vhd|
+Z10 !s107 tb_flash_adc.vhd|flash_adc_structural.vhd|flash_adc_behavioral.vhd|comparator.vhd|
+!i113 1
+Z11 tExplicit 1 CvgOpt 0
+Abehavioral
+R2
+R3
+Z12 DEx4 work 10 comparator 0 22 =gP]71@=z]Mj;kGRQIAT?2
+l20
+L19
+Z13 V6<gDe`8gSGJ8BA0_ef=Z]0
+Z14 !s100 JITc575?4KY>HTH4]_G@g1
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Eflash_adc_behavioral
+Z15 w1783193922
+R2
+R3
+R0
+Z16 8flash_adc_behavioral.vhd
+Z17 Fflash_adc_behavioral.vhd
+l0
+L10
+V]4?BNl_H@5F^@TZdZNRn<0
+!s100 RJZUWU[]degO@9MCb4L[P2
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Abehavioral
+R2
+R3
+Z18 DEx4 work 20 flash_adc_behavioral 0 22 ]4?BNl_H@5F^@TZdZNRn<0
+l19
+L18
+Z19 VQWi9^[9>6MU[9f>b6W@U_1
+Z20 !s100 NV0gA<9b96?XMCRd0mXMH2
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Eflash_adc_structural
+Z21 w1783194002
+R2
+R3
+R0
+Z22 8flash_adc_structural.vhd
+Z23 Fflash_adc_structural.vhd
+l0
+L14
+VI[5PT]30U8mmm=?;iIT>k2
+!s100 OJ7[h?O5PFjHTXbROn0EO3
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Astructural
+R2
+R3
+Z24 DEx4 work 20 flash_adc_structural 0 22 I[5PT]30U8mmm=?;iIT>k2
+l36
+L22
+Z25 VK6[P9;ilfCDV[DJQzHQob0
+Z26 !s100 9dzDRG1l=ZZaIWV4^<:Wn3
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Efull_adder
+Z27 w1782423962
+R2
+R3
+R0
+Z28 8full_adder.vhd
+Z29 Ffull_adder.vhd
+l0
+L11
+V0XR=7VBEkGKi@VQ1GhP^B0
+!s100 D<YHl1Db]@jRW[GWT?ETO2
+R6
+32
+Z30 !s110 1783193845
+!i10b 1
+Z31 !s108 1783193845.000000
+Z32 !s90 half_adder.vhd|full_adder.vhd|ripple_carry_adder.vhd|tb_ripple_carry_adder.vhd|
+Z33 !s107 tb_ripple_carry_adder.vhd|ripple_carry_adder.vhd|full_adder.vhd|half_adder.vhd|
+!i113 1
+R11
+Astructural
+R2
+R3
+DEx4 work 10 full_adder 0 22 0XR=7VBEkGKi@VQ1GhP^B0
+l32
+L19
+Vl8lligGm8EQz`AkGe]GAl0
+!s100 le<9SAF`EgozUOPNOcm>l0
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Ehalf_adder
+Z34 w1782423954
+R2
+R3
+R0
+Z35 8half_adder.vhd
+Z36 Fhalf_adder.vhd
+l0
+L12
+VC_Q@edZziLBhJXbO7F:CD1
+!s100 fSeR=]172@8djQXA]XPB70
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Astructural
+R2
+R3
+DEx4 work 10 half_adder 0 22 C_Q@edZziLBhJXbO7F:CD1
+l22
+L21
+VJHA19YkkOR]IaSU^g5<fV3
+!s100 h`UPSD^]Ljl[fRZKKYR@U1
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Eripple_carry_adder
+Z37 w1782423974
+R2
+R3
+R0
+Z38 8ripple_carry_adder.vhd
+Z39 Fripple_carry_adder.vhd
+l0
+L13
+Vb?=DRaC0>=TzoniMLYz=K2
+!s100 jd_b5E`QaNI>3YGlKlSM92
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Astructural
+R2
+R3
+DEx4 work 18 ripple_carry_adder 0 22 b?=DRaC0>=TzoniMLYz=K2
+l40
+L25
+V]jD?d[H7UnRFDJ;W16nGn2
+!s100 hXClbE=hQ[lVVgIih]o2[2
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Etb_flash_adc
+Z40 w1783194024
+R2
+R3
+R0
+Z41 8tb_flash_adc.vhd
+Z42 Ftb_flash_adc.vhd
+l0
+L11
+VXn0Xn^Zf`V`b>de6H=Gbc0
+!s100 =K]N;XUiG?L=O`Z3Q7_NS2
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Asim
+R2
+R3
+DEx4 work 12 tb_flash_adc 0 22 Xn0Xn^Zf`V`b>de6H=Gbc0
+l31
+L14
+Vo6A1O3P_6hP^CJ_a4d:;j1
+!s100 _TFWY9cGH?;[`nkaiI<YK1
+R6
+32
+R7
+!i10b 1
+R8
+R9
+R10
+!i113 1
+R11
+Etb_ripple_carry_adder
+Z43 w1782423992
+Z44 DPx4 ieee 11 numeric_std 0 22 :ASDNFgHXf_ih3J@9F3Ze1
+R2
+R3
+R0
+Z45 8tb_ripple_carry_adder.vhd
+Z46 Ftb_ripple_carry_adder.vhd
+l0
+L19
+VJfk<G8cfYOn[bRd]8S[EO2
+!s100 >1CI9C]h[MHC8JkKe<bg[2
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
+Asim
+R44
+R2
+R3
+DEx4 work 21 tb_ripple_carry_adder 0 22 Jfk<G8cfYOn[bRd]8S[EO2
+l41
+L22
+V8cXC]GoDRCZ4:8ZSBP^c<3
+!s100 4L@2Q7;Ub5FLG432`1L;93
+R6
+32
+R30
+!i10b 1
+R31
+R32
+R33
+!i113 1
+R11
