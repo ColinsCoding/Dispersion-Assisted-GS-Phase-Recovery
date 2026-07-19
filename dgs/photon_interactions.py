@@ -702,7 +702,11 @@ def demo():
         print(f"    vertex {k}: {v}")
 
     print("\n--- TDGSA Feynman Diagram ---")
-    path = feynman_diagram_tdgsa('tdgsa_feynman.png')
+    from pathlib import Path
+
+    outfile = Path(__file__).parent / "tdgsa_feynman.png"
+    path = feynman_diagram_tdgsa(str(outfile))
+    print(f"Diagram saved to: {outfile.resolve()}")
     print(f"  Diagram saved to: {path if isinstance(path,str) and path.endswith('.png') else 'base64 PNG'}")
 
     print("\n--- Capacitance-Voltage ---")
