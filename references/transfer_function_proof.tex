@@ -1,0 +1,47 @@
+
+\section{Transfer Function Derivation}
+
+The dispersive fiber transfer function is:
+\[
+    H(\nu) = e^{i \pi D \nu^{2}}
+\]
+
+\subsection{Derivation from Group-Velocity Dispersion}
+
+Starting from Maxwell's equations in a dispersive medium:
+\[
+    k(\omega) = k_0 + k_1(\omega - \omega_0) + \frac{1}{2}\beta_2(\omega - \omega_0)^2
+\]
+
+where $\beta_2 = \frac{d^2 k}{d\omega^2}$ is the group-velocity dispersion parameter.
+
+After propagation distance $L$, the accumulated phase is:
+\[
+    \phi(\omega) = k(\omega) \cdot L \approx \frac{1}{2}\beta_2 L (\omega - \omega_0)^2
+\]
+
+Converting to cyclic frequency $\nu = \omega/(2\pi)$:
+\[
+    \phi(\nu) = \frac{1}{2}\beta_2 L (2\pi\nu)^2 = 2\pi^2 \beta_2 L \nu^2
+\]
+
+Defining normalized dispersion $D \equiv \frac{\beta_2 L}{\pi}$:
+\[
+    \phi(\nu) = \pi D \nu^2
+\]
+
+The transfer function is thus:
+\[
+    H(\nu) = e^{i\phi(\nu)} = e^{i\pi D \nu^2}
+\]
+
+\subsection{Properties}
+
+\begin{itemize}
+    \item \textbf{Magnitude}: $|H(\nu)| = 1$ (lossless, energy-preserving)
+    \item \textbf{Phase}: $\arg(H(\nu)) = \pi D \nu^2$ (quadratic frequency dependence)
+    \item \textbf{Symmetry}: $H(-\nu) = H(\nu)$ for real $D$ (real impulse response)
+\end{itemize}
+
+This quadratic form is universal for weak-dispersion regimes in all dispersive media: 
+optical fiber, waveguides, plasma, prisms, etc.
