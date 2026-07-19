@@ -1,0 +1,15 @@
+# vsim -c -do "run -all; quit" tb_flash_adc 
+# Start time: 12:40:47 on Jul 04,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading work.tb_flash_adc(sim)
+# Loading work.flash_adc_behavioral(behavioral)
+# Loading work.flash_adc_structural(structural)
+# Loading work.comparator(behavioral)
+# run -all
+# ** Note: PASS: all 201 v_in sweep points gave IDENTICAL behavioral/structural codes
+#    Time: 202 ns  Iteration: 0  Instance: /tb_flash_adc
+#  quit
+# End time: 12:40:47 on Jul 04,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
