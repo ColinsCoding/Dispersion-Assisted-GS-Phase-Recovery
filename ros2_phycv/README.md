@@ -48,6 +48,16 @@ ros2 run rqt_image_view rqt_image_view /phycv/edges
 | `warp`         | `15.0` | PST warp W |
 | `sigma_lpf`    | `0.2`  | localization low-pass width |
 | `threshold`    | `0.3`  | edge threshold (fraction of peak phase) |
+| `use_rom`      | `true` | publish the **ROM-quantized** PST (bit-matches the FPGA data path); `false` = exact float kernel |
+| `rom_bits`     | `8`    | fixed-point width of the radial coefficient ROM |
+| `rom_bins`     | `256`  | number of radial ROM entries |
+
+With `use_rom:=true` (default) the node builds the signed fixed-point **radial coefficient
+ROM** once at start-up (`pst_rom.py`) and runs the hardware-faithful transform, so its
+`/phycv/edges` output matches what the block-RAM ROM in
+`physics_repo/notebooks/pst_page_phase_kernels_rom.ipynb` would produce (verified: >99.9%
+edge-map agreement with the float kernel). The ROM is fixed at launch, as on an FPGA;
+change `strength`/`warp`/`sigma_lpf` and relaunch to reload it.
 
 ## Testing
 
