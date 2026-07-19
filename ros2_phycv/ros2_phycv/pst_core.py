@@ -21,7 +21,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-__all__ = ["PstParams", "PstResult", "phase_stretch_transform"]
+__all__ = ["PstParams", "PstResult", "phase_stretch_transform", "apply_phase_kernel", "normalize_pedestal"]
 
 
 @dataclass(frozen=True)
@@ -54,24 +54,35 @@ def _phase_kernel(shape: tuple[int, int], params: PstParams) -> np.ndarray:
     return lpf * np.exp(1j * phi)
 
 
-def phase_stretch_transform(gray: np.ndarray, params: PstParams | None = None) -> PstResult:
-    """Apply PST to a 2-D grayscale image and return the phase feature and edge map.
+def normalize_pedestal(gray: np.ndarray) -> np.ndarray:
+    """Normalize a 2-D image to [0.2, 1.0] (a DC pedestal avoids flat-region phase noise)."""
+    gray = np.asarray(gray, dtype=float)
+    if gray.ndim != 2:
+        raise ValueError(f"expected a 2-D grayscale image, got shape {gray.shape}")
+    lo, hi = float(gray.min()), float(gray.max())
+    norm = (gray - lo) / (hi - lo) if hi > lo else np.zeros_like(gray)
+    return 0.2 + 0.8 * norm
 
-    The input is normalized to [0, 1] with a small DC pedestal so flat regions do not
-    produce phase-wrap noise.
+
+def apply_phase_kernel(gray: np.ndarray, kernel: np.ndarray, threshold: float) -> PstResult:
+    """Apply an arbitrary complex phase kernel (float or ROM-quantized) and threshold the phase.
+
+    Sharing this step keeps the float and ROM-quantized transforms bit-identical apart from
+    the kernel itself -- exactly what the FPGA does with a coefficient ROM.
     """
+    norm = normalize_pedestal(gray)
+    phase = np.angle(np.fft.ifft2(np.asarray(kernel) * np.fft.fft2(norm)))
+    magnitude = np.abs(phase)
+    peak = float(magnitude.max())
+    edges = magnitude > threshold * peak if peak > 0 else np.zeros_like(magnitude, dtype=bool)
+    return PstResult(phase=phase, edges=edges)
+
+
+def phase_stretch_transform(gray: np.ndarray, params: PstParams | None = None) -> PstResult:
+    """Apply PST with the exact (float) phase kernel and return the phase feature and edge map."""
     params = params or PstParams()
     gray = np.asarray(gray, dtype=float)
     if gray.ndim != 2:
         raise ValueError(f"expected a 2-D grayscale image, got shape {gray.shape}")
-
-    lo, hi = float(gray.min()), float(gray.max())
-    norm = (gray - lo) / (hi - lo) if hi > lo else np.zeros_like(gray)
-    norm = 0.2 + 0.8 * norm  # DC pedestal
-
     kernel = _phase_kernel(gray.shape, params)
-    phase = np.angle(np.fft.ifft2(kernel * np.fft.fft2(norm)))
-    magnitude = np.abs(phase)
-    peak = magnitude.max()
-    edges = magnitude > params.threshold * peak if peak > 0 else np.zeros_like(magnitude, dtype=bool)
-    return PstResult(phase=phase, edges=edges)
+    return apply_phase_kernel(gray, kernel, params.threshold)
