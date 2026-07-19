@@ -1,0 +1,63 @@
+{
+  "downloaded": [],
+  "errors_sample": [
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar",
+      "404 Not Found"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar",
+      "404 Not Found"
+    ],
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar",
+      "404 Not Found"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar",
+      "404 Not Found"
+    ],
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/Data FBG group delay.mat",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=Data FBG group delay.mat",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/stash/downloads/file?file=Data+FBG+group+delay.mat",
+      "403 Forbidden"
+    ],
+    [
+      "https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2/files/Data+FBG+group+delay.mat",
+      "404 Not Found"
+    ]
+  ],
+  "out_dir": "d:\\Summer2026\\Dispersion-Assisted-GS-Phase-Recovery\\notebooks\\dryad_auto_fetch",
+  "manual_instructions": [
+    "Open the Dryad dataset page in your browser: https://datadryad.org/dataset/doi:10.5061/dryad.2h7d2",
+    "Download these files manually into the folder: d:\\Summer2026\\Dispersion-Assisted-GS-Phase-Recovery\\notebooks\\dryad_auto_fetch",
+    " - 0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar",
+    " - 0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar",
+    " - Data FBG group delay.mat",
+    "If you downloaded .rar archives, extract them locally (7-Zip or unrar) into the same folder.",
+    "After extraction, run your local loader cell to parse the extracted numeric files and reconstruct traces."
+  ]
+}
