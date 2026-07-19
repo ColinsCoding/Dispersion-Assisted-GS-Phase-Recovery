@@ -28,10 +28,13 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 # ── CTA registry ──────────────────────────────────────────────────────────────
-# Priority 1 = the six CTAs marked (red arrows) on the OUSD(R&E) Critical
-# Technology Areas list this project targets: FutureG, Trusted AI & Autonomy,
-# Advanced Computing & Software, Integrated Sensing & Cyber, Directed Energy,
-# and Human-Machine Interfaces. Priority 2 = adjacent areas the repo touches.
+# Priority 1 = the CTAs this project actively targets with real, tested
+# modules: FutureG, Trusted AI & Autonomy, Advanced Computing & Software,
+# Integrated Sensing & Cyber, Directed Energy, Human-Machine Interfaces, and
+# Biotechnology (added once the repo's biotech-adjacent physics work --
+# STEAM cancer-cell detection, EPR dosimetry, magnetic hyperthermia, lab-on-
+# chip biosensing -- grew past "adjacent" into a real focus area). Priority 2
+# = adjacent areas the repo touches without dedicated modules yet.
 CTA = {
     "FutureG": {
         "priority": 1,
@@ -75,9 +78,15 @@ CTA = {
         "repo_components": ["adc_timing", "digital_logic", "firmware"],
     },
     "Biotechnology": {
-        "priority": 2,
-        "description": "Lab-on-chip microfluidic scanner; single-cell optical barcoding",
-        "repo_components": ["lab_on_chip", "microfluidics", "mujoco_scanner"],
+        "priority": 1,
+        "description": "Lab-on-chip microfluidic scanner; single-cell optical barcoding; "
+                       "STEAM-based circulating-tumor-cell detection in blood; ESR/EPR "
+                       "tooth-enamel radiation dosimetry; magnetic-nanoparticle hyperthermia "
+                       "cancer treatment (Hund's-rules-derived Fe2+/Fe3+ magnetic moments); "
+                       "CDI/Gerchberg-Saxton phase retrieval (structural biology lineage)",
+        "repo_components": ["lab_on_chip", "microfluidics", "mujoco_scanner",
+                            "steam_imaging", "biosensor_lab_on_chip", "esr_dosimetry",
+                            "magnetic_hyperthermia", "cdi_phase_retrieval"],
     },
     "Threat_Reduction_Adjacent": {
         "priority": 2,

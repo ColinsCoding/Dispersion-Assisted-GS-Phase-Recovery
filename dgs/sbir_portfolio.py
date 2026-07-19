@@ -1,9 +1,9 @@
-"""SBIR Portfolio: 6 proposals (P2-P7) built on this repo's physics stack.
+"""SBIR Portfolio: 7 proposals (P2-P8) built on this repo's physics stack.
 
 PROPOSAL LADDER (each builds on the last):
   P1 (EXISTING):  TD-GS Phase Recovery -- optical rogue wave monitor (RogueGuard)
                   $275K Phase I, OUSD FutureG / Integrated Sensing
-  P2 (THIS FILE): STEAM Microscopy -- femtosecond cell imaging + GS phase recovery
+  P2:             STEAM Microscopy -- femtosecond cell imaging + GS phase recovery
                   $275K Phase I, NIH SBIR / BARDA / NSF IIP
   P3:             CRISPR Target Verification -- ultrafast laser + STEAM confirms
                   gene edit in single cell <1 ms, no off-target damage scoring
@@ -15,6 +15,10 @@ PROPOSAL LADDER (each builds on the last):
                   $275K Phase I, DARPA BTO (Biological Technologies Office)
   P7:             Photonic AI Receiver (Project 4) -- STEAM + ML for comms
                   $1.75M Phase II (build on P1 + P4), OUSD Trusted AI
+  P8 (THIS FILE, PRIORITIZED FIRST): Generative AI Phase Retrieval Prior --
+                  learned generative prior replacing dispersion_gs_descent.py's
+                  hand-designed smoothness regularizer
+                  $275K Phase I, OUSD FutureG / Trusted AI and Autonomy
 
 MATH CHAIN (same physics runs through all 7):
   H(f) = exp(i*pi*D*f^2)           [GVD dispersion operator, Griffiths Ch 9]
@@ -42,7 +46,14 @@ PROPOSALS = {
         "topic": "Ultrafast label-free cell imaging for pathogen detection",
         "significance": (
             "Current flow cytometers image 10,000 cells/second at 1-2 pixel resolution. "
-            "STEAM reaches 36,000,000 fps with diffraction-limited resolution. "
+            "The foundational STEAM demonstration (Goda, Tsia, Jalali, Nature 2009) achieved "
+            "continuous real-time imaging at a 163 ns frame period (6.1 MHz frame rate) and a "
+            "440 ps shutter speed, applied to microfluidic flow and laser-ablation phase-"
+            "explosion imaging -- already >600x faster than conventional cytometry. "
+            "(The N-STEAM variant's 36.1 MHz figure, cited separately below, is from a "
+            "different, later Nomarski/DIC-contrast configuration -- NOT the same "
+            "demonstration as the 6.1 MHz baseline; both numbers should be cited to their "
+            "correct source, not conflated, in the actual submitted proposal.) "
             "A single 6-minute blood draw contains enough cells to detect 1 circulating "
             "tumor cell (CTC) in 10^9 blood cells -- impossible with conventional cameras."
         ),
@@ -53,6 +64,36 @@ PROPOSALS = {
             "Phase contrast doubles the morphological features available for classification. "
             "No existing STEAM system recovers phase in real time."
         ),
+        "no_local_oscillator_advantage": (
+            "Conventional coherent detection (interferometric phase measurement) requires "
+            "mixing the signal with a LOCAL OSCILLATOR (LO) -- a reference beam that must be "
+            "phase-locked to the source, adding real hardware (a second laser or a split-off "
+            "reference arm, active phase-locking electronics) and real failure modes (LO drift, "
+            "polarization mismatch, the LO's own phase noise setting a sensitivity floor). "
+            "GS phase recovery from two dispersed intensity measurements needs NEITHER a "
+            "reference beam nor phase-locking -- it recovers phase from intensity alone. "
+            "This is the literal 'carrier-less coherent receiver' framing from the original "
+            "project brief this repo grew out of: two ordinary photodetectors, no LO hardware, "
+            "no interferometric alignment to maintain."
+        ),
+        "verified_citations": [
+            "K. Goda, K. K. Tsia, B. Jalali, 'Serial time-encoded amplified imaging for "
+            "real-time observation of fast dynamic phenomena,' Nature 458, 1145-1149 (2009) "
+            "-- the original STEAM paper; establishes the >1000x frame-rate advantage over "
+            "conventional CCDs this proposal's significance section is built on.",
+            "D. R. Solli, S. Gupta, B. Jalali, 'Optical phase recovery in the dispersive "
+            "Fourier transform,' Applied Physics Letters 95, 231108 (2009) -- the actual "
+            "paper this repo's core TD-GS algorithm implements (Reference [2] in the "
+            "original project brief); experimentally demonstrates the time-domain GS "
+            "algorithm removing the dispersion requirement.",
+            "N-STEAM (Nomarski/DIC-STEAM), Jalali Lab UCLA: 36.1 MHz (36 Mfps) demonstrated "
+            "frame rate -- the source of the '36 Mfps' figure used throughout this proposal "
+            "portfolio (P2, P4, P5); note this specific number is from the N-STEAM variant "
+            "(adds Nomarski/DIC contrast for transparent objects), not necessarily identical "
+            "hardware to the phase-contrast STEAM configuration proposed here -- worth "
+            "verifying against the specific N-STEAM paper before quoting in a submitted "
+            "proposal, rather than treating it as automatically transferable.",
+        ],
         "approach": [
             "Month 1-2: Extend dgs/steam_imaging.py forward model to include phase-contrast STEAM",
             "Month 3-4: GS convergence with two dispersive paths (D1=-5000, D2=-15000 ps^2)",
@@ -291,6 +332,72 @@ PROPOSALS = {
                          "dgs/bayes_inference.py", "dgs/photonic_ai.py"],
         "ousd_cta": "FutureG + Trusted AI + Integrated Sensing",
     },
+
+    "P8_GENERATIVE_PRIOR": {
+        "title": "Generative AI Priors for Dispersion-Assisted Phase Retrieval",
+        "agency": "OUSD FutureG / Trusted AI and Autonomy",
+        "phase": "Phase I",
+        "budget": 275_000,
+        "duration_months": 6,
+        "topic": "Learned generative priors replacing hand-designed regularization in GS phase recovery",
+        "significance": (
+            "Classical GS (P1, P2, P7) and even the existing differentiable gradient-descent "
+            "variant (dgs/dispersion_gs_descent.py) regularize the ill-posed low-diversity case "
+            "with a single HAND-DESIGNED prior (field smoothness). A LEARNED generative prior -- "
+            "a small network trained on the actual distribution of plausible signals for a given "
+            "modulation format -- can encode far richer structure than a smoothness penalty alone, "
+            "the same idea behind compressed-sensing-with-generative-priors and 'Deep Image Prior' "
+            "work in the broader inverse-problems literature, applied here to dispersion-assisted "
+            "phase retrieval specifically."
+        ),
+        "innovation": (
+            "Replace dispersion_gs_descent.py's fixed smoothness regularizer with a trained "
+            "generative network G(z) whose output is constrained to lie on the learned manifold "
+            "of realistic fields; optimize argmin_z ||disperse(G(z))|^2 - I2||^2 instead of "
+            "argmin_phi directly. dgs/gs_diff.py's existing differentiable forward model and "
+            "dgs/torch/gs_layer.py's GSLayer module are the exact building blocks this reuses -- "
+            "the forward physics (disperse, |.|^2) is unchanged and already tested; only the "
+            "PRIOR being optimized against changes, from a fixed penalty to a learned network."
+        ),
+        "approach": [
+            "Month 1-2: Train a small generative network (VAE or simple GAN) on synthetic "
+            "signal distributions per modulation format (reusing dgs/gs_core.py's make_measurements "
+            "as the data generator)",
+            "Month 3-4: Wire the trained generator into dispersion_gs_descent.py's optimization "
+            "loop as a drop-in prior replacement; compare convergence rate and final error against "
+            "the existing smoothness-only baseline",
+            "Month 5: Stress-test on the low-diversity (|D1-D2| small) regime where classical GS "
+            "is known to fail -- this is precisely where a richer learned prior should help most",
+            "Month 6: Benchmark report; Phase II proposal drafted if the generative prior shows "
+            "a measurable convergence/robustness improvement over the existing baseline",
+        ],
+        "milestones": {
+            "M1": "Generative network trained, reconstructs held-out synthetic signals with "
+                  "correlation > 0.9 to ground truth",
+            "M2": "Generative-prior GS integrated into dispersion_gs_descent.py's existing "
+                  "optimization loop, runs end-to-end without regressing the current baseline",
+            "M3": "Head-to-head comparison vs. smoothness-only prior: convergence rate, final "
+                  "phase error, and robustness at low D-diversity, all measured (not projected)",
+            "M4": "Phase II go/no-go decision based on M3's actual measured improvement, not "
+                  "assumed in advance",
+        },
+        "griffiths_physics": (
+            "Same H(f)=exp(i*pi*D*f^2) dispersion operator as every other proposal in this "
+            "portfolio (Ch 9 GVD) -- P8 changes only the INVERSE PROBLEM's regularization "
+            "strategy, not the forward physics, which is unchanged and already validated "
+            "elsewhere in this repo."
+        ),
+        "repo_modules": ["dgs/gs_diff.py", "dgs/dispersion_gs_descent.py",
+                         "dgs/torch/gs_layer.py", "dgs/gs_core.py"],
+        "ousd_cta": "Trusted AI and Autonomy + FutureG",
+        "honesty_note": (
+            "This extends EXISTING, already-working code (gs_diff.py, dispersion_gs_descent.py, "
+            "gs_layer.py all currently in this repo) -- it is not a from-scratch concept. M3's "
+            "comparison is explicitly framed as an open question (go/no-go), not a foregone "
+            "conclusion -- the smoothness prior may turn out to be competitive in some regimes, "
+            "and the proposal should say so rather than assume the generative approach always wins."
+        ),
+    },
 }
 
 
@@ -332,10 +439,11 @@ def budget_breakdown(proposal_key):
 # ── Timeline ─────────────────────────────────────────────────────────────────
 
 def portfolio_timeline():
-    """Gantt-style timeline for submitting all 6 proposals."""
+    """Gantt-style timeline for submitting all 7 new proposals (P8 prioritized first)."""
     return [
+        {"proposal": "P8 Generative Prior", "submit_quarter": "Q3-2026", "status": "READY -- submit FIRST (prioritized)"},
         {"proposal": "P1 RogueGuard",    "submit_quarter": "Q1-2026", "status": "EXISTING"},
-        {"proposal": "P2 STEAM",          "submit_quarter": "Q3-2026", "status": "READY -- submit now"},
+        {"proposal": "P2 STEAM",          "submit_quarter": "Q4-2026", "status": "READY -- submit after P8"},
         {"proposal": "P3 CRISPR",         "submit_quarter": "Q1-2027", "status": "6 months after P2"},
         {"proposal": "P4 CUDA",           "submit_quarter": "Q2-2027", "status": "parallel with P3"},
         {"proposal": "P5 Bayes CTC",      "submit_quarter": "Q3-2027", "status": "after P2 data"},
@@ -344,11 +452,182 @@ def portfolio_timeline():
     ]
 
 
+# ── Startup phase: SBIR -> commercialization ──────────────────────────────────
+
+def startup_phase_roadmap():
+    """The real steps between 'SBIR proposals drafted' and 'an actual
+    company' -- SBIR Phase I/II are federally-funded R&D; Phase III is
+    EXPLICITLY not SBIR-funded (no federal money comes with it) -- it's
+    where a spinoff has to survive on private capital, non-SBIR federal
+    contracts, or real customers. This function returns the honest
+    ordered checklist, not a hype timeline; step 0 is a blocking
+    prerequisite, not optional groundwork to circle back to later."""
+    return [
+        {
+            "step": 0,
+            "name": "IP ownership resolution",
+            "blocking": True,
+            "detail": (
+                "If any core algorithm work (GS phase retrieval, the dispersion "
+                "operator implementation, etc.) was developed while affiliated with "
+                "Jalali's UCLA lab -- using lab resources, lab data, or building "
+                "directly on lab code -- UCLA's standard invention-assignment policy "
+                "may give the university a real claim on that IP. This must be "
+                "resolved (via UCLA's tech transfer office, or an actual IP attorney) "
+                "BEFORE incorporating or raising money around it. Getting this "
+                "backwards is expensive to unwind later, not just embarrassing."
+            ),
+        },
+        {
+            "step": 1,
+            "name": "Pick ONE product to lead with",
+            "blocking": False,
+            "detail": (
+                "Not all 8 proposals at once. P1 (RogueGuard) is the most 'real "
+                "hardware' candidate (physical 1U monitoring unit, RPi CM4 + dual "
+                "ADC -- something a customer can actually buy and install). "
+                "P8 (generative AI phase retrieval prior) is the most novel software "
+                "IP but has no physical product yet. A startup needs ONE clear "
+                "product story for investors/customers, not a research portfolio."
+            ),
+        },
+        {
+            "step": 2,
+            "name": "Patent timing, if pursuing IP protection",
+            "blocking": False,
+            "detail": (
+                "US patent law is first-to-file, and public disclosure BEFORE filing "
+                "(a published paper, a public GitHub repo describing the invention, "
+                "even some conference talks) can start a 1-year clock (US) or bar "
+                "patentability entirely (most other countries, no grace period). "
+                "If patent protection matters to the business plan, a provisional "
+                "patent application should be evaluated BEFORE any further public "
+                "disclosure -- this is a real, time-sensitive legal question, not "
+                "busywork."
+            ),
+        },
+        {
+            "step": 3,
+            "name": "Entity formation",
+            "blocking": False,
+            "detail": (
+                "Delaware C-corp is the standard structure if outside (VC/angel) "
+                "investment is the plan -- it's what most institutional investors "
+                "expect and know how to fund. An LLC is simpler/cheaper if the near-"
+                "term plan is government contracts (SBIR Phase II, direct sales) "
+                "without outside equity investors. This choice is hard to reverse "
+                "cheaply later, so it should follow from steps 0-1, not precede them."
+            ),
+        },
+        {
+            "step": 4,
+            "name": "Non-dilutive funding first (SBIR Phase II, if P1/P7 track holds)",
+            "blocking": False,
+            "detail": (
+                "SBIR Phase II ($1.75M, no equity given up) is real money that "
+                "doesn't require an investor pitch -- worth pursuing before or "
+                "alongside any private fundraising, since it directly funds building "
+                "the P1/P7 hardware+software without diluting ownership."
+            ),
+        },
+        {
+            "step": 5,
+            "name": "SBIR Phase III: the actual 'startup phase'",
+            "blocking": False,
+            "detail": (
+                "Phase III has NO federal R&D funding attached -- by SBIR program "
+                "design, this is where the company must commercialize on private "
+                "capital, follow-on non-SBIR federal contracts, or direct sales. "
+                "This is the actual transition point 'startup phase' refers to: "
+                "everything before this is still federally-funded research, not "
+                "yet a company with revenue or investors."
+            ),
+        },
+    ]
+
+
+# ── Photonics HARDWARE manufacturing funding (distinct from software SBIR) ────
+
+def photonics_manufacturing_funding_landscape():
+    """Real funding mechanisms specific to scaling an integrated-photonics
+    HARDWARE product (e.g. the fab process in
+    dgs/silicon_photonics_manufacturing_chemistry.py) from a chip design to
+    a manufactured device -- a genuinely different, more capital-intensive
+    path than the pure-software/algorithm SBIR proposals above. Figures
+    below are representative industry ballparks (hedged as such), not
+    precise official numbers -- verify current amounts before citing them
+    in an actual proposal."""
+    return [
+        {
+            "mechanism": "AIM Photonics (Manufacturing USA institute)",
+            "type": "DoD-backed manufacturing institute, not a grant per se",
+            "detail": (
+                "AIM Photonics (headquartered at SUNY Polytechnic Institute) is a "
+                "real, existing DoD-backed Manufacturing USA institute created "
+                "specifically to scale US integrated-photonics manufacturing. It "
+                "runs shared fabrication access programs and workforce training -- "
+                "worth investigating membership/access terms directly rather than "
+                "assuming a specific cost here."
+            ),
+        },
+        {
+            "mechanism": "Multi-Project Wafer (MPW) shuttle runs",
+            "type": "shared fabrication, NOT a full dedicated wafer lot",
+            "detail": (
+                "Several designs share one mask set/wafer run, splitting the "
+                "otherwise-prohibitive NRE (non-recurring engineering) cost across "
+                "customers. Real providers include AIM Photonics, imec, and "
+                "commercial silicon photonics foundries. Representative industry "
+                "range: roughly tens of thousands to a few hundred thousand dollars "
+                "per shuttle slot, depending on process and foundry -- get a current "
+                "quote before budgeting, this varies a lot."
+            ),
+        },
+        {
+            "mechanism": "CHIPS and Science Act (2022)",
+            "type": "federal legislation, multiple sub-programs",
+            "detail": (
+                "Real 2022 US legislation. Most headline CHIPS Act money targets "
+                "leading-edge logic fab construction, but CHIPS R&D and related NSF "
+                "programs may have eligibility relevant to photonics-adjacent "
+                "manufacturing research -- this needs direct verification against "
+                "current program solicitations, not assumed from the Act's general "
+                "reputation."
+            ),
+        },
+        {
+            "mechanism": "SBIR Phase I/II (this file's P2-P8)",
+            "type": "non-dilutive, but NOT enough alone for a manufactured product",
+            "detail": (
+                "$275K Phase I / $1.75M Phase II typically covers algorithm/"
+                "prototype development and MAYBE an MPW shuttle slot -- but not a "
+                "dedicated wafer lot, packaging line, or test infrastructure. "
+                "Realistic path: SBIR funds the design + shared-shuttle validation; "
+                "scaling to a manufactured product needs the other mechanisms here "
+                "or private capital."
+            ),
+        },
+        {
+            "mechanism": "Private capital (seed / Series A)",
+            "type": "dilutive, but often necessary for hardware scale-up",
+            "detail": (
+                "Photonics hardware startups typically need MORE capital, EARLIER, "
+                "than a comparable software startup -- NRE, packaging/testing "
+                "equipment, and longer enterprise/defense sales cycles all cost "
+                "real money before first revenue. Investors in this space usually "
+                "expect working MPW-validated silicon (not just simulation results) "
+                "before writing a check -- which is exactly why the non-dilutive "
+                "mechanisms above matter as a bridge."
+            ),
+        },
+    ]
+
+
 # ── Demo ──────────────────────────────────────────────────────────────────────
 
 def demo():
     print("=" * 65)
-    print("  SBIR PORTFOLIO  P2-P7  --  Dispersion-Assisted GS Platform")
+    print("  SBIR PORTFOLIO  P2-P8  --  Dispersion-Assisted GS Platform")
     print("=" * 65)
 
     for key, p in PROPOSALS.items():
@@ -360,6 +639,10 @@ def demo():
         print(f"  {p['significance'][:120]}...")
         print(f"\n  INNOVATION (core claim):")
         print(f"  {p['innovation'][:120]}...")
+        if "verified_citations" in p:
+            print(f"\n  VERIFIED CITATIONS ({len(p['verified_citations'])}):")
+            for cite in p["verified_citations"]:
+                print(f"  - {cite[:100]}...")
         print(f"\n  Griffiths: {p['griffiths_physics'][:80]}")
         print(f"  Modules:   {', '.join(p['repo_modules'][:3])}")
 
@@ -371,22 +654,39 @@ def demo():
         print(f"  {row['proposal']:22s} {row['submit_quarter']:12s} {row['status']}")
 
     print(f"\n{'='*65}")
-    print("  PHYSICS CHAIN CONNECTING ALL 7 PROPOSALS")
+    print("  PHYSICS CHAIN CONNECTING ALL 8 PROPOSALS")
     print(f"{'='*65}")
     chain = [
         ("H(f)=exp(i*pi*D*f^2)", "Griffiths Ch9 GVD", "ALL proposals"),
-        ("GS phase retrieval",    "dgs/gs_core.py",    "P1,P2,P3,P4,P5,P7"),
+        ("GS phase retrieval",    "dgs/gs_core.py",    "P1,P2,P3,P4,P5,P7,P8"),
         ("NLSE soliton/rogue",    "dgs/nlse.py",       "P1,P6"),
         ("CUDA cuFFT",            "dgs/gs_cuda.py",    "P4,P7"),
         ("Bayes classifier",      "dgs/bayes_inference.py","P5,P3,P7"),
         ("STEAM forward model",   "dgs/steam_imaging.py",  "P2,P3,P4,P5,P6"),
         ("NN conjugate resolver", "dgs/nn_spectral_regression.py","P5,P7"),
+        ("Differentiable GS + generative prior", "dgs/gs_diff.py, dgs/dispersion_gs_descent.py", "P8"),
     ]
     for physics, module, proposals in chain:
         print(f"  {physics:30s} {module:32s} {proposals}")
 
-    print(f"\n  TOTAL PORTFOLIO VALUE: $275K x5 (P2-P6) + $1.75M (P7) = $3.125M")
-    print(f"  NEXT ACTION: Draft P2 STEAM executive summary -> send to NIH SBIR portal")
+    print(f"\n  TOTAL PORTFOLIO VALUE: $275K x6 (P2-P6,P8) + $1.75M (P7) = $3.4M")
+    print(f"  NEXT ACTION: P8 (Generative AI Phase Retrieval Prior) prioritized first --")
+    print(f"  draft executive summary -> OUSD FutureG/Trusted AI submission portal")
+
+    print(f"\n{'='*65}")
+    print("  STARTUP PHASE ROADMAP (SBIR -> commercialization)")
+    print(f"{'='*65}")
+    for item in startup_phase_roadmap():
+        blocking_tag = "  <-- BLOCKING, do this first" if item["blocking"] else ""
+        print(f"\n  Step {item['step']}: {item['name']}{blocking_tag}")
+        print(f"  {item['detail']}")
+
+    print(f"\n{'='*65}")
+    print("  PHOTONICS HARDWARE MANUFACTURING FUNDING (distinct from software SBIR)")
+    print(f"{'='*65}")
+    for item in photonics_manufacturing_funding_landscape():
+        print(f"\n  {item['mechanism']}  [{item['type']}]")
+        print(f"  {item['detail']}")
 
 
 if __name__ == "__main__":
