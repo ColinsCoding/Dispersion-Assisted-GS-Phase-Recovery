@@ -41,6 +41,32 @@ CHIRPLOG  = -m dgs.chirp_log_diff
 ANALOGCOMP = -m dgs.analog_computing_universality
 TDR       = -m dgs.transmission_line_tdr
 CURLDIVQM = -m dgs.curl_div_modern_physics
+CONSTPREC = -m dgs.physical_constants_precision
+ALLPASS   = -m dgs.allpass_dispersion_analog
+CLOCKSKEW = -m dgs.clock_skew_relativity
+MODARITH  = -m dgs.machine_modular_arithmetic
+MOCAP     = -m dgs.optical_mocap_quadruped
+FAMOUSC   = -m dgs.famous_c_code
+CUDATS    = -m dgs.cuda_time_stretch_runner
+ADCSNR    = -m dgs.adc_snr_bits
+LHOPITAL  = -m dgs.lhopital_rule
+MOLFRAUNHOFER = -m dgs.molecular_fraunhofer_phase_problem
+SILICONPHOTONIC = -m dgs.silicon_photonic_interconnect
+BIOSENSOR = -m dgs.photonic_biosensor_lab_on_chip
+PHOTONDELAY = -m dgs.photonic_vs_electronic_delay
+STEAM3D = -m dgs.steam_3d_depth_encoding
+ESR       = -m dgs.electron_spin_resonance
+THOMAS    = -m dgs.thomas_precession_gyromagnetic_anomaly
+STERNGERLACH = -m dgs.torch.stern_gerlach_zeeman_hydrogen
+TOTALJ    = -m dgs.total_angular_momentum_coupling
+HARTREESCF = -m dgs.hartree_scf_atom
+SIPHOTONICSMFG = -m dgs.silicon_photonics_manufacturing_chemistry
+SBIR      = -m dgs.sbir_portfolio
+FIREWORK  = -m dgs.torch.firework_particle_system
+SYMPYVR   = -m dgs.sympy_vr_windows
+CUDAPTR   = -m dgs.torch.cuda_pointer_arithmetic
+RICEGRAIN = -m dgs.rice_grain_physics
+HUNDSHYPERTHERMIA = -m dgs.hunds_rules_magnetic_hyperthermia
 POLYGLOT  = -m dgs.circuits_polyglot
 TRUSS_FEM = -m dgs.torch.truss_fem
 GRADXFORM = -m dgs.torch.gradient_transform_verify
@@ -87,6 +113,34 @@ help:
 	@echo "  make analogcomp  — molecular/mechanical/RLC/op-amp analog computer all solve the SAME ODE, verified"
 	@echo "  make tdr         — skin effect (log-differentiation) + transmission lines + a simulated TDR measurement"
 	@echo "  make curldivqm   — curl/div in modern physics: QM probability continuity + Aharonov-Bohm effect"
+	@echo "  make constprec   — data-type selection for physical constants: exact SI constants vs G vs QED's alpha"
+	@echo "  make allpass     — bench-buildable electronic dispersion analog: all-pass filter V1(t)/V2(t) two-arm circuit"
+	@echo "  make clockskew   — clock skew (CE) vs relativity of simultaneity: honestly-scoped analogy, real PCB numbers"
+	@echo "  make modarith    — machine integer overflow IS arithmetic mod 2^n, verified against real gcc-compiled C"
+	@echo "  make mocap       — optical mocap: IR markers on a trotting quadruped, 2-camera triangulation reconstruction"
+	@echo "  make famousc     — Quake III fast inverse sqrt (Q_rsqrt), actually compiled/run, cross-checked vs exact 1/sqrt(x)"
+	@echo "  make cudats      — real CUDA time-stretch kernel (nvcc+cuFFT, actually compiled/run on GPU) vs NumPy reference"
+	@echo "  make adcsnr      — SNR proportional to bits: 6.02N+1.76 dB derived + simulated, ties to flash ADC + float32/64"
+	@echo "  make lhopital    — L'Hopital's rule proved (Cauchy MVT) + applied to diffraction_grating's hardcoded sinc(0)=1"
+	@echo "  make molfraunhofer — molecular Fraunhofer diffraction + CDI phase problem, HIO + multi-start + R-factor (research pathway)"
+	@echo "  make siliconphotonic — CPO vs copper: real 2026 NVIDIA roadmap, skin-effect reach vs optical loss"
+	@echo "  make biosensor   — silicon microring lab-on-chip biosensor: Q/sensitivity/LOD vs real literature"
+	@echo "  make photondelay — fiber/dispersion delay (ns) vs CMOS gate delay (ps): which needs a faster scope"
+	@echo "  make steam3d     — proposed 3D STEAM: grating+VIPA xy + chromatic-confocal z, time-multiplexed"
+	@echo "  make esr         — electron spin resonance: gyromagnetic ratio, space quantization, tooth-enamel EPR dosimetry"
+	@echo "  make thomas      — classical spin sphere fails (v>c), gyromagnetic anomaly, Thomas precession, error propagation"
+	@echo "  make sterngerlach — silver-beam Stern-Gerlach (even split=spin) + anomalous Zeeman spectrum of hydrogen (torch, py-3.12)"
+	@echo "  make totalj      — J=L+S is the sharp observable (matrix commutator proof) + term symbols + MRI Larmor"
+	@echo "  make hartreescf  — Hartree SCF for carbon (1s2 2s2 2p2): finite-diff radial solver, Thomas-Fermi, quantum defect"
+	@echo "  make siphotonicsmfg — E=hc/lambda -> lithography resolution -> silicon photonics fab process chemistry"
+	@echo "  make sbir        — SBIR portfolio P2-P8 + startup roadmap + photonics hardware manufacturing funding"
+	@echo "  make firework    — GPU/CUDA firework particle system (torch, py-3.12): real projectile+drag physics"
+	@echo "  make notebook-firework — build + execute firework_light_show.ipynb (animated GIF, py312/torch)"
+	@echo "  make sympyvr     — live SymPy windows in stereo VR: real parallax, verified vs dgs.spatial_computing"
+	@echo "  make hundshyperthermia — Hund's rules (Fe3+/Fe2+ ground terms) -> magnetic hyperthermia cancer treatment physics"
+	@echo "  make cudaptr     — CUDA thread indexing + tensor strides ARE pointer arithmetic (verified vs torch), int32 overflow"
+	@echo "  make ricegrain   — rice grain moisture diffusion (Fick's law), starch gelatinization, silica-gel desiccant fact-check"
+	@echo "  make notebook-rice — build + execute rice_grain_physics.ipynb"
 	@echo "  make harmonicgrad — Problem 1.20 as linear algebra (Jacobian trace/antisymmetric part) via torch, + generator theorem"
 	@echo "  make polyglot    — series RLC RK4 run for real in C, MATLAB, and Python, cross-checked"
 	@echo "  make bridge      — torch differentiable truss FEM demo (py-3.12) + Unreal trajectory export"
@@ -99,6 +153,7 @@ help:
 	@echo "  make pts-grammar — evaluate Coppinger 1999 system via PDL grammar"
 	@echo "  make notebook-jalali  — build + execute rogue_wave_ai_detection.ipynb"
 	@echo "  make notebook-rogue   — alias for notebook-jalali"
+	@echo "  make notebook-spin    — build + execute quantum_spin_zeeman_mri.ipynb (ESR/Stern-Gerlach/MRI, py312/torch)"
 	@echo "  make smoke-jalali     — quick smoke tests for jalali + grammar"
 	@echo "  make smoke-coppinger  — quick smoke tests for coppinger_jalali_1999"
 	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
@@ -252,6 +307,124 @@ tdr:
 curldivqm:
 	$(PYTHON) $(CURLDIVQM)
 
+.PHONY: constprec
+constprec:
+	$(PYTHON) $(CONSTPREC)
+
+.PHONY: allpass
+allpass:
+	$(PYTHON) $(ALLPASS)
+
+.PHONY: clockskew
+clockskew:
+	$(PYTHON) $(CLOCKSKEW)
+
+.PHONY: modarith
+modarith:
+	$(PYTHON) $(MODARITH)
+
+.PHONY: mocap
+mocap:
+	$(PYTHON) $(MOCAP)
+
+.PHONY: famousc
+famousc:
+	$(PYTHON) $(FAMOUSC)
+
+.PHONY: cudats
+cudats:
+	$(PYTHON) $(CUDATS)
+
+.PHONY: adcsnr
+adcsnr:
+	$(PYTHON) $(ADCSNR)
+
+.PHONY: lhopital
+lhopital:
+	$(PYTHON) $(LHOPITAL)
+
+.PHONY: molfraunhofer
+molfraunhofer:
+	$(PYTHON) $(MOLFRAUNHOFER)
+
+.PHONY: siliconphotonic
+siliconphotonic:
+	$(PYTHON) $(SILICONPHOTONIC)
+
+.PHONY: biosensor
+biosensor:
+	$(PYTHON) $(BIOSENSOR)
+
+.PHONY: photondelay
+photondelay:
+	$(PYTHON) $(PHOTONDELAY)
+
+.PHONY: steam3d
+steam3d:
+	$(PYTHON) $(STEAM3D)
+
+.PHONY: esr
+esr:
+	$(PYTHON) $(ESR)
+
+.PHONY: thomas
+thomas:
+	$(PYTHON) $(THOMAS)
+
+.PHONY: sterngerlach
+sterngerlach:
+	$(PYTHON312) $(STERNGERLACH)
+
+.PHONY: totalj
+totalj:
+	$(PYTHON) $(TOTALJ)
+
+.PHONY: hartreescf
+hartreescf:
+	$(PYTHON) $(HARTREESCF)
+
+.PHONY: siphotonicsmfg
+siphotonicsmfg:
+	$(PYTHON) $(SIPHOTONICSMFG)
+
+.PHONY: sbir
+sbir:
+	$(PYTHON) $(SBIR)
+
+.PHONY: firework
+firework:
+	$(PYTHON312) $(FIREWORK)
+
+.PHONY: sympyvr
+sympyvr:
+	$(PYTHON) $(SYMPYVR)
+
+.PHONY: hundshyperthermia
+hundshyperthermia:
+	$(PYTHON) $(HUNDSHYPERTHERMIA)
+
+.PHONY: cudaptr
+cudaptr:
+	$(PYTHON312) $(CUDAPTR)
+
+.PHONY: ricegrain
+ricegrain:
+	$(PYTHON) $(RICEGRAIN)
+
+.PHONY: notebook-rice
+notebook-rice:
+	$(PYTHON) scripts/build_rice_grain_physics_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute --inplace $(NB_DIR)/rice_grain_physics.ipynb \
+	    --ExecutePreprocessor.timeout=300
+	@echo "  notebook-rice done: $(NB_DIR)/rice_grain_physics.ipynb"
+
+.PHONY: notebook-firework
+notebook-firework:
+	$(PYTHON) scripts/build_firework_light_show_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute --inplace $(NB_DIR)/firework_light_show.ipynb \
+	    --ExecutePreprocessor.timeout=300 --ExecutePreprocessor.kernel_name=py312
+	@echo "  notebook-firework done: $(NB_DIR)/firework_light_show.ipynb"
+
 .PHONY: poker
 poker:
 	$(PYTHON) holographic_poker.py
@@ -367,6 +540,13 @@ notebook-jalali:
 
 .PHONY: notebook-rogue
 notebook-rogue: notebook-jalali
+
+.PHONY: notebook-spin
+notebook-spin:
+	$(PYTHON) scripts/build_quantum_spin_zeeman_mri_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute --inplace $(NB_DIR)/quantum_spin_zeeman_mri.ipynb \
+	    --ExecutePreprocessor.timeout=300 --ExecutePreprocessor.kernel_name=py312
+	@echo "  notebook-spin done: $(NB_DIR)/quantum_spin_zeeman_mri.ipynb"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INCOMPLETE — TODO for Phase I delivery
