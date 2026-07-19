@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Generated FPGA artifacts (regenerate with: python -m ros2_phycv.rom_export)
+fpga/

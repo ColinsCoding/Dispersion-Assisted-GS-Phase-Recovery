@@ -59,6 +59,24 @@ ROM** once at start-up (`pst_rom.py`) and runs the hardware-faithful transform, 
 edge-map agreement with the float kernel). The ROM is fixed at launch, as on an FPGA;
 change `strength`/`warp`/`sigma_lpf` and relaunch to reload it.
 
+## Export the ROM to FPGA artifacts (.coe + VHDL)
+
+The node's coefficient ROM can be dumped as the files an FPGA flow consumes -- one source
+of truth for software and hardware. Either set `export_rom_dir` on the node to write them
+at start-up, or use the standalone CLI:
+
+```bash
+python -m ros2_phycv.rom_export --out fpga --strength 4.0 --warp 15.0 --sigma-lpf 0.2
+# writes: pst_coeff_rom_re.coe, pst_coeff_rom_im.coe, pst_coeff_rom_packed.coe, pst_coeff_rom.vhd
+```
+
+- `*_re.coe` / `*_im.coe` -- Xilinx Block-Memory-Generator init vectors (signed 8-bit,
+  two's-complement hex) for the real and imaginary coefficient tables.
+- `*_packed.coe` -- both channels in one 16-bit word `{re[15:8], im[7:0]}`.
+- `*.vhd` -- a VHDL block-RAM ROM (registered read => BRAM), the same entity verified
+  bit-exact in Icarus Verilog in `physics_repo/notebooks/pst_page_phase_kernels_rom.ipynb`
+  (and re-checked here: the exported `.coe` simulates with 0 mismatches vs the software ROM).
+
 ## Testing
 
 The **algorithm** (PST core) and the **image bridge** are pure NumPy and unit-tested

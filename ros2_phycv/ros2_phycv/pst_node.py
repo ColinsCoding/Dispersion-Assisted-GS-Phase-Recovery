@@ -30,6 +30,7 @@ except ImportError:  # pragma: no cover
 from ros2_phycv.image_bridge import decode_to_gray, encode_mono8
 from ros2_phycv.pst_core import PstParams, phase_stretch_transform
 from ros2_phycv.pst_rom import build_radial_rom, phase_stretch_transform_rom
+from ros2_phycv.rom_export import write_rom_artifacts
 
 
 class PstNode(Node):  # type: ignore[misc]
@@ -53,6 +54,7 @@ class PstNode(Node):  # type: ignore[misc]
         self.declare_parameter("use_rom", True)
         self.declare_parameter("rom_bits", 8)
         self.declare_parameter("rom_bins", 256)
+        self.declare_parameter("export_rom_dir", "")  # non-empty => dump .coe + VHDL at start-up
 
         self._params = PstParams(
             strength=float(self.get_parameter("strength").value),
@@ -70,6 +72,11 @@ class PstNode(Node):  # type: ignore[misc]
             if self._use_rom
             else None
         )
+
+        export_dir = str(self.get_parameter("export_rom_dir").value)
+        if self._rom is not None and export_dir:
+            paths = write_rom_artifacts(self._rom, export_dir, name="pst_coeff_rom")
+            self.get_logger().info("exported ROM artifacts: " + ", ".join(str(p) for p in paths.values()))
 
         input_topic = self.get_parameter("input_topic").value
         output_topic = self.get_parameter("output_topic").value
