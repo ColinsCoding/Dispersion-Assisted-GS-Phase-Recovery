@@ -1,0 +1,14 @@
+SYMBOL TABLE  (.text + .data + .bss)
+  ADDRESS        TYPE     SIZE  NAME                       SOURCE
+  ──────────────────────────────────────────────────────────────────────
+  0x19DF9954     T        6623  ray_sphere                 raytracer.cu
+  0xD867B495     T       55399  phong_brdf                 raytracer.cu
+  0x89D7D008     T       35287  fresnel_schlick            brdf.cu
+  0x22666629     T        8806  fresnel_dielectric         brdf.cu
+  0xCBFD3A1A     T       52221  refract_snell              brdf.cu
+  0xCB70C5D1     T       52080  shade_kernel               raytracer.cu
+  0x848F25A6     D       33935  MATERIALS                  materials.cu
+  0xF4212EB9     D       62497  spheres                    scene.cu
+  0x278E5967     D       10126  lights                     scene.cu
+  0x9E885786     B       40584  img_rgb                    render.cu
+  0xD1D9AC36     D       53721  hit_counts                 render.cu
