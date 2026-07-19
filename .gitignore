@@ -173,3 +173,17 @@ figures/_smoke*.png
 # compiled C binaries
 *.exe
 hardware/fft8_c
+
+############################
+# Scratch / build artifacts (added during QBIR cleanup)
+############################
+outputs/
+*.bak
+*.bak2
+*_tmp.py
+*.egg-info/
+repl/
+# generated FPGA/codegen artifacts (regenerable)
+fpga/
+photonics_ml_pipeline/src/*.c
+photonics_ml_pipeline/include/*.h
