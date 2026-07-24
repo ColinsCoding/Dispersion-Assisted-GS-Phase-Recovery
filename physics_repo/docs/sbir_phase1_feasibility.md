@@ -131,6 +131,14 @@ Electronics: RF and Microwave Transmitter Design) covers the transmitter/heterod
 the same wave-electronics stack this proposal's phase-recovery kernel targets when extended to
 RF/THz (§6, FutureG and Integrated Sensing) — direct exposure to the receiver architectures the
 local-oscillator-free framing in §6 is positioned to replace, not adjacent-field familiarity.
+Physics training underneath all of this was completed as a UCLA physics major (electrodynamics
+sequence, Griffiths-level treatment of dispersion and wave propagation) and as an undergraduate
+researcher in Prof. Bahram Jalali's UCLA lab — the group whose own published work (Goda, Tsia,
+Jalali, *Nature* 458, 1145 (2009); Solli, Gupta, Jalali, *Appl. Phys. Lett.* 95, 231108 (2009)) is
+where the `H_D(f)` dispersion operator and the time-domain GS algorithm this proposal implements
+originate. That is a real prior research relationship, not a claim of a current appointment; no
+letter of support or formal Co-I commitment from the lab exists at this time, and none should be
+represented as secured until it is actually obtained.
 
 ### 8. Risk and go/no-go
 
