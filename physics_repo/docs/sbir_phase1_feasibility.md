@@ -98,8 +98,21 @@ These are executed, assertion-checked notebooks — computational preliminary da
 - **Holographic 3-D** capture and near-eye display rendering.
 - Coherent **spectroscopy** and standoff sensing (the local-oscillator/heterodyne framing extends to
   RF/THz receivers).
-- Relevant to DoD modernization priorities in Integrated Sensing, FutureG, and Advanced Computing
-  (see `dgs/ousd_alignment.py`).
+- Maps to six of OUSD(R&E)'s Critical Technology Areas (see `dgs/ousd_alignment.py` for the
+  component-level tagging this table summarizes):
+  1. **FutureG** — the same `H_D(f)` dispersion-diversity trick that recovers phase here is the
+     carrier-less coherent-receiver mechanism for optical-bandwidth 6G links (no local oscillator).
+  2. **Trusted AI and Autonomy** — GS reconstruction is a physics-constrained inverse solve, not a
+     black-box network; every claimed number above ties back to an executed, assertion-checked
+     notebook, which is the auditability property "trusted" AI pipelines require.
+  3. **Advanced Computing and Software** — O2/O3 above are a measured GPU roofline (FFT-bound,
+     memory-bandwidth bound) plus a quantified DSP budget (1.28 GFLOP/s), not a projection.
+  4. **Integrated Sensing and Cyber** — single-detector, reference-arm-free coherent sensing (O1, O5)
+     is the sensing half; the same time-stretch front end is the natural host for secure telemetry.
+  5. **Directed Energy** — high-rep-rate pulsed-source characterization and wavefront/phase sensing
+     use the identical GS kernel; O4's bit-exact fixed-point port is what makes it field-deployable.
+  6. **Human-Machine Interfaces** — O5's real-time 3-D reconstruction and holographic rendering are the
+     operator-facing display layer for any of the above sensing modalities.
 
 ### 7. Budget and team (Phase I)
 
@@ -107,6 +120,13 @@ Consistent with the program's Phase I ceiling: **~$275K over 6 months, 3 contrib
 engineers, ~$91K each fully loaded), covering optics/bench (Task 1), algorithm-on-data (Task 2),
 and the GPU/FPGA port (Task 3). Phase II (~$1.75M) would build the fielded instrument. See
 `dgs/sbir_portfolio.py` and the budget notes.
+
+PI background spans both sides of Task 1-3: physics training (electrodynamics, wave propagation,
+Fourier optics) that derives `H_D(f) = exp(j*pi*D*f^2)` from first principles, and the engineering
+implementation of that same operator across four independently verified targets in this repo —
+NumPy/PyTorch (algorithm), CUDA (GPU throughput), C (bit-exact fixed-point), and VHDL (FPGA
+synthesis). The Phase I plan does not require bridging that gap; the bridge is the existing,
+tested codebase.
 
 ### 8. Risk and go/no-go
 
