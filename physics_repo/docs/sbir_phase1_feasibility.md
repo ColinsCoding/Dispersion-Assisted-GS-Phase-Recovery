@@ -126,7 +126,11 @@ Fourier optics) that derives `H_D(f) = exp(j*pi*D*f^2)` from first principles, a
 implementation of that same operator across four independently verified targets in this repo —
 NumPy/PyTorch (algorithm), CUDA (GPU throughput), C (bit-exact fixed-point), and VHDL (FPGA
 synthesis). The Phase I plan does not require bridging that gap; the bridge is the existing,
-tested codebase.
+tested codebase. Completed coursework in UCLA EC ENGR 279AS (Special Topics in Physical and Wave
+Electronics: RF and Microwave Transmitter Design) covers the transmitter/heterodyne-receiver side of
+the same wave-electronics stack this proposal's phase-recovery kernel targets when extended to
+RF/THz (§6, FutureG and Integrated Sensing) — direct exposure to the receiver architectures the
+local-oscillator-free framing in §6 is positioned to replace, not adjacent-field familiarity.
 
 ### 8. Risk and go/no-go
 
