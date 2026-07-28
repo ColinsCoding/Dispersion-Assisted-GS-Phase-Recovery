@@ -12,9 +12,18 @@ would have caught immediately (the two values differ by exactly the
 lbf->N conversion factor, ~4.448x, not some subtle error).
 """
 
-from sympy import Rational
+from sympy import Rational, pi, N
 from sympy.physics import units as u
 from sympy.physics.units.systems.si import SI
+
+
+def is_dimensionless(expr):
+    """True iff expr's dimensional dependencies reduce to {} -- a genuine
+    Buckingham-Pi dimensionless group, not just 'the same dimension as
+    something else' (that's what dims_equal is for)."""
+    dim = SI.get_dimensional_expr(expr)
+    deps = SI.get_dimension_system().get_dimensional_dependencies(dim)
+    return deps == {}
 
 
 def dims_equal(expr1, expr2):
@@ -74,6 +83,63 @@ def check_impedance_of_free_space():
     return dims_equal(eta0_expr, u.ohms)
 
 
+# ── Dimensionless ratios (Buckingham Pi groups) ───────────────────────────────
+#
+# A dimensional-EQUALITY check (dims_equal, above) answers "do both sides of
+# an equation reduce to the same units?" A dimensionless RATIO is a different
+# and arguably more powerful idea: certain combinations of physical
+# quantities have NO units at all, and it's exactly that unit-free-ness that
+# lets a single number characterize a whole physical regime -- independent of
+# whether you measured it in meters or feet.
+
+def check_reynolds_number():
+    """Re = rho * v * L / mu must be dimensionless -- it's the ratio of
+    inertial to viscous forces that separates laminar (Re << 1) from
+    turbulent (Re >> 1) flow, regardless of the fluid or the unit system."""
+    rho = u.kilogram / u.meter ** 3
+    v = u.meter / u.second
+    L = u.meter
+    mu = u.pascal * u.second   # dynamic viscosity: Pa*s = kg/(m*s)
+    Re_expr = rho * v * L / mu
+    return is_dimensionless(Re_expr)
+
+
+def fine_structure_constant():
+    """alpha = e^2 / (4*pi*epsilon0*hbar*c): the dimensionless number that
+    sets the strength of the electromagnetic interaction. Built from four
+    SI constants that individually carry units (charge, permittivity,
+    action, velocity) -- that they combine into something with NO units at
+    all is the entire physical content of the result. Returns (alpha,
+    is_dimensionless)."""
+    alpha_expr = (
+        u.elementary_charge ** 2
+        / (4 * pi * u.vacuum_permittivity * u.hbar * u.speed_of_light)
+    )
+    factor, _dim = SI._collect_factor_and_dimension(alpha_expr)
+    alpha = float(N(factor))
+    return alpha, is_dimensionless(alpha_expr)
+
+
+def dispersion_regime_parameter(D):
+    """The temporal analog of the optical Fresnel number for gs_core's
+    dispersion operator H(nu) = exp(i*pi*D*nu^2), nu in [-0.5, 0.5).
+
+    The quadratic phase sweeps theta_max = pi*D*(0.5)^2 = pi*D/4 radians
+    across the Nyquist edge. Far-field diffraction (Fraunhofer) requires
+    a LARGE phase excursion across the aperture; the temporal analog
+    (dispersive/real-time Fourier transform, see the stationary-phase
+    argument in griffiths_1_42_1_43...ipynb) needs the same thing: the
+    phase must sweep through many radians across the signal's normalized
+    bandwidth for the stationary-phase point nu*=t/D to dominate.
+
+    |D|/4 IS that dimensionless sweep, in units of pi radians -- and it's
+    exactly the quantity gs_core._check_dispersion gates on (warns below
+    |D|=100, documents |D|>=5000 as needed for GS convergence). Returns
+    the dimensionless ratio |D|/4.
+    """
+    return abs(D) / 4.0
+
+
 def run_all_checks():
     """Run every EM dimensional check in this module; returns a dict of
     name -> bool. A real dimensional-analysis gate would fail the build if
@@ -85,6 +151,8 @@ def run_all_checks():
         "poynting_vector": check_poynting_vector(),
         "faraday_law": check_faraday_law(),
         "impedance_of_free_space": check_impedance_of_free_space(),
+        "reynolds_number_is_dimensionless": check_reynolds_number(),
+        "fine_structure_constant_is_dimensionless": fine_structure_constant()[1],
     }
 
 
@@ -124,3 +192,12 @@ if __name__ == "__main__":
     print(f"  navigation software wanted: {mco['value_should_have_been_N_s']:.4f} N*s")
     print(f"  resulting error factor: {mco['resulting_error_factor']:.4f}x -- "
           f"a dimensional-analysis check like the ones above would have caught this instantly.")
+
+    print("\nDimensionless ratios (Buckingham Pi groups):")
+    alpha, alpha_ok = fine_structure_constant()
+    print(f"  fine structure constant: alpha = {alpha:.10f}  (1/alpha = {1/alpha:.4f})  "
+          f"dimensionless: {alpha_ok}")
+    print(f"  dispersion regime parameter |D|/4 at D=-5000 (gs_core default): "
+          f"{dispersion_regime_parameter(-5000):.1f}  (>>1 -> real-time-Fourier-transform regime)")
+    print(f"  dispersion regime parameter |D|/4 at D=-10 (below gs_core's warn threshold): "
+          f"{dispersion_regime_parameter(-10):.2f}  (~1 -> near-field, GS should stagnate)")
