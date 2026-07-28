@@ -43,4 +43,30 @@ mco = da.mars_climate_orbiter_case_study()
 assert abs(mco["resulting_error_factor"] - 4.4482216152605) < 1e-9
 assert abs(mco["value_should_have_been_N_s"] - mco["lbf_to_N_conversion_factor"]) < 1e-9
 
+# 7. Dimensionless ratios (Buckingham Pi groups): Reynolds number is
+#    genuinely unitless -- and dropping the viscosity term (leaving
+#    rho*v*L, a mass flow rate per unit width, NOT dimensionless) must be
+#    correctly rejected, proving the checker isn't vacuously true here
+assert da.check_reynolds_number() == True
+rho_v_L = (u.kilogram / u.meter ** 3) * (u.meter / u.second) * u.meter
+assert da.is_dimensionless(rho_v_L) == False
+
+# 8. Fine structure constant: dimensionless, and numerically matches the
+#    independently-sourced CODATA value from scipy.constants (a different
+#    library, different constant table -- an honest cross-check, not the
+#    same number computed twice the same way)
+import scipy.constants as sc
+alpha, alpha_is_dimensionless = da.fine_structure_constant()
+assert alpha_is_dimensionless == True
+assert abs(alpha - sc.fine_structure) < 1e-6
+
+# 9. Dispersion regime parameter: must reproduce gs_core's own documented
+#    thresholds -- |D|=5000 (the value make_qpsk_measurements/
+#    make_measurements actually use) lands deep in the ">>1" regime,
+#    while |D|=10 (below gs_core._check_dispersion's warn cutoff of 100)
+#    does not
+assert da.dispersion_regime_parameter(-5000) == 1250.0
+assert da.dispersion_regime_parameter(-10) == 2.5
+assert da.dispersion_regime_parameter(-10) < da.dispersion_regime_parameter(-5000)
+
 print("all dgs.dimensional_analysis tests passed")
