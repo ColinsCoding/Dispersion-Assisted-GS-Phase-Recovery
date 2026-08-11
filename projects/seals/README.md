@@ -17,8 +17,10 @@ encodes the full angular scattering pattern.
   engineering. Same toolkit as `notebooks/ml_course_on_receiver.ipynb`.
 - **`seals_stable.py`** / **`seals_stable.ipynb`** — numerically stable Python port
   of the original MATLAB, plus extensions (angular-momentum partial-wave spectrum,
-  3D/4D spectral-angular maps, OAM/Laguerre–Gaussian decomposition).
+  3D/4D spectral-angular maps, OAM/Laguerre–Gaussian decomposition). Its final
+  section, "Phase Retrieval and Inverse Scattering," demonstrates `inverse/` below.
 - **`matlab/`** — the original `main.m`, `SEALS.m`, `mie-2.m`, `rayleighdebye.m`.
+- **`inverse/`** — phase-retrieval / inverse-scattering extensions (see below).
 
 ## Physics
 - **SEALS mapping** `y(λ) = (D/6)·tan(Δ)/(1 + tan(Δ)·tan(α))`, `Δ = α − arcsin(λ/d − sin α)`.
@@ -39,3 +41,34 @@ py -3.12 projects/seals/seals_stable.py     # needs scipy (spherical Bessel func
 ```
 scipy is required (`scipy.special.spherical_jn/yn`), which is on the py-3.12
 environment in this setup, not py-3.13.
+
+## Phase retrieval / inverse scattering
+
+The SEALS model produces wavelength-encoded angular scattering measurements.
+
+The Mie forward model predicts a complex scattered field, while a square-law
+detector measures intensity only (`inverse/measurement.py`).
+
+This repository now contains:
+
+- **model-based particle-parameter inversion** (`inverse/inverse_scattering.py`) —
+  recovers particle diameter from a synthetic intensity spectrum via a
+  derivative-free search against the validated (non-differentiable, SciPy-based)
+  Mie model, then reads the corresponding phase off that same fitted model
+- **complex-field measurement simulation** (`inverse/measurement.py`) — the
+  explicit `I = |E|^2` boundary, and reconstruction of Mie's `E_p`, `E_s` from
+  its validated `I_p`, `I_s`, `T_p`, `T_s` outputs
+- **a minimal phase-retrieval experiment with measurement diversity**
+  (`inverse/phase_retrieval.py`, `inverse/dispersion.py`) — PyTorch-autograd
+  recovery of an arbitrary phase profile from one or more known-transform
+  intensity measurements, explicitly flagged as underdetermined when only one
+  measurement is used
+
+These are research extensions and are not part of the original SEALS MATLAB
+implementation. Model-based parameter inversion and generic phase retrieval are
+kept as distinct concepts throughout (see `seals_stable.ipynb`'s final section
+and each module's docstring) -- the former is far more constrained than the
+latter, and neither is claimed to be the original SEALS paper's method.
+
+Tests: `tests/test_seals_inverse_measurement.py`,
+`tests/test_seals_phase_retrieval.py`, `tests/test_seals_inverse_scattering.py`.

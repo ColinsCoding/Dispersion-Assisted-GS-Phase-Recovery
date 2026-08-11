@@ -1,0 +1,361 @@
+schema_version: "1.0"
+
+project:
+  name: "SEALS_Phase_Retrieval_Fourier_Physics"
+  context_file: "CLAUDE_CONTEXT.yaml"
+  primary_goal: >
+    Build a reproducible, physics-first research codebase connecting Spectrally Encoded Angular
+    Light Scattering (SEALS), Mie/Rayleigh scattering, dispersive Fourier transform, optical
+    phase recovery, PyTorch differentiable computation, and carefully labeled exploratory
+    photonic/digital-logic applications.
+  working_style:
+    - "Reproduce first, extend second."
+    - "Physics first, numerical representation second, machine learning third."
+    - "Preserve validated MATLAB/SEALS behavior before adding new functionality."
+    - "Every result should state what physical quantity is represented."
+    - "Distinguish measured information from inferred information."
+
+scientific_lineage:
+  source_supported:
+    seals:
+      description: >
+        Spectrally Encoded Angular Light Scattering maps wavelength to illumination/scattering
+        angle so a continuous angular scattering profile can be obtained spectrally.
+      conceptual_chain:
+        - "broadband optical source"
+        - "diffraction-grating wavelength dispersion"
+        - "beam displacement y(lambda)"
+        - "objective-lens mapping theta(lambda)"
+        - "particle scattering"
+        - "spectral intensity measurement"
+      existing_models:
+        - "Mie scattering for spherical particles"
+        - "Rayleigh-Debye-style intensity model"
+      boundary: >
+        The supplied Mie implementation includes complex-field/phase information for polarization
+        components. The supplied Rayleigh-Debye implementation is intensity-only.
+    gerchberg_saxton:
+      description: >
+        Iterative phase retrieval using measured amplitudes in two Fourier-related domains,
+        alternately imposing amplitude constraints while retaining estimated phase.
+      concepts:
+        - "FFT/IFFT"
+        - "amplitude replacement"
+        - "phase retention"
+        - "sampling"
+        - "global phase ambiguity"
+        - "conjugate ambiguity"
+        - "convergence/error behavior"
+    dispersive_phase_recovery:
+      description: >
+        Time-domain Gerchberg-Saxton using two intensity measurements obtained after different
+        dispersions to recover optical phase and reconstruct spectra.
+      concepts:
+        - "group velocity dispersion"
+        - "temporal near field"
+        - "measurement diversity"
+        - "quadratic spectral phase"
+    learned_complex_field:
+      description: >
+        PyTorch-based regression can infer magnitude and phase of a complex optical field from
+        interferometric/time-stretch measurements when trained on appropriate labeled data.
+      boundaries:
+        - "A learned inverse model is not a replacement for the forward physics model."
+        - "Out-of-distribution optical conditions require revalidation or retraining."
+
+repo_inputs:
+  expected_existing_material:
+    matlab:
+      - "main.m"
+      - "SEALS.m"
+      - "mie.m"
+      - "rayleighdebye.m"
+    data:
+      - "*.mat reference/result files"
+    papers_and_docs:
+      - "SEALS paper"
+      - "Gerchberg-Saxton paper"
+      - "Optical phase recovery in the dispersive Fourier transform"
+      - "Neural network enabled time stretch spectral regression"
+      - "SEALS project description/report"
+      - "phase-retrieval project description"
+    notebooks:
+      - "*.ipynb"
+  instruction_to_claude: >
+    Inspect the repository before editing. Reuse actual filenames, APIs, parameter names, and
+    tests rather than inventing parallel implementations.
+
+architecture:
+  preferred_pipeline:
+    - stage: "geometry"
+      mapping: "lambda -> beta(lambda) -> y(lambda) -> theta(lambda)"
+    - stage: "scattering"
+      mapping: "theta(lambda), particle parameters -> complex field E_p, E_s"
+    - stage: "measurement"
+      mapping: "E -> |E|^2 -> detector/ADC samples"
+    - stage: "dispersion"
+      mapping: "E(omega) -> H_D(omega)E(omega) -> E(t)"
+    - stage: "inverse"
+      mapping: "intensity measurements -> phase and/or physical parameter estimates"
+    - stage: "learning_optional"
+      mapping: "measured waveform -> learned complex-field estimate"
+    - stage: "logic_optional"
+      mapping: "detected/quantized features -> digital/photonic logic experiment"
+
+math:
+  detector:
+    equation: "I = |E|^2"
+    implication: "Square-law intensity measurement removes arbitrary optical phase."
+  dispersion:
+    transfer_function: "H_D(omega) = exp(i * phi_D(omega))"
+    second_order_phase: "phi_D(omega) = 0.5 * beta2 * L * (omega - omega0)^2"
+  inverse_losses:
+    intensity_mse: "mean((I_pred - I_meas)^2)"
+    log_intensity_mse: "mean((log(I_pred + eps) - log(I_meas + eps))^2)"
+    wrapped_phase_error: "angle(exp(i * (phi_est - phi_true)))"
+
+software_stack:
+  sympy:
+    role:
+      - "symbolic derivations"
+      - "parameter sensitivity expressions"
+      - "equation verification"
+  numpy_scipy:
+    role:
+      - "faithful baseline reproduction"
+      - "special functions"
+      - "MATLAB comparison"
+  pytorch:
+    role:
+      - "complex tensors"
+      - "autograd"
+      - "differentiable propagation"
+      - "parameter inversion"
+      - "learned complex-field regression"
+    defaults:
+      dtype: "float64 / complex128 for verification where practical"
+      gpu_policy: "Validate on CPU before CUDA benchmarking."
+  matplotlib:
+    role:
+      - "diagnostic and publication-style plots"
+  pandas:
+    role:
+      - "experiment tables"
+      - "parameter sweeps"
+      - "error summaries"
+
+implementation_phases:
+  - id: 1
+    name: "SEALS MATLAB reproduction"
+    required:
+      - "Reproduce default wavelength/displacement/angle curves."
+      - "Reproduce Mie and Rayleigh-Debye outputs."
+      - "Compare against MATLAB/.mat references."
+  - id: 2
+    name: "SymPy verification"
+    required:
+      - "Derive/check wavelength-to-angle mapping."
+      - "Compute dtheta/dlambda and selected parameter sensitivities."
+  - id: 3
+    name: "Complex-field API"
+    required:
+      - "Expose complex Mie fields before photodetection."
+      - "Expose intensity and phase as derived quantities."
+      - "Do not fabricate Rayleigh-Debye phase."
+  - id: 4
+    name: "Gerchberg-Saxton baseline"
+    required:
+      - "Implement deterministic GS."
+      - "Test global-phase invariance."
+      - "Test sampling sensitivity."
+  - id: 5
+    name: "Two-dispersion temporal phase retrieval"
+    required:
+      - "Implement two known dispersion operators."
+      - "Alternate measured-amplitude constraints."
+      - "Measure effect of dispersion diversity."
+  - id: 6
+    name: "SEALS inverse scattering"
+    required:
+      - "Estimate particle diameter from synthetic intensity."
+      - "Then estimate diameter + refractive index."
+      - "Plot loss landscape."
+  - id: 7
+    name: "Learned complex-field retrieval"
+    required:
+      - "Create physics-generated training data."
+      - "Train a small PyTorch baseline only after deterministic retrieval works."
+      - "Predict magnitude + phase."
+      - "Compare against deterministic retrieval."
+      - "Test quantization and sampling sensitivity."
+  - id: 8
+    name: "Hardware/software co-design"
+    required:
+      - "Make selected physical parameters trainable only when differentiability is valid."
+      - "Verify gradients with finite differences."
+
+research_extensions:
+  photonic_full_adder:
+    status: "research_extension"
+    attribution_warning: >
+      Do NOT state that Jalali Lab implemented this exact SEALS-to-full-adder architecture unless
+      the repository contains a source proving it.
+    research_question: >
+      Can Fourier/photonic transformations perform useful analog preprocessing before a
+      thresholded digital full-adder stage, or can optical amplitude/phase encode Boolean states?
+    conceptual_pipeline:
+      - "optical complex field"
+      - "Fourier/dispersion transform"
+      - "photodetection"
+      - "threshold/comparator"
+      - "Boolean A, B, Cin"
+      - "Sum, CarryOut"
+    boolean_equations:
+      sum: "A XOR B XOR Cin"
+      carry: "(A AND B) OR (Cin AND (A XOR B))"
+    validation:
+      - "All 8 truth-table rows must be correct."
+      - "Report threshold sensitivity and noise margin."
+      - "Keep continuous optical state separate from Boolean state."
+
+  finance_franklin_templeton:
+    status: "research_extension"
+    domain: "financial signal-processing research demo"
+    no_investment_advice: true
+    attribution_warning: >
+      Do NOT imply Franklin Templeton sponsors, endorses, uses, or is affiliated with this project
+      unless repository evidence explicitly establishes that relationship.
+    intent: >
+      Explore whether numerical ideas from Fourier analysis and inverse problems can be reused
+      for financial time-series representation strictly as an educational/research experiment.
+    allowed_analogy:
+      - "time series <-> sampled signal"
+      - "frequency content <-> Fourier spectrum"
+      - "latent phase-like variable <-> model representation only, not literal optical phase"
+    prohibited_claims:
+      - "Do not call market prices electromagnetic waves."
+      - "Do not claim optical phase retrieval predicts asset returns."
+      - "Do not present simulated reconstruction as trading evidence."
+      - "Do not recommend real portfolios."
+    possible_demo:
+      steps:
+        - "Use public or synthetic non-sensitive time-series data."
+        - "Window and normalize."
+        - "Compute FFT/STFT features."
+        - "Reconstruct held-out signal segments as a numerical inverse problem."
+        - "Compare deterministic Fourier baseline to a small PyTorch regression model."
+        - "Report reconstruction error only."
+    separation_rule: >
+      Keep this module isolated from SEALS physics. Share numerical abstractions, not physical claims.
+
+logic_and_fourier_physics:
+  status: "research_extension"
+  objective: >
+    Explore how continuous Fourier/photonic transforms and discrete digital logic can coexist
+    in one computational graph without conflating the two.
+  conceptual_graph:
+    - "continuous field E"
+    - "physical transform"
+    - "square-law measurement"
+    - "sampling and quantization"
+    - "threshold"
+    - "Boolean logic"
+  key_lesson: >
+    Fourier physics transforms continuous complex-valued state. A full adder transforms discrete
+    Boolean state. The threshold/encoding boundary must be explicit.
+
+tests:
+  must_have:
+    - name: "seals_regression"
+      assertion: "Python baseline remains within tolerance of validated MATLAB reference."
+    - name: "nonnegative_intensity"
+      assertion: "I >= 0 and finite."
+    - name: "global_phase_invariance"
+      assertion: "|E|^2 == |E * exp(i*phi0)|^2 within tolerance."
+    - name: "fft_round_trip"
+      assertion: "IFFT(FFT(x)) reconstructs x within numerical tolerance."
+    - name: "dispersion_unit_magnitude"
+      assertion: "|H_D(omega)| == 1 for ideal lossless dispersion."
+    - name: "phase_retrieval_progress"
+      assertion: "Final measurement-consistency loss is lower than initial loss."
+    - name: "gradient_check"
+      assertion: "Selected autograd sensitivity agrees with finite differences."
+    - name: "full_adder_truth_table"
+      assertion: "All 8 Boolean input combinations produce correct Sum and CarryOut."
+
+git_policy:
+  branch_style: "feature/<short-description>"
+  commit_style:
+    - "One scientifically coherent change per commit."
+    - "Do not mix refactors with new physics unless required."
+    - "Run tests before commit."
+  suggested_commits:
+    - "feat: preserve complex Mie fields at detector boundary"
+    - "feat: add two-dispersion temporal phase retrieval"
+    - "feat: add SEALS particle inverse problem"
+    - "feat: add learned complex-field PyTorch baseline"
+    - "experiment: add photonic full-adder simulation"
+    - "experiment: add Fourier time-series reconstruction demo"
+
+claude_work_protocol:
+  on_start:
+    - "Read this file completely."
+    - "Inspect repository tree."
+    - "Read README and current tests."
+    - "Identify validated SEALS implementation."
+    - "Identify existing phase-retrieval implementation."
+    - "Do not duplicate working modules."
+  before_code:
+    - "State which files will change."
+    - "Classify each change as source reproduction, mathematical reformulation, or research extension."
+    - "State expected validation."
+  while_coding:
+    - "Use SI units internally unless source code intentionally uses otherwise."
+    - "Name coordinate/frequency domains explicitly."
+    - "Avoid hidden normalization."
+    - "Use deterministic random seeds for tests."
+    - "Preserve complex dtype when phase matters."
+  after_code:
+    - "Run tests."
+    - "Report numerical validation."
+    - "List known limitations."
+    - "Make a focused Git commit only when requested."
+
+definitions:
+  forward_phase_calculation: >
+    Compute complex phase from known physical parameters using a forward model.
+  model_based_inverse_scattering: >
+    Infer physical parameters from measured intensity, then use the fitted forward model to obtain
+    the corresponding model-predicted complex field/phase.
+  generic_phase_retrieval: >
+    Recover an unknown complex field from intensity-only measurements plus additional constraints
+    or measurement diversity.
+  learned_complex_field_retrieval: >
+    Infer complex-field magnitude/phase using a trained model validated against known ground truth
+    or deterministic reconstruction.
+  photonic_logic: >
+    Logic in which optical states participate in computation. Any conversion from continuous optical
+    amplitude/phase to Boolean values must be explicit.
+
+non_goals:
+  - "Do not claim source support for unsourced Jalali Lab projects."
+  - "Do not replace physics with a neural network."
+  - "Do not invent phase for intensity-only source models."
+  - "Do not claim generic phase uniqueness from one arbitrary intensity trace."
+  - "Do not treat financial time series as literal optical fields."
+  - "Do not give investment recommendations."
+  - "Do not prematurely optimize CUDA before correctness."
+
+next_recommended_task:
+  title: "Connect SEALS complex field to two-dispersion phase retrieval"
+  classification: "research_extension built on source-supported methods"
+  steps:
+    - "Locate current complex Mie field output."
+    - "Add explicit detector I=|E|^2 boundary."
+    - "Implement two differentiable dispersion operators."
+    - "Generate two synthetic intensity measurements."
+    - "Recover phase with temporal GS."
+    - "Compare recovered phase to Mie-model phase modulo global phase."
+    - "Document identifiability and limitations."
+    - "Add regression tests."
+    - "Commit as one focused feature."
