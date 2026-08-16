@@ -70,5 +70,19 @@ kept as distinct concepts throughout (see `seals_stable.ipynb`'s final section
 and each module's docstring) -- the former is far more constrained than the
 latter, and neither is claimed to be the original SEALS paper's method.
 
+- **the SEALS-intensity-trace-to-dgs.gs_core bridge** (`inverse/seals_to_tdgsa.py`,
+  walked through interactively in `seals_to_tdgsa_bridge.ipynb`) — wires a native
+  SEALS `I_p(lambda)` trace into this repo's canonical TD-GSA (`dgs.gs_core`),
+  verified two independent ways (classical GS + the autograd path above) against
+  Mie's own known phase. See
+  [`SEALS_TO_TDGSA_REPORT.md`](SEALS_TO_TDGSA_REPORT.md) for the full write-up,
+  including an **honest, measured limitation**: blind 2-measurement phase
+  retrieval does not cleanly recover Mie's varying-amplitude phase (~0.4-0.5 rad
+  RMS error, consistently, across both algorithms and several dispersion
+  choices) -- a real ambiguity, not a bug, and `inverse_scattering.py`'s
+  model-based approach above remains the recommended path for SEALS-specific
+  parameter recovery.
+
 Tests: `tests/test_seals_inverse_measurement.py`,
-`tests/test_seals_phase_retrieval.py`, `tests/test_seals_inverse_scattering.py`.
+`tests/test_seals_phase_retrieval.py`, `tests/test_seals_inverse_scattering.py`,
+`tests/test_seals_to_tdgsa.py`.

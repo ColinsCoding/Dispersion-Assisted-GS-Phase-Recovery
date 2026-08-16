@@ -86,6 +86,69 @@ def retrieve_phase(amplitude, measurements, forward_operators, n_steps=400, lr=0
     return phase_est.detach(), np.array(loss_history)
 
 
+def retrieve_phase_with_history(amplitude, measurements, forward_operators, checkpoints,
+                                 lr=0.05, seed=0, phase_init=None):
+    """
+    Same optimization as retrieve_phase, but returns the phase estimate AND
+    loss at each of `checkpoints` (a sorted, strictly increasing iterable of
+    cumulative step counts) instead of only the final result -- for studying
+    how the fit evolves over training, e.g. whether it overfits noisy
+    measurements (loss keeps decreasing past the point where the recovered
+    phase stops improving against independent ground truth). See
+    seals_to_tdgsa.demonstrate_autograd_overfitting for a concrete example.
+
+    Parameters
+    ----------
+    Same as retrieve_phase, except n_steps is replaced by `checkpoints`.
+
+    Returns
+    -------
+    history : list of (step, loss, phase_est) tuples, one per checkpoint;
+        phase_est is a detached real torch.Tensor, shape (N,)
+    """
+    checkpoints = list(checkpoints)
+    if not checkpoints or any(c <= 0 for c in checkpoints) or checkpoints != sorted(set(checkpoints)):
+        raise ValueError(f"checkpoints must be positive, strictly increasing, and unique, got {checkpoints}")
+    if len(measurements) != len(forward_operators):
+        raise ValueError(
+            f"measurements ({len(measurements)}) and forward_operators "
+            f"({len(forward_operators)}) must have the same length")
+    if len(measurements) == 0:
+        raise ValueError("need at least one (measurement, forward_operator) pair")
+
+    torch.manual_seed(seed)
+    N = amplitude.shape[-1]
+    dtype = amplitude.dtype
+    if phase_init is None:
+        phase_est = torch.zeros(N, dtype=dtype, requires_grad=True)
+    else:
+        phase_est = phase_init.clone().detach().to(dtype).requires_grad_(True)
+
+    optimizer = torch.optim.Adam([phase_est], lr=lr)
+
+    def compute_loss():
+        E_est = amplitude * torch.exp(1j * phase_est)
+        return sum(
+            torch.mean((H(E_est).abs() ** 2 - I_j) ** 2)
+            for H, I_j in zip(forward_operators, measurements)
+        )
+
+    history = []
+    step = 0
+    for target in checkpoints:
+        while step < target:
+            optimizer.zero_grad()
+            loss = compute_loss()
+            loss.backward()
+            optimizer.step()
+            step += 1
+        with torch.no_grad():
+            loss_val = compute_loss().item()
+        history.append((step, loss_val, phase_est.detach().clone()))
+
+    return history
+
+
 def wrapped_phase_error(phase_est: torch.Tensor, phase_true: torch.Tensor) -> torch.Tensor:
     """
     Delta_phi = angle(exp(i*(phase_est - phase_true))), wrapped to (-pi, pi].
