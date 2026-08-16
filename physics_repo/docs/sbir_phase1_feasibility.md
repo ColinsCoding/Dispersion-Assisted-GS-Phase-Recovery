@@ -98,7 +98,7 @@ These are executed, assertion-checked notebooks — computational preliminary da
 - **Holographic 3-D** capture and near-eye display rendering.
 - Coherent **spectroscopy** and standoff sensing (the local-oscillator/heterodyne framing extends to
   RF/THz receivers).
-- Maps to six of OUSD(R&E)'s Critical Technology Areas (see `dgs/ousd_alignment.py` for the
+- Maps to seven of OUSD(R&E)'s Critical Technology Areas (see `dgs/ousd_alignment.py` for the
   component-level tagging this table summarizes):
   1. **FutureG** — the same `H_D(f)` dispersion-diversity trick that recovers phase here is the
      carrier-less coherent-receiver mechanism for optical-bandwidth 6G links (no local oscillator).
@@ -113,13 +113,39 @@ These are executed, assertion-checked notebooks — computational preliminary da
      use the identical GS kernel; O4's bit-exact fixed-point port is what makes it field-deployable.
   6. **Human-Machine Interfaces** — O5's real-time 3-D reconstruction and holographic rendering are the
      operator-facing display layer for any of the above sensing modalities.
+  7. **Quantum Science** — qubit readout is a binary-outcome statistical inference problem under
+     noise. The Bayesian/Monte-Carlo machinery already demonstrated in `error_propagation.py`'s
+     `Measurement` class (Jacobian + MC uncertainty propagation) — and at the binary-classification
+     level in the poker hand-rank posterior (`seals_stable.ipynb` §9, `P(rank | partial information)`
+     via Monte Carlo) — is the identical inference machinery syndrome decoding and readout
+     discrimination require; the poker demo is a pedagogical stand-in, not a claimed quantum result.
+     The hazard-free, timing-critical control electronics that gate/error-correction feedback loops
+     depend on is demonstrated in `logic_timing.py` (Circuit DAG, critical-path analysis, ripple-adder
+     hazard elimination) — the same digital-logic discipline a quantum control-electronics stack is
+     built from, not a new one. Ring-resonator photonic qubit sources (`optical_loops`) and the
+     Coulomb-gauge field-quantization / cavity-QED pole-structure formalism (`helmholtz_decomposition`,
+     `contour_integration_residues`) are the existing hardware/theory bridge (see
+     `dgs/ousd_alignment.py`).
 
 ### 7. Budget and team (Phase I)
 
-Consistent with the program's Phase I ceiling: **~$275K over 6 months, 3 contributors** (PI plus two
-engineers, ~$91K each fully loaded), covering optics/bench (Task 1), algorithm-on-data (Task 2),
-and the GPU/FPGA port (Task 3). Phase II (~$1.75M) would build the fielded instrument. See
-`dgs/sbir_portfolio.py` and the budget notes.
+Consistent with the program's Phase I ceiling: **~$275K over 6 months, 3 contributors** (~$91K each
+fully loaded), split along the three disciplines the quantum-readout extension (§6.7) actually
+requires — not a generic PI-plus-two-engineers headcount:
+
+- **PI — photonics/quantum theory.** Derives and owns the `H_D(f)` dispersion operator, the
+  ring-resonator photonic-qubit-source formalism (`optical_loops`), and the Coulomb-gauge
+  field-quantization / cavity-QED pole-structure math (`helmholtz_decomposition`,
+  `contour_integration_residues`). Covers optics/bench (Task 1).
+- **Digital logic / FPGA engineer.** Owns the control and readout timing electronics: hazard-free
+  critical-path design (`logic_timing.py`'s Circuit DAG and ripple-adder analysis) and the VHDL/FPGA
+  port (Task 3) that any fast qubit-readout or error-correction feedback loop is built from.
+- **Statistician / ML scientist.** Owns the Bayesian/Monte-Carlo inference layer
+  (`error_propagation.py`'s `Measurement` class) that turns noisy analog readout into binary-outcome
+  classification — the same machinery demonstrated at toy scale in the poker hand-rank posterior
+  (`seals_stable.ipynb` §9) — and the algorithm-on-data validation (Task 2).
+
+Phase II (~$1.75M) would build the fielded instrument. See `dgs/sbir_portfolio.py` and the budget notes.
 
 PI background spans both sides of Task 1-3: physics training (electrodynamics, wave propagation,
 Fourier optics) that derives `H_D(f) = exp(j*pi*D*f^2)` from first principles, and the engineering
@@ -130,7 +156,11 @@ tested codebase. Completed coursework in UCLA EC ENGR 279AS (Special Topics in P
 Electronics: RF and Microwave Transmitter Design) covers the transmitter/heterodyne-receiver side of
 the same wave-electronics stack this proposal's phase-recovery kernel targets when extended to
 RF/THz (§6, FutureG and Integrated Sensing) — direct exposure to the receiver architectures the
-local-oscillator-free framing in §6 is positioned to replace, not adjacent-field familiarity.
+local-oscillator-free framing in §6 is positioned to replace, not adjacent-field familiarity. Per the
+UCLA catalog description, the course's covered topics include electromagnetics, microwave and
+millimeter-wave circuits, and photonics and optoelectronics — the same three areas this proposal's
+`H_D(f)` kernel sits at the intersection of, not a general wave-electronics survey with incidental
+overlap.
 Physics training underneath all of this was completed as a UCLA physics major (electrodynamics
 sequence, Griffiths-level treatment of dispersion and wave propagation) and as an undergraduate
 researcher in Prof. Bahram Jalali's UCLA lab — the group whose own published work (Goda, Tsia,

@@ -186,6 +186,40 @@ def split_step(psi0, x, V, dt, steps, hbar=1.0, m=1.0, store_every=1):
     return np.array(frames)
 
 
+def split_step_driven(psi0, x, V0, drive_fn, dt, steps, hbar=1.0, m=1.0, store_every=1):
+    """Same symmetric split-operator scheme as split_step, but the potential
+    V(x,t) = V0(x) + drive_fn(t) is re-evaluated every half-step instead of
+    held fixed. drive_fn(t) returns an array matching x's shape -- typically
+    a classical light field in the dipole approximation, -q*E0*cos(omega*t)*x,
+    i.e. Maxwell's field entering the Schrodinger propagator directly rather
+    than through the phenomenological two-level rabi_evolution formula. With
+    drive_fn = lambda t: 0*x this reduces exactly to split_step."""
+    psi0 = np.asarray(psi0, dtype=complex)
+    x = np.asarray(x, dtype=float)
+    V0 = np.asarray(V0, dtype=float)
+    if psi0.shape != x.shape or V0.shape != x.shape:
+        raise ValueError("psi0, x, V0 must share the same 1-D shape")
+    if steps < 1:
+        raise ValueError("steps must be >= 1")
+    N = x.size
+    dx = x[1] - x[0]
+    k = 2 * np.pi * np.fft.fftfreq(N, d=dx)
+    full_K = np.exp(-1j * hbar * k**2 * dt / (2 * m))
+    psi = psi0.copy()
+    frames = [psi.copy()]
+    t = 0.0
+    for s in range(1, steps + 1):
+        V_half1 = V0 + np.asarray(drive_fn(t + dt / 4), dtype=float)
+        psi = np.exp(-1j * V_half1 * dt / (2 * hbar)) * psi
+        psi = np.fft.ifft(full_K * np.fft.fft(psi))
+        V_half2 = V0 + np.asarray(drive_fn(t + 3 * dt / 4), dtype=float)
+        psi = np.exp(-1j * V_half2 * dt / (2 * hbar)) * psi
+        t += dt
+        if s % store_every == 0:
+            frames.append(psi.copy())
+    return np.array(frames)
+
+
 def gaussian_packet(x, x0, k0, sigma):
     """Normalised Gaussian wavepacket centred at x0 with mean momentum k0."""
     if sigma <= 0:
