@@ -1,0 +1,37 @@
+=== cell 2 ===
+# Install PhyCV if running on Colab or a fresh environment.
+# PhyCV ships with its own dependencies (kornia, imageio, av).
+try:
+    from phycv.pst import PST
+except ImportError:
+    import subprocess, sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "phycv", "-q"])
+    from phycv.pst import PST
+
+
+=== cell 3 ===
+from sympy import (
+    symbols, Function, exp, pi, I, Abs, conjugate, simplify,
+    Eq, Derivative, latex, init_printing, sqrt, oo, cos, sin
+)
+init_printing(use_latex='mathjax')
+
+import matplotlib
+import numpy as np
+try:
+    import pandas as pd
+    PANDAS_OK = True
+except Exception:
+    pd = None
+    PANDAS_OK = False
+    print('pandas unavailable — DLL issue; tables will use plain print')
+import matplotlib.pyplot as plt
+import time
+
+plt.rcParams["figure.figsize"] = (9, 4)
+plt.rcParams["axes.grid"] = True
+plt.rcParams["axes.spines.top"] = False
+plt.rcParams["axes.spines.right"] = False
+np.set_printoptions(suppress=True, precision=4)
+
+

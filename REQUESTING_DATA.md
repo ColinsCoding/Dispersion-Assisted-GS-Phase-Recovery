@@ -1,5 +1,8 @@
 # Data Request — ECE 279AS Project 2
 
+> **Status: no longer being pursued.** See [`EQUIPMENT_ACQUISITION_PLAN.md`](EQUIPMENT_ACQUISITION_PLAN.md)
+> for the current, self-funded path to real measurements instead of waiting on Jalali Lab data.
+
 **To:** Yiming Zhou &lt;yimingz0416@g.ucla.edu&gt;, Callen MacPhee &lt;cmacphee@g.ucla.edu&gt;  
 **Subject:** Project 2 — Optical Communication Data Request (Phase Retrieval)
 

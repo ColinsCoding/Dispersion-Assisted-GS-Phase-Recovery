@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs the commit-checklist FSM's CHECK_REVIEW_ACK state against the
+# commit message (only meaningful here -- pre-commit runs before the
+# message exists). See scripts/commit_checklist_fsm.py.
+py -3.13 scripts/commit_checklist_fsm.py commit-msg "$1"

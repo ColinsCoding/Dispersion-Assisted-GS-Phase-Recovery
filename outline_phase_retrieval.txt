@@ -1,0 +1,55 @@
+[ 0] MD    | # Dispersion-Assisted Optical Phase Recovery
+[ 1] MD    | ## 1. Environment Setup
+[ 2] CODE ec=   1 | # Install PhyCV if running on Colab or a fresh environment.
+[ 3] CODE ec=   2 | from sympy import (
+[ 4] MD    | ## 2. Physical Background
+[ 5] CODE ec=   3 | # §2 — Field model in SymPy
+[ 6] MD    | ## 2b. Electromagnetic Foundations — From Maxwell to the Dispersion Kernel
+[ 7] CODE ec=   4 | # §2b — Dispersion transfer function H(ν) = exp(iπDν²)
+[ 8] MD    | ## 3. Forward Model Implementation
+[ 9] CODE ec=   5 | # ── Simulation grid ───────────────────────────────────────────────────────
+[10] MD    | ## 4. Synthetic Test Objects
+[11] CODE ec=   6 | # Source: chirped Gaussian pulse
+[12] CODE ec=   7 | # ── THz dispersive propagation: one block, fully self-contained ─────────────
+[13] MD    | ## 5. Time-Domain Gerchberg-Saxton Algorithm
+[14] CODE ec=   8 | # §5 — GS projection operators in SymPy
+[15] CODE ec=   9 | def tdgsa(I1_meas, I2_meas, f_GHz, D1, D2,
+[16] MD    | ## 6. Baseline Recovery
+[17] CODE ec=  10 | # TD-GS baseline recovery — QPSK (unit-amplitude, normalized units)
+[18] CODE ec=  11 | PSD_true = np.abs(fftc(E1_true)) ** 2
+[19] CODE ec=  12 | # Spectral recovery
+[20] MD    | ## 7. PhyCV Phase-Stretch Transform Single-Measurement Baseline
+[21] CODE ec=  13 | from phycv.pst import PST as _PST
+[22] MD    | ## 8. Convergence Experiment — Up to 1600 Iterations
+[23] CODE ec=  14 | if PANDAS_OK:
+[24] MD    | ## 9. Measurement Diversity Analysis
+[25] CODE ec=  15 | if PANDAS_OK:
+[26] MD    | ## §DA — Dimensional Analysis: Why |D| ≥ 5000?
+[27] CODE ec=None | # §DA — Dimensional analysis: the |D|·(k_max/N)² ≥ 5 convergence condition
+[28] MD    | ## 10. Communication Signal Extension
+[29] CODE ec=  16 | n_symbols     = 8
+[30] MD    | ## 15. Wirtinger Flow — Provably Convergent Phase Retrieval
+[31] CODE ec=  17 | # §15 — Wirtinger Flow loss and gradient
+[32] CODE ec=  31 | # ── WF vs GS phase retrieval: one-cell robust version ───────────────────────
+[33] MD    | ## 16. Noise Robustness — Poisson Photon Statistics
+[34] CODE ec=  32 | # §16 — Poisson photon-count loss (maximum-likelihood)
+[35] CODE ec=  33 | def add_poisson_noise(I_clean, photons_per_peak, seed=0):
+[36] MD    | ## 19. Parameter Sweep — Wavelength, Fiber Length, Fresnel Noise
+[37] CODE ec=  35 | # ── 1. Wavelength sweep: alpha vs lambda_0 ───────────────────────────────────
+[38] MD    | ## 31. Heterodyne & Coherent Detection — When You CAN Measure Phase Directly
+[39] CODE ec=  22 | # §31 — Coherent detection: IQ decomposition and shot-noise limits
+[40] CODE ec=  36 | # ── §31 Heterodyne / coherent detection simulation ────────────────────────────
+[41] MD    | ## 32. Final Algorithm Benchmark & Research Roadmap
+[42] CODE ec=  24 | # §32 — Unifying alternating-projection fixed-point update rule
+[43] CODE ec=  25 | # ── §32 Final benchmark: all algorithms on the same object ────────────────────
+[44] MD    | ## 33. Single-Particle Imaging — The Phase Problem in 2D/3D
+[45] CODE ec=  26 | # §33 — SymPy constraints + numpy HIO demo on 2D Gaussian phantom
+[46] MD    | ## 56. SymPy Comparator — Symbolic Identity Verification
+[47] CODE ec=  27 | from sympy import (symbols, exp, conjugate, simplify, Abs, I as Im,
+[48] MD    | ## 58. Parameter Bounds — Physical Operating Envelope
+[49] CODE ec=  28 | import numpy as np
+[50] MD    | ## 61. Deliverables — ECE 279AS Portfolio
+[51] CODE ec=  29 | import numpy as np
+[52] MD    | ## 62. ECE 279AS Results — MATLAB Figures Reproduced in Python
+[53] CODE ec=  30 | import numpy as np
+[54] CODE ec=None | (empty)

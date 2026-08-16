@@ -71,6 +71,7 @@ POLYGLOT  = -m dgs.circuits_polyglot
 TRUSS_FEM = -m dgs.torch.truss_fem
 GRADXFORM = -m dgs.torch.gradient_transform_verify
 HARMONICGRAD = -m dgs.torch.harmonic_gradient_fields
+CYLGUIDE  = -m dgs.cylindrical_waveguide_resonance
 
 .DEFAULT_GOAL := help
 
@@ -142,6 +143,8 @@ help:
 	@echo "  make ricegrain   — rice grain moisture diffusion (Fick's law), starch gelatinization, silica-gel desiccant fact-check"
 	@echo "  make notebook-rice — build + execute rice_grain_physics.ipynb"
 	@echo "  make harmonicgrad — Problem 1.20 as linear algebra (Jacobian trace/antisymmetric part) via torch, + generator theorem"
+	@echo "  make cylguide    — cylindrical waveguide Bessel modes: TE/TM boundary conditions, TE11 dominant mode, driven resonance"
+	@echo "  make notebook-cylguide — build + execute cylindrical_waveguide_resonance.ipynb"
 	@echo "  make polyglot    — series RLC RK4 run for real in C, MATLAB, and Python, cross-checked"
 	@echo "  make bridge      — torch differentiable truss FEM demo (py-3.12) + Unreal trajectory export"
 	@echo "  make poker       — holographic poker demo"
@@ -154,6 +157,10 @@ help:
 	@echo "  make notebook-jalali  — build + execute rogue_wave_ai_detection.ipynb"
 	@echo "  make notebook-rogue   — alias for notebook-jalali"
 	@echo "  make notebook-spin    — build + execute quantum_spin_zeeman_mri.ipynb (ESR/Stern-Gerlach/MRI, py312/torch)"
+	@echo "  make seals        — run projects/seals/seals_stable.py (SEALS + Mie/RDG scattering demo)"
+	@echo "  make seals-tdgsa  — SEALS intensity trace -> dgs.gs_core TD-GSA bridge, dual-verified (see projects/seals/SEALS_TO_TDGSA_REPORT.md)"
+	@echo "  make seals-noise-robustness — does the 3-plane TD-GSA fix survive measurement noise? (see report Sec. 9)"
+	@echo "  make smoke-seals  — quick smoke tests for the seals project (incl. seals_to_tdgsa)"
 	@echo "  make smoke-jalali     — quick smoke tests for jalali + grammar"
 	@echo "  make smoke-coppinger  — quick smoke tests for coppinger_jalali_1999"
 	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
@@ -286,6 +293,10 @@ gradxform:
 .PHONY: harmonicgrad
 harmonicgrad:
 	$(PYTHON312) $(HARMONICGRAD)
+
+.PHONY: cylguide
+cylguide:
+	$(PYTHON) $(CYLGUIDE)
 
 .PHONY: vecgeom
 vecgeom:
@@ -425,6 +436,13 @@ notebook-firework:
 	    --ExecutePreprocessor.timeout=300 --ExecutePreprocessor.kernel_name=py312
 	@echo "  notebook-firework done: $(NB_DIR)/firework_light_show.ipynb"
 
+.PHONY: notebook-cylguide
+notebook-cylguide:
+	$(PYTHON) scripts/build_cylindrical_waveguide_resonance_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute --inplace $(NB_DIR)/cylindrical_waveguide_resonance.ipynb \
+	    --ExecutePreprocessor.timeout=300
+	@echo "  notebook-cylguide done: $(NB_DIR)/cylindrical_waveguide_resonance.ipynb"
+
 .PHONY: poker
 poker:
 	$(PYTHON) holographic_poker.py
@@ -547,6 +565,27 @@ notebook-spin:
 	$(JUPYTER) nbconvert --to notebook --execute --inplace $(NB_DIR)/quantum_spin_zeeman_mri.ipynb \
 	    --ExecutePreprocessor.timeout=300 --ExecutePreprocessor.kernel_name=py312
 	@echo "  notebook-spin done: $(NB_DIR)/quantum_spin_zeeman_mri.ipynb"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SEALS  (projects/seals -- dual-grating spectrally-encoded angular light scattering)
+# ══════════════════════════════════════════════════════════════════════════════
+.PHONY: seals
+seals:
+	$(PYTHON312) -m projects.seals.seals_stable
+
+.PHONY: seals-tdgsa
+seals-tdgsa:
+	$(PYTHON312) -m projects.seals.inverse.seals_to_tdgsa
+
+.PHONY: seals-noise-robustness
+seals-noise-robustness:
+	$(PYTHON312) -m projects.seals.inverse.noise_robustness
+
+.PHONY: smoke-seals
+smoke-seals:
+	$(PYTHON312) -m pytest tests/test_seals_inverse_measurement.py tests/test_seals_phase_retrieval.py \
+	    tests/test_seals_inverse_scattering.py tests/test_seals_to_tdgsa.py tests/test_gs_multiplane.py \
+	    tests/test_noise_robustness.py -q
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INCOMPLETE — TODO for Phase I delivery

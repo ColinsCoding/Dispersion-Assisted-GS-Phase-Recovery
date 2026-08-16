@@ -1,0 +1,6 @@
+#!/bin/sh
+# Runs the commit-checklist FSM's pre-commit states (syntax, secrets,
+# tests, notebooks). See scripts/commit_checklist_fsm.py for the full
+# state table and install/bypass instructions.
+echo "Running commit checklist (pre-commit)..."
+py -3.13 scripts/commit_checklist_fsm.py pre-commit

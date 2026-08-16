@@ -1,0 +1,112 @@
+=== cell 26 (markdown header) ===
+## §DA — Dimensional Analysis: Why |D| ≥ 5000?
+
+The convergence condition $|D|\cdot(k_{\max}/N)^2 \geq 5$ is dimensional analysis: the two dispersed measurements must accumulate $\geq 5\pi \approx 15.7$ rad of relative phase at the signal's highest harmonic, or GS has nothing to distinguish them.
+
+Physical conversion: $\varphi(f) = \alpha \cdot D_{\text{phys}} \cdot f^2$ with $\alpha = \pi\lambda_0^2/c \times 10^{-6} = 2.516\times10^{-5}$ nm$\cdot$ps/GHz$^2$.
+
+=== cell 27 (never executed) ===
+# §DA — Dimensional analysis: the |D|·(k_max/N)² ≥ 5 convergence condition
+
+import numpy as np
+from sympy import symbols, pi, exp, I, Abs, Eq, solve
+
+print("══ Dimensional analysis: GS convergence threshold ══\n")
+
+# ── 1. Normalized transfer function ──────────────────────────────────────────
+D_s, nu_s = symbols('D nu', real=True)
+H_s = exp(I * pi * D_s * nu_s**2)
+print(f"H(nu) = {H_s}    (nu = k/N in [-0.5, 0.5), dimensionless)\n")
+
+# ── 2. Phase at highest harmonic k_max ───────────────────────────────────────
+k_s, N_s = symbols('k_max N', positive=True)
+phi_s = pi * Abs(D_s) * (k_s / N_s)**2
+print(f"Phase at k_max:  phi = pi|D|(k_max/N)^2 = {phi_s}\n")
+
+# ── 3. Convergence threshold ──────────────────────────────────────────────────
+# GS alternating projections require phi_max >= 5*pi ~ 15.7 rad.
+# Written as shorthand: |D|*(k_max/N)^2 >= 5  (= phi_max / pi).
+D_pos = symbols('D', positive=True)
+D_min_s = solve(Eq(D_pos * (k_s / N_s)**2, 5), D_pos)[0]
+print("Convergence condition:  |D|*(k_max/N)^2 >= 5")
+print(f"  D_min = {D_min_s} = 5*N^2/k_max^2")
+print(f"  Actual phase: phi_min = 5*pi ~ {5*np.pi:.1f} rad\n")
+
+# ── 4. Verify against gs_core defaults ───────────────────────────────────────
+# D1=5000 -> |D|(k/N)^2=4.88 (borderline, works in ~50 iter).
+# D2=5750 -> 5.62 (firmly above threshold, converges cleanly).
+# D=600   -> 0.59 (way below, stagnates regardless of iteration count).
+
+def _label(phi, thr=5*np.pi):
+    r = phi / thr
+    if r >= 1.05: return "OK"
+    if r >= 0.90: return "borderline"
+    return "FAILS"
+
+print(f"  {'N':>6}  {'k_max':>6}  {'D_min':>8}  {'phi@D=5000':>15}  {'phi@D=5750':>15}  {'phi@D=600':>13}")
+print(f"  {'-'*70}")
+for N, k_max in [(512, 16), (1024, 32)]:
+    D_min = 5 * N**2 / k_max**2
+    p5k  = np.pi * 5000 * (k_max / N)**2
+    p575 = np.pi * 5750 * (k_max / N)**2
+    p600 = np.pi *  600 * (k_max / N)**2
+    print(
+        f"  {N:>6}  {k_max:>6}  {D_min:>8.0f}"
+        f"  {p5k:>8.1f} ({_label(p5k):<11})"
+        f"  {p575:>8.1f} ({_label(p575):<11})"
+        f"  {p600:>5.2f} ({_label(p600)})"
+    )
+print()
+
+# ── 5. Physical units (C-band, lambda0 = 1550 nm) ────────────────────────────
+#
+#   phi_phys(f) = alpha * D_phys [ps/nm] * f^2 [GHz^2]   [rad]
+#   alpha = pi * lambda0^2 / c * 1e-6  = 2.5159e-5       [nm*ps/GHz^2]
+#
+#   gs_core normalization:  D_norm = (alpha/pi) * D_phys * fs^2  (fs in GHz)
+#
+#   Convergence in physical units: alpha * |D_phys| * B^2 >= 5*pi
+#   -> |D_phys|_min = 5*pi / (alpha * B^2)
+
+alpha = np.pi * 1550.0**2 / 3e5 * 1e-6    # 2.5159e-5 nm*ps/GHz^2
+D_SMF = 17.0                               # ps/nm/km  (SMF-28 at C-band)
+
+print(f"Physical units  (alpha = {alpha:.4e} nm*ps/GHz^2):")
+print("  phi(f) = alpha * D_phys * f_GHz^2   [rad]")
+print("  D_norm = (alpha/pi) * D_phys * fs^2   (fs = sample rate in GHz)")
+print(f"  Convergence: alpha*|D_phys|*B^2 >= 5*pi  (B = signal bandwidth in GHz)")
+print(f"  |D_phys|_min = 5*pi / (alpha * B^2)\n")
+print(f"  {'B (GHz)':>10}  {'|D|_min (ps/nm)':>18}  {'SMF-28 equiv':>14}")
+print(f"  {'-'*48}")
+for B in [1, 10, 100, 500, 1000]:
+    Dmin  = 5 * np.pi / (alpha * B**2)
+    L     = Dmin / D_SMF
+    L_str = f"{L:.0f} km" if L < 1e5 else f"{L:.2e} km"
+    print(f"  {B:>10}  {Dmin:>18.0f}  {L_str:>14}")
+print()
+print("  Wideband (>=100 GHz): practical fiber lengths.")
+print("  Narrowband: need STEAM time-stretch to boost effective D.\n")
+
+# ── 6. Soliton sech connection ────────────────────────────────────────────────
+#
+#   sech(t/tau)  <->  sech(pi*f*tau)  [FT is self-dual for sech]
+#   Time-BW product: tau_FWHM * df_FWHM ~ 0.315  (same as Gaussian)
+#   GVD/Kerr balance: |beta2|/(2*tau^2) = gamma*P0  (fundamental soliton)
+#   TD-GS: linear regime (gamma=0) -> pure GVD, no soliton; Green's fn = chirped Gaussian.
+#   STEAM: large D disperses short pulse to map spectrum -> time (linear soliton limit).
+
+print("Soliton (sech) connection:")
+print("  A(t) = sech(t/tau)  <->  Ahat(f) ~ sech(pi*f*tau)   [FT self-dual]")
+print("  Time-BW product: tau_FWHM * df_FWHM ~ 0.315")
+print("  GVD/Kerr: |beta2|/(2*tau^2) = gamma*P0  (soliton balance)")
+print("  TD-GS: linear (gamma=0) -> pure GVD, no soliton formation.\n")
+print(f"  {'tau_FWHM':>10}  {'B~0.315/tau':>14}  {'|D_phys|_min':>14}")
+print(f"  {'-'*44}")
+for tau_ps in [1, 10, 100, 1000]:
+    B_GHz = 315.0 / tau_ps      # 0.315/tau[ps] * 1000 [GHz]
+    Dmin  = 5 * np.pi / (alpha * B_GHz**2)
+    print(f"  {tau_ps:>7} ps  {B_GHz:>10.1f} GHz  {Dmin:>10.0f} ps/nm")
+print()
+print("  1 ps pulse (315 GHz): ~6 ps/nm  -> any fiber works")
+print("  1 ns pulse (0.3 GHz): ~6e7 ps/nm -> need STEAM amplification")
+

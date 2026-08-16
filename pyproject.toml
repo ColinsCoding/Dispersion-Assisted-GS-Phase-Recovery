@@ -13,9 +13,10 @@ dependencies = ["numpy", "scipy", "sympy", "matplotlib", "mpmath"]
 [project.optional-dependencies]
 torch = ["torch"]
 
-# the importable packages: dgs/ (the toolkit) and griffiths/ (the physics engine)
+# the importable packages: dgs/ (the toolkit), dgs/microplastic/ (the microplastic
+# optical-sensing research program), and griffiths/ (the physics engine)
 [tool.setuptools]
-packages = ["dgs", "griffiths"]
+packages = ["dgs", "dgs.microplastic", "griffiths"]
 
 # install editable:  pip install -e .
 # then:  from dgs import gs_core, qubits ;  from griffiths import electrodynamics

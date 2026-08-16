@@ -187,3 +187,8 @@ repl/
 fpga/
 photonics_ml_pipeline/src/*.c
 photonics_ml_pipeline/include/*.h
+
+############################
+# generated pipeline checkpoints (regenerable, not documentation)
+############################
+projects/synthetic_cell_imaging_pipeline/matlab/part11_pipeline/checkpoint.mat
