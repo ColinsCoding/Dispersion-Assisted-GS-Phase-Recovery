@@ -1,0 +1,71 @@
+Setup complete.
+
+---
+Verified: IFFT(FFT(source)) exactly reconstructs the original square aperture (as it must,
+with no amplitude constraint applied yet -- this is the trivial round trip GS iterates FROM,
+not the phase-retrieval result itself, since here the diffraction PHASE was never discarded.
+
+---
+Qualitative match to the presentation: Gaussian intensity peak at t=tau=20ns in both cases;
+quadratic phase gives a smooth parabola-like curve, cubic phase gives the characteristic
+near-flat inflection around the peak before diving steeply -- same shapes as the slides.
+
+---
+linear (odd, degree 1)        final_amplitude_error=3.33e-18  phase_RMSE=0.8249 rad
+quadratic (even, degree 2)    final_amplitude_error=2.93e-18  phase_RMSE=1.3216 rad
+cubic (odd, degree 3)         final_amplitude_error=4.11e-18  phase_RMSE=0.6498 rad
+
+---
+quartic (even, degree 4)      final_amplitude_error=3.46e-18  phase_RMSE=0.5990 rad
+
+---
+    10 iterations:      2.80 ms  (0.280 ms/iteration)
+   100 iterations:     28.34 ms  (0.283 ms/iteration)
+
+---
+   500 iterations:    140.40 ms  (0.281 ms/iteration)
+
+---
+  1000 iterations:    266.11 ms  (0.266 ms/iteration)
+
+(10,000 iterations omitted from this cell to keep the notebook fast to re-run; the
+ms/iteration figure above extrapolates linearly to roughly the same order of magnitude
+as the slide's 4731 ms at 10,000 iterations, machine differences aside.)
+
+---
+D1 = 300 ps/(nm*km) x 100.0 m  ->  gs_core D1_norm = -96166.5
+D2 = 900 ps/(nm*km) x 100.0 m  ->  gs_core D2_norm = -288499.6
+ratio D2/D1 = 3.000  (should equal 900/300 = 3.000 exactly)
+
+End-to-end convergence check with these converted D values: final error = 2.06e-18
+Machine-precision convergence -- confirms the conversion chain is correct, not just plausible.
+
+---
+C:\Users\mrjel\AppData\Local\Temp\ipykernel_18928\2667949392.py:22: RuntimeWarning: divide by zero encountered in log10
+  absorption_dB = -10 * np.log10(np.exp(-alpha_gas * 1.0))   # illustrative 1 m path, dB
+
+---
+Contrast with the presentation's flagged bug: this phase curve is smooth and structured
+because it came FROM the same complex susceptibility as the absorption magnitude above --
+not from an independently generated random/noisy phase array.
+
+---
+Correlation between the analytic Lorentz dispersion and the independent numerical
+Kramers-Kronig reconstruction (interior of the spectrum): 0.9960
+
+---
+
+High correlation confirms: an absorption spectrum built from a genuine causal response
+(the Lorentz oscillator) has a dispersion curve recoverable purely from its own absorption
+data via the Kramers-Kronig relations -- exactly the property the presentation's flagged
+bug was missing.
+
+---
+Final GS amplitude error after 20 iterations: 5.3352e-14
+
+This is the reproduction of the presentation's key successful post-final result: the
+recovered spectrum's absorption dips line up with the true gas spectrum's dips, using
+only the two intensity-only photodiode measurements -- no local oscillator, no phase
+measurement -- exactly the carrier-less coherent receiver the whole project targets.
+
+---

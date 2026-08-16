@@ -1,0 +1,32 @@
+
+# §64 — Dryad existing intensity traces + maximized ML training data
+# Course framing: Cosumnes River College science + linear algebra + differential equations
+# Physics framing: AC power, candela-like optical power normalization, dispersive phase recovery
+# AI framing: Random Forest / Decision Tree + heatmaps for physics features
+
+import os, re, io, zipfile, warnings, math, pathlib, tempfile, subprocess, shutil
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, r2_score, confusion_matrix
+from sklearn.preprocessing import StandardScaler
+
+DATA_ROOT = pathlib.Path('/mnt/data') if pathlib.Path('/mnt/data').exists() else pathlib.Path('.')
+DRYAD_ZIP = DATA_ROOT / 'doi_10_5061_dryad_2h7d2__v20160420.zip'
+RAR_HINTS = [
+    DATA_ROOT / '0420_AST_115_1p05_p201_20Gs_Ave8_10mV2us_step250um.rar',
+    DATA_ROOT / '0420_DCF3200_115_4p05_p201_20Gs_Ave8_5mV2us_step250um_filtered865MHz.rar',
+]
+FBG_MAT = DATA_ROOT / 'Data+FBG+group+delay.mat'
+
+# -----------------------------
+# 1) Locate Dryad archives/traces
+# -----------------------------
+def _candidate_roots():
+    # Works in Colab/Linux (/mnt/data), Jupyter on Windows, or the notebook folder.
+    roots = [DATA_ROOT, pathlib.Path.cwd(), pathlib.Path.home() / 'Downloads']
+    roots 

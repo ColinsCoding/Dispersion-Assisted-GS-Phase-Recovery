@@ -2437,7 +2437,7 @@ print(f'  RMSE = {rmse:.4f} rad    CRB (SNR=20dB) = {crb:.4f} rad    ratio = {rm
 # - STEAM camera — serial time-encoded amplified microscopy, >Gfps
 # - Time stretch ADC — photonic RF signal acquisition
 # - Rogue wave detection — anomaly sensing in fiber (this project)
-# - AI photonics — Yao et al. 2022, neural net spectral regression
+# - AI photonics — Pu & Jalali, Opt. Express 29(13), 20786 (2021), neural net spectral regression
 # 
 # *Contributors: Bahram Jalali (PI), Yiming (Hybrid90deg code), Gabriel Morozowsky (this port)*
 # 
