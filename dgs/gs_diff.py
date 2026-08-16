@@ -71,6 +71,17 @@ def gs_unrolled(I1, I2, D1, D2, n_iter=10, unit_amplitude=True, soft=False):
     """
     Unrolled GS: n_iter iterations as a differentiable torch graph.
 
+    Structure matches dgs.gs_core.gs_iteration/retrieve_phase exactly: the
+    measured-intensity amplitude constraint (sqrt(I) * phase-of-estimate)
+    is applied UNCONDITIONALLY in the dispersed domain every iteration;
+    unit_amplitude only adds an EXTRA |E(t)|=1 projection in the
+    undispersed domain afterward, for constant-envelope formats (QPSK/
+    DPSK). A previous version of this function made the I1/I2 constraint
+    itself conditional on unit_amplitude (skipping it entirely when True),
+    which meant the measured data was never actually used for the common
+    QPSK case -- confirmed via regression test against dgs.gs_core's
+    known-good numpy retrieve_phase on identical synthetic measurements.
+
     Parameters
     ----------
     I1, I2   : (N,) float tensors, measured intensities
@@ -86,33 +97,31 @@ def gs_unrolled(I1, I2, D1, D2, n_iter=10, unit_amplitude=True, soft=False):
     N   = I1.shape[-1]
     dev = I1.device
 
-    # random init (detached from graph)
-    rng  = torch.Generator(device='cpu')
-    rng.manual_seed(0)
-    phi0 = torch.rand(N, generator=rng) * 2 * np.pi
-    E    = torch.exp(1j * phi0).to(dev)
-    if not unit_amplitude:
-        E = torch.sqrt(I1.clamp(min=0)) * E
+    # Initial guess matches dgs.gs_core.retrieve_phase: sqrt(I1) with ZERO
+    # phase, undispersed through D1 -- not a random phase guess. This is
+    # the "reasonable choice ... from a chirped pulse of the proper
+    # bandwidth" the original Solli/Gupta/Jalali paper describes, and it
+    # matters: GS is not fully init-robust, and a random start converges
+    # slower (or to a worse local solution) than this physically-motivated one.
+    E = disperse_torch(torch.sqrt(I1.clamp(min=0)).to(torch.complex64).to(dev), -D1, N)
 
     proj = soft_proj if soft else hard_proj
     errors = []
 
     for _ in range(n_iter):
-        # constraint 1
+        # constraint 1: disperse -> ALWAYS enforce I1 (sqrt(I1)*phase) -> undisperse -> optional unit-amplitude
         E1 = disperse_torch(E, D1, N)
-        if unit_amplitude:
-            E1 = proj(E1)
-        else:
-            E1 = torch.sqrt(I1.clamp(min=0).to(E1.dtype)) * proj(E1)
+        E1 = torch.sqrt(I1.clamp(min=0).to(torch.float32)).to(E1.dtype) * proj(E1)
         E = disperse_torch(E1, -D1, N)
-
-        # constraint 2
-        E2 = disperse_torch(E, D2, N)
         if unit_amplitude:
-            E2 = proj(E2)
-        else:
-            E2 = torch.sqrt(I2.clamp(min=0).to(E2.dtype)) * proj(E2)
+            E = proj(E)
+
+        # constraint 2: disperse -> ALWAYS enforce I2 (sqrt(I2)*phase) -> undisperse -> optional unit-amplitude
+        E2 = disperse_torch(E, D2, N)
+        E2 = torch.sqrt(I2.clamp(min=0).to(torch.float32)).to(E2.dtype) * proj(E2)
         E = disperse_torch(E2, -D2, N)
+        if unit_amplitude:
+            E = proj(E)
 
         err = float(torch.mean(torch.abs(
             torch.abs(disperse_torch(E, D1, N))**2 - I1.to(torch.float32)

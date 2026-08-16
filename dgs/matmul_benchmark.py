@@ -114,9 +114,17 @@ def compile_c_matmul(out_dir, gcc_path="gcc"):
     exe_path = os.path.join(out_dir, "matmul_bench.exe")
     with open(src_path, "w") as f:
         f.write(C_SOURCE)
+    # gcc.exe needs its own directory at the FRONT of PATH (not just present
+    # somewhere in it) to reliably find its internal driver/DLLs -- otherwise
+    # it can fail silently (returncode 1, empty stdout/stderr), e.g. if a
+    # different toolchain's same-named DLLs shadow it earlier in PATH.
+    env = os.environ.copy()
+    gcc_dir = os.path.dirname(gcc_path)
+    if gcc_dir:
+        env["PATH"] = gcc_dir + os.pathsep + env.get("PATH", "")
     result = subprocess.run(
         [gcc_path, "-O2", "-o", exe_path, src_path],
-        capture_output=True, text=True,
+        capture_output=True, text=True, env=env,
     )
     if result.returncode != 0:
         raise RuntimeError(f"gcc compile failed: {result.stderr}")

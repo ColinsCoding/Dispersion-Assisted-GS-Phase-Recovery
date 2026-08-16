@@ -1,24 +1,39 @@
-"""SBIR Portfolio: 7 proposals (P2-P8) built on this repo's physics stack.
+"""SBIR Portfolio: 8 proposals (P2-P9) built on this repo's physics stack.
 
 PROPOSAL LADDER (each builds on the last):
   P1 (EXISTING):  TD-GS Phase Recovery -- optical rogue wave monitor (RogueGuard)
-                  $275K Phase I, OUSD FutureG / Integrated Sensing
+                  $250K Phase I, OUSD FutureG / Integrated Sensing (DOD SBIR cap)
   P2:             STEAM Microscopy -- femtosecond cell imaging + GS phase recovery
-                  $275K Phase I, NIH SBIR / BARDA / NSF IIP
+                  $314,363 Phase I, NIH SBIR / BARDA / NSF IIP (NIH SBIR cap)
   P3:             CRISPR Target Verification -- ultrafast laser + STEAM confirms
                   gene edit in single cell <1 ms, no off-target damage scoring
   P4:             CUDA Real-Time STEAM -- GPU pipeline 36 Mfps at 10 GB/s
-                  $275K Phase I, NSF OAC / DOD HPCMP
+                  $305K Phase I, NSF OAC / DOD HPCMP (NSF SBIR cap, NSF 26-510)
   P5:             Bayesian Cancer Cell Detection -- GS + Bayes classifier on STEAM
-                  $275K Phase I, NCI SBIR (National Cancer Institute)
+                  $314,363 Phase I, NCI SBIR (National Cancer Institute) (NIH SBIR cap)
   P6:             Rogue Wave Biophysics -- NLSE instability in neural membranes
-                  $275K Phase I, DARPA BTO (Biological Technologies Office)
+                  $250K Phase I, DARPA BTO (Biological Technologies Office) (DOD SBIR cap)
   P7:             Photonic AI Receiver (Project 4) -- STEAM + ML for comms
                   $1.75M Phase II (build on P1 + P4), OUSD Trusted AI
-  P8 (THIS FILE, PRIORITIZED FIRST): Generative AI Phase Retrieval Prior --
+  P8 (PRIORITIZED FIRST): Generative AI Phase Retrieval Prior --
                   learned generative prior replacing dispersion_gs_descent.py's
                   hand-designed smoothness regularizer
-                  $275K Phase I, OUSD FutureG / Trusted AI and Autonomy
+                  $250K Phase I, OUSD FutureG / Trusted AI and Autonomy (DOD SBIR cap)
+  P9 (THIS FILE, NEWEST): Depth-Resolved (3D) STEAM Camera -- extends P2 with a
+                  proposed (not yet published) time-multiplexed chromatic-confocal
+                  z-depth channel on top of Goda's real grating+VIPA 2D encoding
+                  $314,363 Phase I, NIH SBIR / BARDA / NSF IIP + OUSD Integrated Sensing
+                  (NIH SBIR cap)
+
+NOTE ON PHASE I CAPS: SBA sets a government-wide inflation-adjusted guideline
+($314,363 as of the FY26 policy directive), but each agency may set its own
+Phase I ceiling at or below that guideline. NSF's own solicitation (NSF 26-510)
+sets its Phase I cap at $305,000. NIH follows the SBA guideline directly
+($314,363) across its institutes (NCI, NIGMS, BARDA included) absent an
+institute-specific waiver. DOD components (OUSD, DARPA) have historically
+budgeted Phase I awards at $250,000 as their standard topic amount, though
+DOD's statutory ceiling is the same $314,363 and specific topics can go
+higher -- verify the exact topic's stated cap before submitting.
 
 MATH CHAIN (same physics runs through all 7):
   H(f) = exp(i*pi*D*f^2)           [GVD dispersion operator, Griffiths Ch 9]
@@ -41,7 +56,7 @@ PROPOSALS = {
         "title": "Femtosecond STEAM Microscopy with Real-Time GS Phase Recovery",
         "agency": "NIH SBIR / BARDA",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 314_363,
         "duration_months": 6,
         "topic": "Ultrafast label-free cell imaging for pathogen detection",
         "significance": (
@@ -122,7 +137,7 @@ PROPOSALS = {
         "title": "Ultrafast STEAM Verification of Single-Cell CRISPR Edits",
         "agency": "NIH SBIR (NIGMS) / ARPA-H",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 314_363,
         "duration_months": 6,
         "topic": "Real-time optical confirmation of CRISPR-Cas9 gene editing",
         "significance": (
@@ -165,7 +180,7 @@ PROPOSALS = {
         "title": "NVCC CUDA Pipeline for 10 GB/s Real-Time STEAM Phase Retrieval",
         "agency": "NSF OAC / DOD HPCMP",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 305_000,
         "duration_months": 6,
         "topic": "GPU-accelerated optical phase recovery at camera frame rate",
         "significance": (
@@ -207,7 +222,7 @@ PROPOSALS = {
         "title": "Bayesian Real-Time Cancer Cell Detection in STEAM Blood Flow",
         "agency": "NCI SBIR (National Cancer Institute)",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 314_363,
         "duration_months": 6,
         "topic": "Probabilistic classification of circulating tumor cells",
         "significance": (
@@ -248,7 +263,7 @@ PROPOSALS = {
         "title": "NLSE Rogue Wave Analogs in Neural Membrane Biophysics",
         "agency": "DARPA BTO (Biological Technologies Office)",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 250_000,
         "duration_months": 6,
         "topic": "Optical detection of rare catastrophic events in neural tissue",
         "significance": (
@@ -337,7 +352,7 @@ PROPOSALS = {
         "title": "Generative AI Priors for Dispersion-Assisted Phase Retrieval",
         "agency": "OUSD FutureG / Trusted AI and Autonomy",
         "phase": "Phase I",
-        "budget": 275_000,
+        "budget": 250_000,
         "duration_months": 6,
         "topic": "Learned generative priors replacing hand-designed regularization in GS phase recovery",
         "significance": (
@@ -398,17 +413,152 @@ PROPOSALS = {
             "and the proposal should say so rather than assume the generative approach always wins."
         ),
     },
+
+    "P9_STEAM_3D_DEPTH": {
+        "title": "Depth-Resolved (3D) STEAM Camera: Time-Multiplexed Chromatic-Confocal Extension",
+        "agency": "NIH SBIR / BARDA (extends P2) + NSF IIP",
+        "phase": "Phase I",
+        "budget": 314_363,
+        "duration_months": 6,
+        "topic": "Adding a depth (z) channel to STEAM's existing 2D (x,y) ultrafast imaging",
+        "significance": (
+            "P2's STEAM microscopy recovers a 2D (x,y) image per laser pulse via Goda's real "
+            "grating+VIPA spectral encoding, but has no depth channel -- a circulating tumor "
+            "cell (CTC) is flagged as present, not characterized by shape or height. Chromatic-"
+            "confocal depth sensing (axial chromatic aberration mapping wavelength to focal "
+            "depth) is a separate, independently established technique used in industrial "
+            "profilometry. No published '3D STEAM' combining the two turned up in a literature "
+            "search (2026) -- this proposal treats that combination as an open research question, "
+            "not a demonstrated result."
+        ),
+        "innovation": (
+            "Put the xy-image band and the z-depth band in two non-overlapping wavelength "
+            "sub-ranges of the same broadband pulse. Both pass through the SAME dispersive "
+            "fiber (H(f)=exp(i*pi*D*f^2)), so each sub-band lands in its own non-overlapping "
+            "TIME window on a single ADC capture -- the 2D image and the per-line depth profile "
+            "are demultiplexed by time window, not by a second detector. "
+            "dgs/steam_3d_depth_encoding.py implements and unit-checks this: spectral-budget "
+            "split, per-band time windows (reusing dgs/photonic_vs_electronic_delay.py's "
+            "already-verified D*delta_lambda group-delay-spread formula), and the chromatic-"
+            "confocal depth/resolution/range relations."
+        ),
+        "approach": [
+            "Month 1-2: Literature validation -- confirm no prior 'time-multiplexed 3D STEAM' "
+            "publication exists before committing further budget to the novelty claim",
+            "Month 3:   Spectral-budget and frame-time simulation across realistic chromatic-"
+            "confocal lens designs (dgs/steam_3d_depth_encoding.py's split_spectral_budget, "
+            "frame_time_budget)",
+            "Month 4-5: Bench test: does a real chromatic-confocal objective + fiber-coupled "
+            "STEAM setup actually preserve non-overlapping time windows, or does dispersion "
+            "in the lens itself smear the boundary between bands",
+            "Month 6:   Go/no-go report; Phase II application drafted only if bench data "
+            "confirms the simulated depth resolution/range",
+        ],
+        "milestones": {
+            "M1": "Literature search documented, novelty claim confirmed or scoped down",
+            "M2": "Simulated depth resolution/range at cell scale (order of 1 um), reproducing "
+                  "dgs/steam_3d_depth_encoding.py's sanity-check numbers",
+            "M3": "Bench measurement: xy/z time-window separation actually achievable with a "
+                  "real chromatic-confocal lens + dispersive fiber",
+            "M4": "Go/no-go decision based on M3's measured data, not the simulation alone",
+        },
+        "griffiths_physics": (
+            "Ch 9 (H(f)=exp(i*pi*D*f^2) GVD, same as P2/P4/P7); chromatic-confocal depth "
+            "sensing itself is standard imaging-optics chromatic aberration, not new physics -- "
+            "the novelty here is purely in the time-multiplexing architecture, not the underlying "
+            "principles, and the proposal should represent it that way."
+        ),
+        "repo_modules": ["dgs/steam_3d_depth_encoding.py", "dgs/steam_imaging.py",
+                         "dgs/photonic_vs_electronic_delay.py", "dgs/gs_core.py"],
+        "ousd_cta": "Integrated Sensing + Trusted AI",
+        "honesty_note": (
+            "dgs/steam_3d_depth_encoding.py's own module docstring is explicit that this is a "
+            "PROPOSED combination of two independently real techniques (Goda's grating+VIPA 2D "
+            "STEAM and chromatic-confocal depth sensing), not a claim that '3D STEAM' exists in "
+            "the literature. Month 1-2 of this proposal is the honesty check itself -- confirm "
+            "that before writing the significance section as if it were settled. Separately: the "
+            "QPSK/6-PSK comms use case (P7, Photonic AI Receiver) is a DIFFERENT application of "
+            "the same H(f) forward model -- optical communications symbol detection, not imaging "
+            "-- and should not be conflated with this camera/depth-sensing proposal."
+        ),
+    },
+
+    "P10_MODCLASS": {
+        "title": "Real-Time Modulation-Format Classification for Adaptive Optical Receivers",
+        "agency": "NSF SBIR / OUSD FutureG (extends P7)",
+        "phase": "Phase I",
+        "budget": 305_000,
+        "duration_months": 6,
+        "topic": "Classify which modulation format an unknown incoming optical signal is using, "
+                 "before choosing how to demodulate it",
+        "significance": (
+            "P7's Photonic AI Receiver assumes the modulation format (OOK, PAM4, QPSK, DPSK, "
+            "STEAM, Soliton, 6-PSK) is already known before GS phase recovery begins -- "
+            "unit_amplitude=True/False and the recovery approach both depend on this. A real "
+            "adaptive receiver on an unfamiliar or reconfigurable link needs to determine the "
+            "format FIRST, from the same two dispersed intensity measurements it already has, "
+            "with no extra hardware."
+        ),
+        "innovation": (
+            "dgs/modulation_classifier_torch.py trains a small 1D CNN (2 conv layers, matching "
+            "dgs/gs_fno.py's (B,2,N) [I1,I2] channel convention) directly on dgs/gs_core.py's "
+            "make_measurements() output, relabeled by format instead of by phase. A demo run "
+            "(120 examples/format, 20 epochs, CPU, single script) reached 75.4% overall test "
+            "accuracy across the 7 formats -- a real, reproducible number from this repo, not a "
+            "projected one, and the number a Phase I proposal should quote."
+        ),
+        "honesty_note": (
+            "That same demo run scored QPSK at 44.4% and 6-PSK at 5.9% -- far below the other "
+            "five formats (81-100%). This is not a training bug: gs_core.py's make_measurements() "
+            "generates QPSK and 6-PSK with the IDENTICAL smooth-phase call "
+            "(_smooth_phase(n_harm=n_symbols//4, amp_rad=pi)), so their (I1,I2) traces are "
+            "statistically near-indistinguishable BY CONSTRUCTION in the current synthetic model "
+            "-- consistent with P9's own honesty_note flagging QPSK/6-PSK as a distinct comms use "
+            "case worth tracking separately. Phase I's first task is determining whether this is a "
+            "synthetic-data-generator artifact (fixable by giving 6-PSK its own non-degenerate "
+            "phase statistics) or reflects genuine physical similarity between the two formats' "
+            "actual dispersed intensity signatures -- the proposal should not claim 7-class "
+            "accuracy above what QPSK/6-PSK degeneracy currently allows until this is resolved."
+        ),
+        "approach": [
+            "Month 1:   Resolve the QPSK/6-PSK degeneracy question (see honesty_note) before "
+                        "any further accuracy claims",
+            "Month 2-3: Train on realistic SNR sweeps (5-30 dB) and report accuracy vs. SNR, "
+                        "not a single point estimate",
+            "Month 4:   Bench validation: real photodetector traces from the existing D1=-695 / "
+                        "D2=-800 ps/nm two-arm setup (same hardware as the main TD-GS deliverable), "
+                        "labeled by format actually transmitted",
+            "Month 5-6: Latency/throughput characterization on embedded hardware (a classifier is "
+                        "only useful ahead of GS recovery if it is fast enough to gate it in real time)",
+        ],
+        "milestones": {
+            "M1": "QPSK/6-PSK degeneracy resolved or explicitly scoped out of the accuracy claim",
+            "M2": "Accuracy-vs-SNR curve across all 7 formats, synthetic data",
+            "M3": "Bench-measured accuracy on real two-arm intensity traces",
+            "M4": "Measured inference latency on target embedded hardware; go/no-go for Phase II",
+        },
+        "griffiths_physics": "Ch 9 (H(f)=exp(i*pi*D*f^2), same forward model as every other "
+                              "proposal in this portfolio) -- no new physics, a new task on the "
+                              "same physics.",
+        "repo_modules": ["dgs/modulation_classifier_torch.py", "dgs/gs_core.py", "dgs/gs_fno.py",
+                          "dgs/quantum_bridge.py"],
+        "ousd_cta": "FutureG + Trusted AI and Autonomy",
+    },
 }
 
 
 # ── Budget breakdown ──────────────────────────────────────────────────────────
 
 def budget_breakdown(proposal_key):
-    """Standard SBIR Phase I budget ($275K / 6 months, 3 people)."""
+    """Agency-dependent SBIR Phase I budget (NIH $314,363 / NSF $305K / DOD
+    $250K; 6 months, 3 people). Phase I line items scale proportionally from
+    a common template so each agency's cap still sums to an exact total;
+    Phase II keeps its own fixed $1.75M breakdown."""
     p = PROPOSALS[proposal_key]
     B = p["budget"]
-    if B == 275_000:
-        return {
+    if B != 1_750_000:
+        ratio = B / 275_000
+        template = {
             "PI_salary_50pct_FTE": 45_000,
             "co_I_salary_25pct_FTE": 22_500,
             "research_assistant": 23_500,
@@ -418,8 +568,11 @@ def budget_breakdown(proposal_key):
             "travel_conferences": 8_000,
             "indirect_costs_26pct": 52_000,
             "subcontracts_university": 41_700,
-            "total": 275_000,
         }
+        breakdown = {k: int(round(v * ratio, -2)) for k, v in template.items()}
+        breakdown["subcontracts_university"] += B - sum(breakdown.values())
+        breakdown["total"] = B
+        return breakdown
     else:  # Phase II $1.75M
         return {
             "PI_salary_2yr": 180_000,
@@ -439,11 +592,13 @@ def budget_breakdown(proposal_key):
 # ── Timeline ─────────────────────────────────────────────────────────────────
 
 def portfolio_timeline():
-    """Gantt-style timeline for submitting all 7 new proposals (P8 prioritized first)."""
+    """Gantt-style timeline for submitting all 8 new proposals (P8 prioritized first)."""
     return [
         {"proposal": "P8 Generative Prior", "submit_quarter": "Q3-2026", "status": "READY -- submit FIRST (prioritized)"},
         {"proposal": "P1 RogueGuard",    "submit_quarter": "Q1-2026", "status": "EXISTING"},
         {"proposal": "P2 STEAM",          "submit_quarter": "Q4-2026", "status": "READY -- submit after P8"},
+        {"proposal": "P9 STEAM 3D Depth", "submit_quarter": "Q1-2027", "status": "after P2 (extends its imaging core)"},
+        {"proposal": "P10 ModClass",      "submit_quarter": "Q3-2028", "status": "after P7 (needs its receiver deployed first)"},
         {"proposal": "P3 CRISPR",         "submit_quarter": "Q1-2027", "status": "6 months after P2"},
         {"proposal": "P4 CUDA",           "submit_quarter": "Q2-2027", "status": "parallel with P3"},
         {"proposal": "P5 Bayes CTC",      "submit_quarter": "Q3-2027", "status": "after P2 data"},
@@ -483,7 +638,7 @@ def startup_phase_roadmap():
             "name": "Pick ONE product to lead with",
             "blocking": False,
             "detail": (
-                "Not all 8 proposals at once. P1 (RogueGuard) is the most 'real "
+                "Not all 10 proposals at once. P1 (RogueGuard) is the most 'real "
                 "hardware' candidate (physical 1U monitoring unit, RPi CM4 + dual "
                 "ADC -- something a customer can actually buy and install). "
                 "P8 (generative AI phase retrieval prior) is the most novel software "
@@ -596,10 +751,11 @@ def photonics_manufacturing_funding_landscape():
             ),
         },
         {
-            "mechanism": "SBIR Phase I/II (this file's P2-P8)",
+            "mechanism": "SBIR Phase I/II (this file's P2-P9)",
             "type": "non-dilutive, but NOT enough alone for a manufactured product",
             "detail": (
-                "$275K Phase I / $1.75M Phase II typically covers algorithm/"
+                "$250K-$314,363 Phase I (agency-dependent: NSF $305K, NIH $314,363, "
+                "DOD $250K) / $1.75M Phase II typically covers algorithm/"
                 "prototype development and MAYBE an MPW shuttle slot -- but not a "
                 "dedicated wafer lot, packaging line, or test infrastructure. "
                 "Realistic path: SBIR funds the design + shared-shuttle validation; "
@@ -627,7 +783,7 @@ def photonics_manufacturing_funding_landscape():
 
 def demo():
     print("=" * 65)
-    print("  SBIR PORTFOLIO  P2-P8  --  Dispersion-Assisted GS Platform")
+    print("  SBIR PORTFOLIO  P2-P10  --  Dispersion-Assisted GS Platform")
     print("=" * 65)
 
     for key, p in PROPOSALS.items():
@@ -654,22 +810,25 @@ def demo():
         print(f"  {row['proposal']:22s} {row['submit_quarter']:12s} {row['status']}")
 
     print(f"\n{'='*65}")
-    print("  PHYSICS CHAIN CONNECTING ALL 8 PROPOSALS")
+    print("  PHYSICS CHAIN CONNECTING ALL 10 PROPOSALS")
     print(f"{'='*65}")
     chain = [
         ("H(f)=exp(i*pi*D*f^2)", "Griffiths Ch9 GVD", "ALL proposals"),
-        ("GS phase retrieval",    "dgs/gs_core.py",    "P1,P2,P3,P4,P5,P7,P8"),
+        ("GS phase retrieval",    "dgs/gs_core.py",    "P1,P2,P3,P4,P5,P7,P8,P9,P10"),
         ("NLSE soliton/rogue",    "dgs/nlse.py",       "P1,P6"),
         ("CUDA cuFFT",            "dgs/gs_cuda.py",    "P4,P7"),
         ("Bayes classifier",      "dgs/bayes_inference.py","P5,P3,P7"),
-        ("STEAM forward model",   "dgs/steam_imaging.py",  "P2,P3,P4,P5,P6"),
+        ("STEAM forward model",   "dgs/steam_imaging.py",  "P2,P3,P4,P5,P6,P9"),
         ("NN conjugate resolver", "dgs/nn_spectral_regression.py","P5,P7"),
         ("Differentiable GS + generative prior", "dgs/gs_diff.py, dgs/dispersion_gs_descent.py", "P8"),
+        ("Time-multiplexed 3D depth encoding", "dgs/steam_3d_depth_encoding.py", "P9"),
+        ("Torch modulation classification (2-chan 1D CNN)", "dgs/modulation_classifier_torch.py", "P10"),
     ]
     for physics, module, proposals in chain:
         print(f"  {physics:30s} {module:32s} {proposals}")
 
-    print(f"\n  TOTAL PORTFOLIO VALUE: $275K x6 (P2-P6,P8) + $1.75M (P7) = $3.4M")
+    print(f"\n  TOTAL PORTFOLIO VALUE: NIH $314,363 x4 (P2,P3,P5,P9) + NSF $305K x2 "
+          f"(P4,P10) + DOD $250K x2 (P6,P8) + $1.75M (P7) = $4.12M")
     print(f"  NEXT ACTION: P8 (Generative AI Phase Retrieval Prior) prioritized first --")
     print(f"  draft executive summary -> OUSD FutureG/Trusted AI submission portal")
 

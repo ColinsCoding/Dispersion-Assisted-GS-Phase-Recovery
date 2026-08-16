@@ -43,3 +43,68 @@ assert np.allclose(w**2, vals)                          # omega^2 are the eigenv
 print(f"TEST PASS  (free particle x''=0; oscillator x''=-(k/m)x; pendulum "
       f"th''=-(g/l)sin th, small-angle omega=sqrt(g/l); coupled modes "
       f"{np.round(w,3)} = [sqrt(k/m), sqrt((k+2kc)/m)])")
+
+# 6. central-force motion: theta is cyclic, and its conserved momentum is
+#    exactly p_theta = m r^2 theta' (the standard specific-angular-momentum
+#    result), verified from the Lagrangian itself, not assumed
+r, theta = sp.Function("r")(t), sp.Function("theta")(t)
+mu = sp.Symbol("mu", positive=True)
+V_grav = -mu * m / r
+L_central = lag.central_force_lagrangian(r, theta, t, m, V_grav)
+is_cyclic, p_theta = lag.angular_momentum_conservation(L_central, theta, t)
+assert is_cyclic is True
+assert sp.simplify(p_theta - m * r ** 2 * theta.diff(t)) == 0
+
+# a non-central potential (explicitly depends on theta) must NOT be flagged cyclic
+V_noncentral = -mu * m / r + sp.sin(theta)
+L_noncentral = lag.central_force_lagrangian(r, theta, t, m, V_noncentral)
+is_cyclic_bad, _ = lag.angular_momentum_conservation(L_noncentral, theta, t)
+assert is_cyclic_bad is False
+
+print("dgs.lagrangian: central-force cyclic-coordinate checks passed")
+
+# 7. verify_radial_eom_matches_effective_potential: m r'' = -dV_eff/dr is a
+#    real algebraic identity, not assumed -- this is also the regression
+#    test for a caught bug where substituting the phase-space EXPRESSION for
+#    p_theta (rather than a free symbol standing for its conserved value)
+#    silently failed to eliminate theta', making the check always report
+#    False for the wrong reason
+assert lag.verify_radial_eom_matches_effective_potential(r, theta, t, m, V_grav) is True
+
+# it must also hold for a DIFFERENT central potential (not just gravity),
+# confirming this is a general reduction, not something special-cased to
+# the -mu*m/r form
+V_harmonic_central = sp.Rational(1, 2) * mu * m * r ** 2   # isotropic 3D-harmonic-style radial term
+assert lag.verify_radial_eom_matches_effective_potential(r, theta, t, m, V_harmonic_central) is True
+
+# a genuinely non-central potential must be correctly rejected (ValueError),
+# not silently produce a wrong answer
+try:
+    lag.verify_radial_eom_matches_effective_potential(r, theta, t, m, V_noncentral)
+    raise AssertionError("expected ValueError for a non-central (theta-dependent) potential")
+except ValueError:
+    pass
+
+print("dgs.lagrangian: radial EOM / effective potential checks passed "
+      "(regression test for the caught p_theta-substitution bug)")
+
+# 8. cross-module consistency: this module's effective-potential-derived
+#    circular-orbit radius formula must reproduce the SAME orbit radius
+#    dgs.rocket_equation_orbital_mechanics.circular_orbit_velocity was built
+#    (and independently verified) against -- two different derivations of
+#    the same physics agreeing, not just each individually plausible
+from dgs.rocket_equation_orbital_mechanics import MU_EARTH, R_EARTH_M
+r_leo = R_EARTH_M + 400e3
+cross_check = lag.verify_circular_orbit_cross_check(r_leo, MU_EARTH)
+assert cross_check["matches"] is True
+assert abs(cross_check["r_from_effective_potential_m"] - r_leo) / r_leo < 1e-9
+
+for bad in [dict(r_test_m=-1.0, mu=MU_EARTH), dict(r_test_m=r_leo, mu=-1.0)]:
+    try:
+        lag.verify_circular_orbit_cross_check(**bad)
+        raise AssertionError(f"expected ValueError for {bad}")
+    except ValueError:
+        pass
+
+print("dgs.lagrangian: cross-check against dgs.rocket_equation_orbital_mechanics passed")
+print("all dgs.lagrangian tests passed")

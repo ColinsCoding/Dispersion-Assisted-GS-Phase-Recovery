@@ -224,6 +224,51 @@ def retrieve_phase(I1, I2, D1, D2, n_iter=50, unit_amplitude=True):
     return np.angle(E), errors
 
 
+def retrieve_phase_with_history(I1, I2, D1, D2, n_iter=50, unit_amplitude=True):
+    """
+    Same algorithm as retrieve_phase, additionally returning the complex
+    undispersed field estimate E at every iteration (including the initial
+    guess before any iterations) -- for visualizing HOW the alternating-
+    projections algorithm converges, not just its final result. See
+    dgs/trajectory_viewer.py's make_gs_convergence_viewer.
+
+    Parameters
+    ----------
+    Same as retrieve_phase.
+
+    Returns
+    -------
+    phi        : float array — recovered phase (same as retrieve_phase)
+    errors     : list of float — same as retrieve_phase
+    E_history  : complex array, shape (n_iter+1, N) — E at each step,
+                 index 0 is the pre-iteration initial guess
+    """
+    D1 = _check_dispersion(D1, 'D1')
+    D2 = _check_dispersion(D2, 'D2')
+    n_iter = _check_n_iter(n_iter)
+    I1 = _check_intensities(I1, 'I1')
+    I2 = _check_intensities(I2, 'I2')
+    if D1 == D2:
+        raise ValueError("D1 == D2: identical dispersions provide zero measurement diversity.")
+    N = min(len(I1), len(I2))
+    I1, I2 = I1[:N], I2[:N]
+
+    f1_init = np.sqrt(np.maximum(I1, 0)).astype(complex)
+    E = undisperse(f1_init, D1)
+
+    errors = []
+    E_history = [E.copy()]
+    for _ in range(n_iter):
+        E = gs_iteration(E, I1, I2, D1, D2, unit_amplitude=unit_amplitude)
+        err = float(np.sqrt(np.mean(
+            (np.abs(disperse(E, D2))**2 - I2)**2
+        )))
+        errors.append(err)
+        E_history.append(E.copy())
+
+    return np.angle(E), errors, np.array(E_history)
+
+
 # ── Generate synthetic test data (QPSK optical comm signal) ──────────────────
 
 def make_qpsk_measurements(n_symbols=64, sps=8, D1=-5000.0, D2=-5750.0,

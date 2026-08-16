@@ -73,10 +73,18 @@ for combo in itertools.combinations(range(n), na):
     Ua = Ra - na * (na + 1) / 2
     allU.append(min(Ua, na * len(b) - Ua))
 allU = np.array(allU)
-exact_p = np.mean(allU <= U + 1e-9)             # one-sided lower-tail proportion
-# two-sided normal p should be in the right ballpark of 2x the one-sided exact
+# allU folds every permutation's statistic through min(Ua',Ub') -- the same
+# fold r.mann_whitney_u() applies to the observed U -- so "allU <= U" already
+# counts BOTH tails (Ua' small OR Ub' small), making exact_p a two-sided
+# exact p-value already, not a one-sided one. (An earlier version of this
+# test doubled it, comparing against min(1.0, 2*exact_p) -- that double-
+# counts both tails a second time and was failing at p=0.327 vs 2*exact_p=
+# 0.825, a ~0.50 gap, even though the normal approximation is fine: p=0.327
+# vs the correctly-two-sided exact_p=0.413 is only an 0.086 gap.)
+exact_p = np.mean(allU <= U + 1e-9)             # two-sided exact proportion (already folded)
+# two-sided normal p should be in the right ballpark of the two-sided exact
 assert 0.0 < p <= 1.0
-assert abs(p - min(1.0, 2 * exact_p)) < 0.25, (p, exact_p)
+assert abs(p - exact_p) < 0.25, (p, exact_p)
 # a clean separation is highly significant
 _, _, psep = r.mann_whitney_u([1, 2, 3, 4, 5], [10, 11, 12, 13, 14])
 assert psep < 0.02

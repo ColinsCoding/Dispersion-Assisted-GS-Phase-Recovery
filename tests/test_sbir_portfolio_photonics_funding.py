@@ -35,6 +35,8 @@ assert len(names) == len(set(names))
 #    not a generic restatement
 sbir_entries = [item for item in items if "SBIR" in item["mechanism"]]
 assert len(sbir_entries) == 1
-assert "$275K" in sbir_entries[0]["detail"] or "275K" in sbir_entries[0]["detail"]
+detail = sbir_entries[0]["detail"]
+assert "Phase I" in detail and "$1.75M Phase II" in detail
+assert "305K" in detail and "314,363" in detail and "250K" in detail
 
 print("all dgs.sbir_portfolio photonics-funding tests passed")

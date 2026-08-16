@@ -118,7 +118,11 @@ def run_c(freqs, D, out_dir, gcc_path=GCC_DEFAULT):
     exe = os.path.join(out_dir, "dispersion_c.exe")
     with open(src, "w") as f:
         f.write(C_SOURCE)
-    result = subprocess.run([gcc_path, "-O2", "-o", exe, src, "-lm"], capture_output=True, text=True)
+    # gcc.exe needs its own directory at the FRONT of PATH to reliably find
+    # its internal driver/DLLs -- otherwise it can fail silently.
+    env = os.environ.copy()
+    env["PATH"] = os.path.dirname(gcc_path) + os.pathsep + env.get("PATH", "")
+    result = subprocess.run([gcc_path, "-O2", "-o", exe, src, "-lm"], capture_output=True, text=True, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"gcc compile failed: {result.stderr}")
     args = [exe, str(D)] + [str(f) for f in freqs]

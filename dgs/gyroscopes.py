@@ -16,6 +16,23 @@ torque) is the *resistive* limit -- like a circuit's DC steady state.
 Nutation (the wobble) is the *oscillatory* limit -- like an undriven RLC
 circuit's resonant ringing. Same linear-ODE machinery (dgs.spice's RLC RK4
 solver) applies to both.
+
+NONLINEAR RIGID BODY ROTATION (Euler's equations, torque-free asymmetric
+top): everything above assumes a fast-spinning, nearly-symmetric top under
+a small perturbing torque -- the LINEAR regime. A free (torque-free) rigid
+body with three DISTINCT principal moments of inertia I1<I2<I3 obeys the
+genuinely nonlinear Euler equations
+
+    I1*d(omega1)/dt = (I2-I3)*omega2*omega3
+    I2*d(omega2)/dt = (I3-I1)*omega3*omega1
+    I3*d(omega3)/dt = (I1-I2)*omega1*omega2
+
+and has a famous, non-obvious result: spinning about the axis of LARGEST or
+SMALLEST moment of inertia is stable (small perturbations stay small,
+oscillating), but spinning about the INTERMEDIATE axis is unstable (a small
+perturbation grows until the body tumbles/flips) -- the "tennis racket
+theorem" (also called the Dzhanibekov effect, after the cosmonaut who
+filmed a spinning wingnut doing exactly this in orbit).
 """
 import numpy as np
 import sympy as sp
@@ -123,7 +140,19 @@ def precession_rate(mass, g, r, I_spin, omega_spin):
 
 def nutation_frequency(I_spin, I_transverse, omega_spin):
     """Fast-top approximation: nutation (wobble about the precession cone)
-    angular frequency omega_n = I_spin * omega_spin / I_transverse."""
+    angular frequency omega_n = I_spin * omega_spin / I_transverse.
+
+    I_transverse MUST be the transverse moment of inertia about the PIVOT
+    point, not about the center of mass -- for a top spinning about a
+    fixed point offset a distance r from its center of mass (the standard
+    setup, e.g. Feynman Fig. 20-3), these differ by the parallel-axis term
+    m*r**2, which is typically far larger than the disk's own I_transverse
+    about its center. Passing the center-of-mass value here silently gives
+    a nutation frequency wrong by orders of magnitude (caught by comparing
+    against a real MuJoCo simulation's measured wobble frequency: using
+    I_transverse_cm gave a ratio of ~0.02-0.03 instead of ~1; adding
+    m*r**2 fixed it -- see dgs.mujoco_gyroscope.simulate_precessing_top's
+    'I_transverse_pivot' field)."""
     return I_spin * omega_spin / I_transverse
 
 
@@ -143,6 +172,110 @@ def gyroscope_ee_analogy():
                         "(DC / steady precession) response, a homogeneous term gives an "
                         "oscillatory (resonant / nutating) response.",
     }
+
+
+# -- Nonlinear rigid body rotation: Euler's equations --------------------------
+
+def euler_rigid_body_rhs(omega, I1, I2, I3, torque=(0.0, 0.0, 0.0)):
+    """d(omega)/dt for torque-free (or torqued) rigid-body rotation about
+    the three principal axes -- the genuinely NONLINEAR coupling
+    (each component's derivative depends on the PRODUCT of the other two)
+    that the small-angle/steady-precession machinery above never has to
+    deal with."""
+    w1, w2, w3 = omega
+    t1, t2, t3 = torque
+    dw1 = ((I2 - I3) * w2 * w3 + t1) / I1
+    dw2 = ((I3 - I1) * w3 * w1 + t2) / I2
+    dw3 = ((I1 - I2) * w1 * w2 + t3) / I3
+    return np.array([dw1, dw2, dw3])
+
+
+def integrate_euler_rigid_body(omega0, I1, I2, I3, t_max=20.0, dt=0.001, torque=(0.0, 0.0, 0.0)):
+    """RK4 integration of Euler's equations -- same fixed-step RK4 structure
+    as pendulum_rk4 above, just a 3-component nonlinear state instead of a
+    1-DOF pendulum."""
+    n = int(t_max / dt)
+    t = np.zeros(n)
+    omega = np.zeros((n, 3))
+    state = np.array(omega0, float)
+    for i in range(n):
+        t[i] = i * dt
+        omega[i] = state
+        k1 = euler_rigid_body_rhs(state, I1, I2, I3, torque)
+        k2 = euler_rigid_body_rhs(state + dt / 2 * k1, I1, I2, I3, torque)
+        k3 = euler_rigid_body_rhs(state + dt / 2 * k2, I1, I2, I3, torque)
+        k4 = euler_rigid_body_rhs(state + dt * k3, I1, I2, I3, torque)
+        state = state + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    return {"t": t, "omega": omega}
+
+
+def rotational_energy_and_momentum(omega_array, I1, I2, I3):
+    """Rotational kinetic energy T=(1/2)(I1*w1^2+I2*w2^2+I3*w3^2) and
+    |L|^2=(I1*w1)^2+(I2*w2)^2+(I3*w3)^2 at every time step. Both are
+    EXACTLY conserved for torque-free rotation -- a real correctness check
+    on the integrator, not just a plausibility check on the physics."""
+    w1, w2, w3 = omega_array[:, 0], omega_array[:, 1], omega_array[:, 2]
+    T = 0.5 * (I1 * w1 ** 2 + I2 * w2 ** 2 + I3 * w3 ** 2)
+    L2 = (I1 * w1) ** 2 + (I2 * w2) ** 2 + (I3 * w3) ** 2
+    return {"T": T, "L_squared": L2}
+
+
+def intermediate_axis_stability_coefficients(I1_val, I2_val, I3_val):
+    """Linearize Euler's equations about pure rotation along each of the
+    three principal axes (omega_k = Omega + small perturbations in the
+    other two components) with SymPy, and evaluate the resulting SHM-vs-
+    exponential coefficient at the given (I1,I2,I3). A negative coefficient
+    means the perturbation oscillates (stable); positive means it grows
+    exponentially (unstable) -- this is the actual mathematical content of
+    the tennis racket theorem, not just an empirical observation."""
+    import sympy as sp
+    I1, I2, I3 = sp.symbols("I1 I2 I3", positive=True)
+
+    # Linearizing about axis 1 (Omega along w1): I2*d(delta2)/dt=(I3-I1)*Omega*delta3,
+    # I3*d(delta3)/dt=(I1-I2)*delta2*Omega -> d^2(delta2)/dt^2 = coeff * Omega^2 * delta2
+    coeff_axis1 = sp.simplify((I3 - I1) * (I1 - I2) / (I2 * I3))
+    # Same construction, axes cyclically relabeled for spin about axis 2 and axis 3
+    coeff_axis2 = sp.simplify((I1 - I2) * (I2 - I3) / (I3 * I1))
+    coeff_axis3 = sp.simplify((I2 - I3) * (I3 - I1) / (I1 * I2))
+
+    subs = {I1: I1_val, I2: I2_val, I3: I3_val}
+    results = {}
+    for name, expr in [("axis1", coeff_axis1), ("axis2", coeff_axis2), ("axis3", coeff_axis3)]:
+        val = float(expr.subs(subs))
+        results[name] = {
+            "symbolic": expr,
+            "value": val,
+            "stable": val < 0,
+        }
+    return results
+
+
+def tennis_racket_theorem_demo(I1, I2, I3, Omega=5.0, eps=1e-3, t_max=20.0, dt=0.001):
+    """Spin the body almost exactly about each of the three principal axes
+    (a tiny eps perturbation in the other two components) and report how
+    large the TRANSVERSE (non-spin) components grow to -- the numeric
+    counterpart of intermediate_axis_stability_coefficients' analytic
+    prediction. I1, I2, I3 must be distinct (I1<I2<I3, an asymmetric top)
+    for the intermediate axis to exist at all."""
+    if not (I1 < I2 < I3):
+        raise ValueError(f"requires distinct, ordered moments I1<I2<I3, got {I1}, {I2}, {I3}")
+
+    axis_initial_conditions = {
+        "axis1": [Omega, eps, eps],
+        "axis2": [eps, Omega, eps],
+        "axis3": [eps, eps, Omega],
+    }
+    results = {}
+    for axis, omega0 in axis_initial_conditions.items():
+        run = integrate_euler_rigid_body(omega0, I1, I2, I3, t_max=t_max, dt=dt)
+        idx = {"axis1": 0, "axis2": 1, "axis3": 2}[axis]
+        transverse = np.delete(run["omega"], idx, axis=1)
+        results[axis] = {
+            "max_transverse": float(np.max(np.abs(transverse))),
+            "started_at": eps,
+            "flipped": float(np.max(np.abs(transverse))) > Omega / 2,
+        }
+    return results
 
 
 # -- SymPy equations ------------------------------------------------------------

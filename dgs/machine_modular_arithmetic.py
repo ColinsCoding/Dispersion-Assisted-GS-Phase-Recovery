@@ -53,8 +53,12 @@ def compile_and_run_overflow_demo(out_dir, gcc_path=GCC_DEFAULT):
     exe_path = os.path.join(out_dir, "overflow.exe")
     with open(src_path, "w") as f:
         f.write(C_SOURCE_OVERFLOW)
+    # gcc.exe needs its own directory at the FRONT of PATH to reliably find
+    # its internal driver/DLLs -- otherwise it can fail silently.
+    env = os.environ.copy()
+    env["PATH"] = os.path.dirname(gcc_path) + os.pathsep + env.get("PATH", "")
     result = subprocess.run([gcc_path, "-O2", "-o", exe_path, src_path],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"gcc compile failed: {result.stderr}")
     run_result = subprocess.run([exe_path], capture_output=True, text=True)

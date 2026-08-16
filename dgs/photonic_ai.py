@@ -420,11 +420,14 @@ def photonic_ai_sympy_5():
 
     return {
         "MZI_matrix":
+            # evaluate=False: sp.Eq(scalar_symbol, Matrix) auto-simplifies to
+            # sp.false (a Symbol can never equal a Matrix), silently discarding
+            # the equation -- evaluate=False keeps it as a real, printable Eq.
             sp.Eq(sp.Symbol('U_MZI'),
                   sp.I * sp.Matrix([
                       [sp.sin(theta)*sp.exp(sp.I*phi), sp.cos(theta)],
                       [sp.cos(theta)*sp.exp(sp.I*phi), -sp.sin(theta)]
-                  ])),
+                  ]), evaluate=False),
         "Shannon_capacity":
             sp.Eq(sp.Symbol('C'),
                   B_s * sp.log(1 + SNR_s, 2)),

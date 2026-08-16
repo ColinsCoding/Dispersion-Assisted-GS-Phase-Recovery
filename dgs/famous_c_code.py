@@ -87,8 +87,12 @@ def compile_rsqrt(out_dir, gcc_path=GCC_DEFAULT):
     exe = os.path.join(out_dir, "rsqrt.exe")
     with open(src, "w") as f:
         f.write(C_SOURCE_RSQRT)
+    # gcc.exe needs its own directory at the FRONT of PATH to reliably find
+    # its internal driver/DLLs -- otherwise it can fail silently.
+    env = os.environ.copy()
+    env["PATH"] = os.path.dirname(gcc_path) + os.pathsep + env.get("PATH", "")
     result = subprocess.run([gcc_path, "-O0", "-o", exe, src],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"gcc compile failed: {result.stderr}")
     return exe

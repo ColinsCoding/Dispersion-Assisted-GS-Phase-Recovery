@@ -49,7 +49,13 @@ def test_stokes_theorem():
         np.sin(PI/2*u)*np.sin(2*PI*v),
         np.cos(PI/2*u),
     ])
-    s = verify_stokes(F, r_eq, r_h, n_line_pts=256, n_surf_pts=20)
+    # n_surf_pts=20 sat right at the discretization-error/tolerance boundary
+    # (relative_error=0.0502 vs a 0.05 threshold -- confirmed pure numerical
+    # discretization error, not a Stokes'-theorem/verify_stokes bug: error
+    # converges cleanly as n_surf_pts increases -- 0.050/0.025/0.013/0.006
+    # at 20/40/80/160). Bumped to 40 for a comfortable margin instead of
+    # loosening the tolerance.
+    s = verify_stokes(F, r_eq, r_h, n_line_pts=256, n_surf_pts=40)
     assert s['relative_error'] < 0.05, f"Stokes rel_err={s['relative_error']}"
 
 

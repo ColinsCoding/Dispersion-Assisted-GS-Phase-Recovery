@@ -10,6 +10,8 @@ from dgs.special_relativity import (
     relativistic_doppler, velocity_addition,
     phase_velocity, group_velocity, gvd_from_dispersion,
     smf28_dispersion, sr_sympy_5, C_SI,
+    derive_lorentz_transformation_symbolic, verify_lorentz_transformation_derivation,
+    verify_galilean_limit_recovered,
 )
 
 
@@ -168,3 +170,43 @@ def test_sympy_energy_momentum():
     # E^2 = (pc)^2 + (mc^2)^2 -> RHS has m, p, c
     syms = {str(s) for s in eq.rhs.free_symbols}
     assert "m" in syms
+
+
+def test_derive_lorentz_transformation_symbolic():
+    """gamma must be uniquely determined by self-consistency (forward
+    transform composed with the v->-v inverse must be the identity), and
+    match 1/sqrt(1-v^2/c^2) -- not assumed, solved."""
+    gamma_solved, x_prime, t_prime, invariant_residual = derive_lorentz_transformation_symbolic()
+    assert invariant_residual == 0
+    for v_val, c_val in [(0.1, 1.0), (0.5, 1.0), (0.9, 1.0)]:
+        v_s, c_s = sp.symbols("v c", positive=True)
+        expected = 1 / sp.sqrt(1 - v_s**2 / c_s**2)
+        diff = float((gamma_solved - expected).subs({v_s: v_val, c_s: c_val}))
+        assert abs(diff) < 1e-9
+
+
+def test_verify_lorentz_transformation_derivation():
+    assert verify_lorentz_transformation_derivation() is True
+
+
+def test_verify_galilean_limit_recovered():
+    """As c -> infinity, the relativistic transform must reduce EXACTLY
+    to Feynman's Joe/Moe Galilean transformation: x'=x-vt, t'=t."""
+    assert verify_galilean_limit_recovered() is True
+
+
+def test_derived_transform_matches_existing_lorentz_transform():
+    """The derivation's closed-form x', t' must match the module's own
+    (already-implemented, already-used-elsewhere) lorentz_transform()
+    numerically, at a real relativistic speed -- not just agree with
+    itself."""
+    _, x_prime_sym, t_prime_sym, _ = derive_lorentz_transformation_symbolic()
+    x_s, t_s, v_s, c_s = sp.symbols("x t v c", positive=True)
+
+    x_val, t_val, v_val = 1000.0, 2.0, 0.6 * C_SI
+    result = lorentz_transform(x=x_val, t=t_val, v=v_val)
+    x_prime_num = float(x_prime_sym.subs({x_s: x_val, t_s: t_val, v_s: v_val, c_s: C_SI}))
+    t_prime_num = float(t_prime_sym.subs({x_s: x_val, t_s: t_val, v_s: v_val, c_s: C_SI}))
+
+    assert abs(result["x_prime"] - x_prime_num) < 1e-6
+    assert abs(result["t_prime"] - t_prime_num) < 1e-15

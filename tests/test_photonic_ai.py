@@ -231,3 +231,18 @@ def test_photonic_sympy_5_count():
 def test_photonic_sympy_5_types():
     for k, eq in photonic_ai_sympy_5().items():
         assert isinstance(eq, sp.Basic), f"{k} not SymPy"
+        # isinstance(eq, sp.Basic) alone doesn't catch an equation that
+        # auto-simplified away to sp.true/sp.false (BooleanFalse/True ARE
+        # sp.Basic instances) -- every entry here must be a real, still-an-
+        # equation Eq, not a collapsed boolean verdict
+        assert isinstance(eq, sp.Eq), f"{k} is not an Eq (got {type(eq).__name__})"
+        assert eq not in (sp.true, sp.false), f"{k} collapsed to a boolean constant"
+
+
+def test_photonic_sympy_5_mzi_matrix_is_the_real_equation():
+    # regression: sp.Eq(scalar_symbol, Matrix) auto-evaluates to sp.false
+    # unless built with evaluate=False -- confirm the MZI_matrix entry is
+    # still the actual 2x2 matrix equation, not a discarded False
+    eq = photonic_ai_sympy_5()["MZI_matrix"]
+    assert isinstance(eq.rhs, sp.MatrixBase), "MZI_matrix RHS must still be the matrix"
+    assert eq.rhs.shape == (2, 2)

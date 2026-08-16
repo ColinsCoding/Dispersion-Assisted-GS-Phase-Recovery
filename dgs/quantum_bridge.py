@@ -13,6 +13,12 @@ projects:
   3. 90-DEG OPTICAL HYBRID. Coherent detection measures the complex amplitude (I/Q) by
      interfering with a reference; its floor is shot noise sqrt(N) -- the photon's
      particle nature. (shot_noise_snr.)
+  4. MODULATION-FORMAT CLASSIFICATION (dgs.modulation_classifier_torch). A classical
+     ML classifier trained on I1(t), I2(t) faces a noise/feature-quality accuracy
+     ceiling. If the "classifier" were instead an OPTIMAL quantum measurement
+     discriminating the underlying field states directly, a *different*, fundamental
+     ceiling applies: the Helstrom bound. Same question -- "which one was it?" --
+     two distinct floors. (state_overlap, helstrom_bound.)
 
 And one principle threads them: Fourier/time-bandwidth uncertainty (time_bandwidth_product),
 the same hbar/2 limit Griffiths derives for position-momentum. NumPy. Education.
@@ -71,6 +77,32 @@ def time_bandwidth_product(t, pulse):
     return float(dt * dw)
 
 
+def state_overlap(psi_a, psi_b):
+    """|<psi_a|psi_b>| for two state vectors (normalized internally). 1.0 = identical
+    states (indistinguishable); 0.0 = orthogonal states (perfectly distinguishable,
+    even in principle)."""
+    a = np.asarray(psi_a, dtype=complex)
+    b = np.asarray(psi_b, dtype=complex)
+    a = a / np.linalg.norm(a)
+    b = b / np.linalg.norm(b)
+    return float(np.abs(np.vdot(a, b)))
+
+
+def helstrom_bound(overlap):
+    """Minimum error probability of the OPTIMAL quantum measurement discriminating two
+    equally-likely pure states with overlap |<psi_a|psi_b>| = overlap (Helstrom, 1976).
+
+        P_err_min = (1/2) * (1 - sqrt(1 - overlap**2))
+
+    overlap=0 (orthogonal states) -> 0: perfect discrimination is achievable.
+    overlap=1 (identical states)  -> 1/2: a coin flip: the states truly cannot be told
+    apart, by ANY measurement, quantum or classical -- no amount of classifier training
+    data changes this. This is the quantum-measurement-theory floor for "which state was
+    it?", the counterpart to shot_noise_snr's floor for "what was the amplitude?"."""
+    overlap = np.clip(np.asarray(overlap, dtype=float), 0.0, 1.0)
+    return float(0.5 * (1 - np.sqrt(1 - overlap ** 2)))
+
+
 if __name__ == "__main__":
     # phase ambiguity: same intensity, different phase
     I = np.array([1.0, 4.0, 9.0])
@@ -85,3 +117,8 @@ if __name__ == "__main__":
     print("Gaussian time-bandwidth Dt*Dw =", round(time_bandwidth_product(t, g), 4), "(min ~0.5)")
     # angular momentum of the 3rd partial wave
     print("3rd partial wave L =", partial_wave_angular_momentum(3), "J s = 3 hbar")
+    # Helstrom bound: orthogonal states -> 0 error; identical states -> coin flip
+    s_orth = state_overlap([1, 0], [0, 1])
+    s_same = state_overlap([1, 0], [1, 0])
+    print(f"Helstrom bound, orthogonal states (overlap={s_orth}): {helstrom_bound(s_orth):.4f} (expect 0)")
+    print(f"Helstrom bound, identical states  (overlap={s_same}): {helstrom_bound(s_same):.4f} (expect 0.5)")

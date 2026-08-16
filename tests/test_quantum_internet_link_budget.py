@@ -107,6 +107,27 @@ for bad_call in [
     except ValueError:
         pass
 
+# N. UC Merced <-> UC Davis: both genuinely Central/Sacramento Valley
+#    campuses (unlike Riverside, which is Inland Empire) -- a real second
+#    geography check, much shorter than the Merced-Riverside link, but
+#    still not short enough for direct fiber to beat satellite relay
+UCD = (38.5382, -121.7617)
+d_merced_davis = qi.haversine_distance_km(*UCM, *UCD)
+assert abs(d_merced_davis - 175.2) < 1.0, f"expected ~175.2 km, got {d_merced_davis}"
+assert d_merced_davis < d, "Merced-Davis should be much shorter than Merced-Riverside"
+
+result_md = qi.compare_fiber_vs_satellite(d_merced_davis)
+# still true even at this shorter distance (numpy bool, same "is True" pitfall
+# already worked around above -- not identical to Python's True)
+assert result_md["satellite_wins"] is True or result_md["satellite_loss_db"] < result_md["fiber_loss_db"]
+
+# _print_link_budget: the shared report helper must run without error and
+# return the same (distance, result) a caller would get from the
+# lower-level functions directly
+d_from_helper, result_from_helper = qi._print_link_budget("UC Merced", UCM, "UC Davis", UCD)
+assert abs(d_from_helper - d_merced_davis) < 1e-9
+assert result_from_helper["satellite_wins"] == result_md["satellite_wins"]
+
 print("all dgs.quantum_internet_link_budget tests passed")
 print(f"UC Merced -> UC Riverside great-circle distance: {d:.1f} km")
 print(f"realistic fiber route: {fiber_km:.0f} km, loss: {result['fiber_loss_db']:.1f} dB "

@@ -106,8 +106,13 @@ def compile_c_rlc(out_dir, gcc_path=GCC_DEFAULT):
     exe_path = os.path.join(out_dir, "rlc_rk4.exe")
     with open(src_path, "w") as f:
         f.write(C_SOURCE_RLC)
+    # gcc.exe needs its own directory on PATH to find its internal driver/DLLs
+    # even when invoked by absolute path -- otherwise it fails silently
+    # (returncode 1, empty stdout/stderr) in a shell whose PATH lacks it.
+    env = os.environ.copy()
+    env["PATH"] = os.path.dirname(gcc_path) + os.pathsep + env.get("PATH", "")
     result = subprocess.run([gcc_path, "-O2", "-o", exe_path, src_path],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"gcc compile failed: {result.stderr}")
     return exe_path

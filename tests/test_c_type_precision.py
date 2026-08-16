@@ -54,4 +54,35 @@ try:
 except ValueError:
     pass
 
+# 8. empirical epsilon (halve-until-1+eps==1 loop, computed at runtime)
+#    matches float.h's looked-up DBL_EPSILON exactly -- same IEEE 754
+#    ULP-at-1.0, derived two independent ways
+with tempfile.TemporaryDirectory() as tmp:
+    eps_empirical = ctp.compute_epsilon_empirically(tmp)
+assert eps_empirical == c_info["dbl_epsilon"]
+
+# 9. catastrophic cancellation: (1.0+b)-b survives essentially intact well
+#    above DBL_EPSILON, and is destroyed completely well below it
+with tempfile.TemporaryDirectory() as tmp:
+    pairs = ctp.catastrophic_cancellation_demo(tmp)
+assert len(pairs) == 5
+(b0, c0), (b1, c1), (b2, c2), (b3, c3), (b4, c4) = pairs
+assert abs(c0 - b0) / b0 < 1e-3           # b=1e-8: well above epsilon, well preserved
+assert c3 == 0.0 and c4 == 0.0            # b=1e-16, 1e-17: below DBL_EPSILON~2.22e-16, lost completely
+
+# 10. Kahan compensated summation is dramatically more accurate than naive
+#     summation for the same input (summing 0.1 x 1e6 in float)
+with tempfile.TemporaryDirectory() as tmp:
+    naive_sum, kahan_sum, true_sum = ctp.kahan_summation_demo(tmp)
+assert abs(kahan_sum - true_sum) < 1e-3
+assert abs(naive_sum - true_sum) > 100 * abs(kahan_sum - true_sum)
+
+# 11. kahan_summation_demo input validation
+with tempfile.TemporaryDirectory() as tmp:
+    try:
+        ctp.kahan_summation_demo(tmp, n=0)
+        assert False, "should have raised ValueError"
+    except ValueError:
+        pass
+
 print("all dgs.c_type_precision tests passed")

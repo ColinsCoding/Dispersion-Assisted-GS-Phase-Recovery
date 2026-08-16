@@ -170,15 +170,14 @@ def repeater_spacing_for_budget_km(total_distance_km, max_span_loss_db,
     return n_segments, span_km, span_loss_db
 
 
-if __name__ == "__main__":
-    UCM = (37.3661, -120.4269)   # UC Merced
-    UCR = (33.9737, -117.3281)   # UC Riverside
-
-    d = haversine_distance_km(*UCM, *UCR)
+def _print_link_budget(name_a, coord_a, name_b, coord_b):
+    """Shared report for one campus pair -- factored out so a second
+    (or third) pair can reuse it instead of duplicating the print block."""
+    d = haversine_distance_km(*coord_a, *coord_b)
     result = compare_fiber_vs_satellite(d)
     n_seg, span_km, span_loss = repeater_spacing_for_budget_km(d, max_span_loss_db=20.0)
 
-    print("Entangled-photon quantum internet: UC Merced <-> UC Riverside")
+    print(f"Entangled-photon quantum internet: {name_a} <-> {name_b}")
     print(f"great-circle distance:  {d:.1f} km")
     print(f"realistic fiber route:  {result['fiber_route_km']:.0f} km")
     print()
@@ -193,6 +192,25 @@ if __name__ == "__main__":
         print("    Direct fiber over this distance is essentially dead (exponential")
         print("    loss); free-space diffraction loss only grows as a power law, which")
         print("    is why real continental-scale quantum links go via satellite relay.")
+    else:
+        print(f"--> direct fiber wins: this distance is short enough that fiber's flat")
+        print(f"    0.2 dB/km beats the satellite uplink/downlink geometric loss budget.")
     print()
     print(f"Alternative: quantum repeaters every {span_km:.1f} km "
           f"({n_seg} segments, {span_loss:.1f} dB/span) would make the fiber route viable too.")
+    return d, result
+
+
+if __name__ == "__main__":
+    UCM = (37.3661, -120.4269)   # UC Merced (Central Valley)
+    UCR = (33.9737, -117.3281)   # UC Riverside
+    UCD = (38.5382, -121.7617)   # UC Davis (Sacramento Valley)
+
+    _print_link_budget("UC Merced", UCM, "UC Riverside", UCR)
+
+    print("\n" + "=" * 70 + "\n")
+
+    # both UCM and UCD are genuinely CENTRAL/SACRAMENTO VALLEY campuses
+    # (UCR is not -- it's Inland Empire), a much shorter, more directly
+    # fiber-viable link than the Merced<->Riverside case above
+    _print_link_budget("UC Merced", UCM, "UC Davis", UCD)

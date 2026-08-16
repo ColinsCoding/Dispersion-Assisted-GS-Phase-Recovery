@@ -112,6 +112,134 @@ def adc_clock_requirements(optical_bandwidth_nm, D_ps_per_nm, lambda0_nm=1550.0,
     }
 
 
+# ── 1b. Oscilloscope sizing for dispersive-FT / TDGSA spectroscopy ─────────
+#
+# Distinct from adc_clock_requirements() above, which sizes ADC rate for
+# STEAM IMAGING pixel throughput at a target fps. This is the SPECTROSCOPY
+# case (Solli, Gupta, Jalali, APL 2009): given a target spectral linewidth
+# to resolve, how much oscilloscope electrical bandwidth and sample rate
+# does the near-field/incomplete-dispersion measurement actually need.
+
+def oscilloscope_bandwidth_requirement(wavelength_nm, D_ps_per_nm, linewidth_ghz,
+                                       margin_factor=3.0, oversample_factor=3.0):
+    """
+    Minimum (and recommended) oscilloscope electrical bandwidth to resolve
+    a spectral feature of given linewidth after dispersive time-stretching,
+    plus the sample rate that bandwidth implies.
+
+    Derivation: a spectral feature of linewidth delta_nu maps to a temporal
+    feature width delta_t = |D| * delta_lambda, where delta_lambda =
+    lambda^2 * delta_nu / c converts the frequency linewidth to a
+    wavelength width (Griffiths Ch 9 dispersion relation, same lineage as
+    H(f)=exp(i*pi*D*f^2)). The standard oscilloscope rise-time relation
+    BW ~= 0.35/t_rise then gives the bandwidth needed to resolve that
+    temporal feature. margin_factor scales the bare minimum up to a
+    realistic recommendation -- Solli/Gupta/Jalali's own real experiment
+    used ~40 GHz against a ~12 GHz theoretical floor for a 5 GHz linewidth
+    at D~695 ps/nm (roughly this margin), to also resolve near-field
+    "chirped ringing" content faster than the underlying linewidth itself.
+
+    Parameters
+    ----------
+    wavelength_nm    : float > 0 -- carrier wavelength
+    D_ps_per_nm      : float, nonzero -- physical dispersion (sign ignored;
+                       use the SMALLER |D| of your two measurement paths,
+                       since less dispersion means faster/harder-to-resolve
+                       features)
+    linewidth_ghz    : float > 0 -- finest spectral feature you need to resolve
+    margin_factor    : float > 0 -- safety margin over the bare BW floor
+    oversample_factor: float > 0 -- sample rate = oversample_factor * BW
+                       (2x is Nyquist; 2.5-4x is typical for real fidelity)
+
+    Returns
+    -------
+    dict with keys: delta_lambda_nm, delta_t_ps, bw_min_ghz,
+    bw_recommended_ghz, sample_rate_gsps, note
+    """
+    if wavelength_nm <= 0:
+        raise ValueError("wavelength_nm must be positive")
+    if D_ps_per_nm == 0:
+        raise ValueError("D_ps_per_nm must be nonzero (zero dispersion has no time-stretch)")
+    if linewidth_ghz <= 0:
+        raise ValueError("linewidth_ghz must be positive")
+    if margin_factor <= 0:
+        raise ValueError("margin_factor must be positive")
+    if oversample_factor <= 0:
+        raise ValueError("oversample_factor must be positive")
+
+    lambda_m = wavelength_nm * 1e-9
+    delta_nu_hz = linewidth_ghz * 1e9
+    delta_lambda_m = lambda_m ** 2 * delta_nu_hz / C_LIGHT
+    delta_lambda_nm = delta_lambda_m * 1e9
+
+    D_s_per_nm = abs(D_ps_per_nm) * 1e-12
+    delta_t_s = D_s_per_nm * delta_lambda_nm
+
+    bw_min_hz = 0.35 / delta_t_s
+    bw_recommended_hz = margin_factor * bw_min_hz
+    sample_rate_hz = oversample_factor * bw_recommended_hz
+
+    return {
+        "delta_lambda_nm": delta_lambda_nm,
+        "delta_t_ps": delta_t_s * 1e12,
+        "bw_min_ghz": bw_min_hz / 1e9,
+        "bw_recommended_ghz": bw_recommended_hz / 1e9,
+        "sample_rate_gsps": sample_rate_hz / 1e9,
+        "note": ("For a PERIODIC pulsed source (e.g. a mode-locked laser at its "
+                 "repetition rate), an equivalent-time SAMPLING oscilloscope can hit "
+                 "this bandwidth far cheaper than a real-time scope -- it takes one "
+                 "sample per pulse at a slowly-incrementing delay across many "
+                 "repetitions. Real-time bandwidth is only required for single-shot, "
+                 "non-repetitive events."),
+    }
+
+
+def spectral_resolving_power(wavelength_nm, rep_rate_hz):
+    """
+    Fundamental spectral resolving power R = nu/delta_nu of dispersive
+    Fourier-transform spectroscopy (CWEETS/TDGSA) -- set by the PULSE
+    REPETITION RATE (frequency-comb line spacing), NOT by the dispersion
+    value itself. Per Solli, Gupta & Jalali (APL 2009): "the spectral
+    resolution of CWEETS is ultimately limited by the pulse repetition
+    frequency of the source ... just as in any measurement."
+
+    This is an IDEALIZED UPPER BOUND on resolving power, not a claim about
+    what a given TDGSA measurement actually achieves -- real achieved
+    resolution in the near-field (incomplete-dispersion) regime also
+    depends on SNR and GS convergence (see dgs/gs_core.py, [[feedback_gs_convergence]]),
+    which this function does not model.
+
+    Parameters
+    ----------
+    wavelength_nm : float > 0
+    rep_rate_hz   : float > 0 -- laser pulse repetition rate
+
+    Returns
+    -------
+    dict with keys: resolving_power, delta_nu_hz, delta_lambda_nm, note
+    """
+    if wavelength_nm <= 0:
+        raise ValueError("wavelength_nm must be positive")
+    if rep_rate_hz <= 0:
+        raise ValueError("rep_rate_hz must be positive")
+
+    lambda_m = wavelength_nm * 1e-9
+    nu_hz = C_LIGHT / lambda_m
+    delta_nu_hz = rep_rate_hz
+    R = nu_hz / delta_nu_hz
+
+    delta_lambda_m = lambda_m ** 2 * delta_nu_hz / C_LIGHT
+    delta_lambda_nm = delta_lambda_m * 1e9
+
+    return {
+        "resolving_power": R,
+        "delta_nu_hz": delta_nu_hz,
+        "delta_lambda_nm": delta_lambda_nm,
+        "note": ("Idealized upper bound from comb-line spacing alone; real achieved "
+                 "resolution is also limited by SNR and GS convergence, not modeled here."),
+    }
+
+
 # ── 2. Sub-second biological phenomena catalog ─────────────────────────────
 
 ULTRAFAST_PHENOMENA = {
@@ -348,6 +476,18 @@ def demo():
     print(f"  Jitter limit:          {r['jitter_limit_fs']:.1f} fs  (for <0.1 rad phase error)")
     print(f"  Note: {r['note']}")
 
+    print("\n--- Oscilloscope bandwidth for spectroscopy (Solli/Gupta/Jalali setup) ---")
+    o = oscilloscope_bandwidth_requirement(wavelength_nm=1563.0, D_ps_per_nm=695.0, linewidth_ghz=5.0)
+    print(f"  Stretched linewidth:   {o['delta_t_ps']:.1f} ps")
+    print(f"  Bandwidth floor:       {o['bw_min_ghz']:.1f} GHz")
+    print(f"  Recommended bandwidth: {o['bw_recommended_ghz']:.1f} GHz  (paper used ~40 GHz)")
+    print(f"  Sample rate:           {o['sample_rate_gsps']:.1f} GSa/s")
+
+    print("\n--- Spectral resolving power (comb-line-limited) ---")
+    r_res = spectral_resolving_power(wavelength_nm=1563.0, rep_rate_hz=36e6)
+    print(f"  Resolving power R = nu/delta_nu: {r_res['resolving_power']:.2e}")
+    print(f"  Wavelength resolution:           {r_res['delta_lambda_nm']:.2e} nm")
+
     print("\n--- Sub-second human imaging phenomena ---")
     print(f"  {'Phenomenon':28s} {'Timescale':12s} {'STEAM?':8s} {'fps needed'}")
     print("  " + "-"*60)
@@ -387,6 +527,8 @@ def demo():
     print("  4. Neural net (Paper [3]):  dgs/nn_spectral_regression.py")
     print("  5. Real-time deployment:    dgs/gs_unsupervised.py + pygame")
     print("  6. Griffiths gap (Ch10):    Lienard-Wiechert -> add to griffiths/")
+    print(f"  7. Bench sizing:            {o['bw_recommended_ghz']:.0f} GHz scope, "
+          f"R={r_res['resolving_power']:.1e} resolving power (this file, oscilloscope_bandwidth_requirement / spectral_resolving_power)")
     print()
     print("  TITLE for UC Davis / Jalali cold email:")
     print("  'Dispersion-Assisted GS Phase Recovery for Real-Time STEAM'")

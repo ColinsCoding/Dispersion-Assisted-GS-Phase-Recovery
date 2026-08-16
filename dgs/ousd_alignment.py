@@ -30,11 +30,15 @@ if hasattr(sys.stdout, "reconfigure"):
 # ── CTA registry ──────────────────────────────────────────────────────────────
 # Priority 1 = the CTAs this project actively targets with real, tested
 # modules: FutureG, Trusted AI & Autonomy, Advanced Computing & Software,
-# Integrated Sensing & Cyber, Directed Energy, Human-Machine Interfaces, and
+# Integrated Sensing & Cyber, Directed Energy, Human-Machine Interfaces,
 # Biotechnology (added once the repo's biotech-adjacent physics work --
 # STEAM cancer-cell detection, EPR dosimetry, magnetic hyperthermia, lab-on-
-# chip biosensing -- grew past "adjacent" into a real focus area). Priority 2
-# = adjacent areas the repo touches without dedicated modules yet.
+# chip biosensing -- grew past "adjacent" into a real focus area), and
+# Quantum Science (bumped from priority 2 once logic_timing.py's digital-logic
+# control-timing work and error_propagation.py's Bayesian/MC inference work
+# gave the ring-resonator/cavity-QED formalism a matching classical-control
+# and readout-statistics story). Priority 2 = adjacent areas the repo touches
+# without dedicated modules yet.
 CTA = {
     "FutureG": {
         "priority": 1,
@@ -64,18 +68,56 @@ CTA = {
     },
     "Human_Machine_Interfaces": {
         "priority": 1,
-        "description": "Real-time optical dashboard; 3-D phase visualisation; MuJoCo scanner",
-        "repo_components": ["optical_dashboard", "gs_animate", "gs_surface", "mujoco_scanner"],
+        "description": "Real-time optical dashboard; 3-D phase visualisation; MuJoCo scanner; "
+                       "quantified human-eye-vs-instrument optical performance (NA, Rayleigh "
+                       "resolution, collected flux, dynamic range, temporal resolution) grounding "
+                       "when a sensing task needs the instrument vs. when human vision already "
+                       "suffices",
+        "repo_components": ["optical_dashboard", "gs_animate", "gs_surface", "mujoco_scanner",
+                            "human_vs_instrument_optics"],
     },
     "Quantum_Science": {
-        "priority": 2,
-        "description": "QM formalism underpins phase space and coherence analysis",
-        "repo_components": ["sympy_physics", "griffiths_qm", "wavefunction_grammar"],
+        "priority": 1,
+        "description": "Quantum information science (not just QM formalism), theory AND the "
+                       "hands-on hardware it maps to: ring resonators (optical_loops) are the "
+                       "standard hardware primitive for photonic qubit generation and routing "
+                       "(spontaneous four-wave mixing photon-pair sources, squeezed-light "
+                       "generation) -- the bench realization is a fiber-loop or bus-plus-ring "
+                       "test setup built from the same class of RF/microwave components (mixers, "
+                       "directional couplers, delay lines) as the PI's EC ENGR 279AS coursework "
+                       "already cited in the Phase I feasibility doc, not an unrelated skill; the "
+                       "transverse/longitudinal field split (helmholtz_decomposition) is the "
+                       "Coulomb-gauge decomposition underlying canonical quantization of the EM "
+                       "field (only the transverse part is quantized as photons); response-"
+                       "function pole structure (contour_integration_residues) is the same math "
+                       "as input-output theory in cavity/circuit QED, where pole locations set "
+                       "qubit/cavity decay rates -- measurable on a bench via the same S-parameter/"
+                       "network-analyzer technique RF hardware characterization already uses. "
+                       "Bumped to priority 1: qubit readout is a binary-outcome statistical "
+                       "inference problem under noise, the same Bayesian/Monte-Carlo machinery as "
+                       "error_propagation.py's Measurement class (Jacobian + MC uncertainty "
+                       "propagation); the hazard-free, timing-critical control electronics that "
+                       "gate/error-correction feedback loops require is the same digital-logic "
+                       "discipline demonstrated in logic_timing.py (Circuit DAG, critical-path "
+                       "analysis, ripple-adder hazard elimination). These are real hardware/"
+                       "formalism connections, not a QM-flavored relabeling of unrelated code.",
+        "repo_components": ["optical_loops", "helmholtz_decomposition", "contour_integration_residues",
+                            "logic_timing", "error_propagation"],
     },
     "Microelectronics": {
         "priority": 2,
-        "description": "SiC ADC front-end timing; FPGA logic synthesis for GS loop",
-        "repo_components": ["adc_timing", "digital_logic", "firmware"],
+        "description": "SiC ADC front-end timing; FPGA logic synthesis for GS loop. Also the "
+                       "fabrication-adjacent bridge to Quantum_Science: the microstrip/planar "
+                       "transmission-line design toolkit in thz_circuits (trace geometry, "
+                       "substrate height, characteristic impedance, the lambda/10 lumped-vs-"
+                       "distributed boundary) is the SAME RF/microwave engineering used to wire "
+                       "and control real quantum information science hardware -- superconducting "
+                       "qubit drive/readout lines and photonic quantum chip RF modulators are "
+                       "impedance-matched planar transmission lines, not a separate discipline "
+                       "from THz circuit design. This is the same RF/microwave hardware class as "
+                       "the PI's EC ENGR 279AS coursework already cited under Quantum_Science and "
+                       "in the Phase I feasibility doc -- not a second, unrelated claim of skill.",
+        "repo_components": ["adc_timing", "digital_logic", "firmware", "thz_circuits"],
     },
     "Biotechnology": {
         "priority": 1,
@@ -144,7 +186,7 @@ def stamp(stats: dict, components: Sequence[str] | None = None) -> dict:
         "aligned_ctas":   ctas,
         "priority_1_ctas": priority_1,
         "n_ctas":         len(ctas),
-        "sbir_phase":     "Phase I — $275K (prospective)",
+        "sbir_phase":     "Phase I — $250K (prospective; DOD/OUSD SBIR Phase I cap)",
         "program":        "Dispersion-Assisted GS Phase Recovery",
         # Honest marking: this is a PUBLIC UCLA/Jalali-Lab academic project (the
         # repo is itself a course deliverable), not government-controlled data.
