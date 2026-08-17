@@ -108,6 +108,54 @@ plt.suptitle('SEALS Mie-scattered field, recovered via dispersion-diversity GS')
 plt.tight_layout(); plt.show()"""))
 
 # ============================================================================
+# PART 1.5 -- GS convergence, animated
+# ============================================================================
+cells.append(md("""## Part 1.5 -- GS convergence, animated
+
+`gs_core.retrieve_phase_with_history` records the complex field estimate at
+EVERY iteration (`E_history`), not just the final result -- that's the
+per-step trajectory the alternating-projections algorithm actually takes.
+Animated below for 2-plane vs. 3-plane on the identical SEALS data used in
+Part 1: watch the 2-plane estimate visibly settle onto a WRONG answer
+(matching Part 1's 0.50 rad floor) while the 3-plane one converges cleanly."""))
+
+cells.append(co("""from matplotlib import animation
+from IPython.display import HTML
+
+I1_a, I2_a = demo_2plane['I1'], demo_2plane['I2']
+phi_2p, err_2p, hist_2p = gs_core.retrieve_phase_with_history(I1_a, I2_a, 6000.0, -7000.0,
+                                                               n_iter=60, unit_amplitude=False)
+
+Is_3p = demo_3plane['Is']
+# reuse the 3-plane bridge's own multiplane GS loop for a consistent 3-plane history
+from projects.seals.inverse import gs_multiplane
+_, err_3p, hist_3p = gs_multiplane.retrieve_phase_n_plane(Is_3p, list(demo_3plane['Ds']), n_iter=60)
+
+phi_true_a = demo_2plane['phi_true']
+
+# subsample frames (every 3rd iteration) and use a small, low-dpi figure --
+# to_jshtml() embeds every frame as a base64 PNG, which gets large fast
+frame_idx = np.arange(0, min(len(hist_2p), len(hist_3p)), 3)
+
+fig, ax = plt.subplots(figsize=(5.5, 3.0), dpi=80)
+line_true, = ax.plot(phi_true_a, 'r-', lw=1.5, label='Mie truth')
+line_2p, = ax.plot(np.angle(hist_2p[0]), 'b--', lw=1.0, label='2-plane GS')
+line_3p, = ax.plot(np.angle(hist_3p[0]), 'g--', lw=1.0, label='3-plane GS')
+ax.set_xlabel('sample index'); ax.set_ylabel('phase (rad)')
+ax.legend(fontsize=7)
+title = ax.set_title('iteration 0')
+
+def update(i):
+    line_2p.set_ydata(np.angle(hist_2p[i]))
+    line_3p.set_ydata(np.angle(hist_3p[i]))
+    title.set_text(f'iteration {i}/{frame_idx[-1]}')
+    return line_2p, line_3p, title
+
+anim = animation.FuncAnimation(fig, update, frames=frame_idx, interval=120, blit=False)
+plt.close(fig)
+HTML(anim.to_jshtml())"""))
+
+# ============================================================================
 # PART 2 -- the SAME field, through spectral interferometry's geometry
 # ============================================================================
 cells.append(md("""## Part 2 -- the SAME hidden field, through spectral interferometry's geometry
@@ -197,6 +245,42 @@ print("having one, so it is not a drop-in replacement for the LO-free goal, just
 print("different point in the same design space (accuracy bought back with hardware).")
 print(f"3-plane GS still wins outright ({demo_3plane['rms_vs_truth']:.4f} rad) by adding")
 print("measurement diversity instead of a reference arm -- the LO-free-compatible fix.")"""))
+
+# ============================================================================
+# PART 3.5 -- phase as color
+# ============================================================================
+cells.append(md("""## Part 3.5 -- phase as color: a rainbow view of all three recoveries
+
+Phase is a CYCLIC quantity ($-\\pi$ and $+\\pi$ are the same point), which is
+exactly what a rainbow/HSV colormap is built for -- hue wraps the same way
+phase does, so this isn't decoration, it's the standard way complex-field
+phase gets visualized in optics (hue = phase, brightness = magnitude).
+Compare the three recovered fields directly: matching colors at matching
+sample indices means matching phase."""))
+
+cells.append(co("""from matplotlib.colors import hsv_to_rgb
+
+def phase_to_rainbow(E):
+    \"\"\"hue = phase (wrapped to [0,1) via (angle+pi)/(2*pi)), brightness = |E| (normalized).\"\"\"
+    hue = (np.angle(E) + np.pi) / (2 * np.pi)
+    value = np.abs(E) / (np.abs(E).max() + 1e-12)
+    hsv = np.stack([hue, np.ones_like(hue), value], axis=-1)
+    return hsv_to_rgb(hsv)
+
+E_2p_final = np.abs(demo_2plane['mie_fields'].E_p) * np.exp(1j * demo_2plane['phi_gs'])
+E_3p_final = np.abs(demo_2plane['mie_fields'].E_p) * np.exp(1j * demo_3plane['phi_gs'])
+E_si_final = np.abs(demo_2plane['mie_fields'].E_p) * np.exp(1j * (phi_si + offset_p))
+E_truth = demo_2plane['mie_fields'].E_p
+
+fig, axs = plt.subplots(4, 1, figsize=(10, 5.5), sharex=True)
+for ax, E, label in zip(axs, [E_truth, E_2p_final, E_3p_final, E_si_final],
+                         ['Mie truth', '2-plane GS', '3-plane GS', 'spectral interferometry']):
+    colors = phase_to_rainbow(E)[np.newaxis, :, :]
+    ax.imshow(colors, aspect='auto', extent=[0, len(E), 0, 1])
+    ax.set_yticks([]); ax.set_ylabel(label, rotation=0, ha='right', fontsize=8, va='center')
+axs[-1].set_xlabel('sample index  (hue = phase, brightness = |E|)')
+plt.suptitle('phase as color: matching hue at matching index = matching phase')
+plt.tight_layout(); plt.show()"""))
 
 # ============================================================================
 # PART 4 -- Human-Machine Interfaces: what's real, what's referenced
