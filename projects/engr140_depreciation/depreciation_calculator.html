@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ENGR 140 - Depreciation Calculator</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1em; color: #222; }
+  h1 { font-size: 1.4em; }
+  h1 span { color: #a33; }
+  .subtitle { color: #666; margin-top: -0.5em; margin-bottom: 1.5em; }
+  fieldset { border: 1px solid #ccc; border-radius: 6px; padding: 1em; margin-bottom: 1em; }
+  legend { font-weight: bold; color: #a33; }
+  label { display: inline-block; width: 220px; margin: 0.3em 0; }
+  input, select { padding: 0.3em; width: 200px; }
+  #uop_service { width: 420px; }
+  button { background: #a33; color: white; border: none; padding: 0.6em 1.2em; border-radius: 4px; cursor: pointer; font-size: 1em; }
+  button:hover { background: #822; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+  th, td { border: 1px solid #ddd; padding: 0.4em 0.7em; text-align: right; }
+  th { background: #f5f0e8; }
+  td:first-child, th:first-child { text-align: center; }
+  .bar-row td { position: relative; }
+  .bar { display: inline-block; height: 14px; background: #c9a34e; vertical-align: middle; margin-left: 6px; }
+  #error { color: #a33; font-weight: bold; margin-top: 0.5em; }
+  .note { font-size: 0.85em; color: #666; margin-top: 1em; }
+</style>
+</head>
+<body>
+
+<h1>ENGR 140 <span>Depreciation Calculator</span></h1>
+<p class="subtitle">Straight Line, Units-of-Production, Sum-of-Years'-Digits, Declining Balance, Double Declining Balance --
+   same formulas and switch/truncate rules as Lecture 8. Runs entirely in this file, no internet connection needed.</p>
+
+<fieldset>
+  <legend>Asset inputs</legend>
+  <div><label for="P">Cost basis, P ($)</label><input type="number" id="P" value="10000" step="any"></div>
+  <div><label for="S">Salvage value, S ($)</label><input type="number" id="S" value="2000" step="any"></div>
+  <div><label for="N">Useful life, N (years)</label><input type="number" id="N" value="5" step="1" min="1"></div>
+  <div><label for="method">Method</label>
+    <select id="method">
+      <option value="SL">Straight Line (SL)</option>
+      <option value="UOP">Units-of-Production (UOP)</option>
+      <option value="SOYD">Sum-of-Years'-Digits (SOYD)</option>
+      <option value="DB">Declining Balance (DB)</option>
+      <option value="DDB">Double Declining Balance (DDB)</option>
+    </select>
+  </div>
+  <div id="uop_row" style="display:none;">
+    <label for="uop_service">Service by year (comma-separated)</label>
+    <input type="text" id="uop_service" value="4000,10000,14000,5000,7000">
+  </div>
+  <button onclick="compute()">Compute Schedule</button>
+  <div id="error"></div>
+</fieldset>
+
+<table id="results" style="display:none;">
+  <thead>
+    <tr><th>n</th><th>BV_start</th><th>D_n</th><th>BV_end</th><th></th></tr>
+  </thead>
+  <tbody id="results_body"></tbody>
+</table>
+
+<p class="note">Net income input: enter a project's annual net income (revenue minus expenses, before depreciation)
+  in the field below to see after-depreciation taxable income for each year, using whichever schedule was just computed.</p>
+
+<fieldset>
+  <legend>Optional: apply to a net-income stream</legend>
+  <label for="income">Annual net income, comma-separated ($)</label>
+  <input type="text" id="income" placeholder="e.g. 5000,5000,5000,5000,5000" style="width:420px;">
+  <button onclick="applyIncome()">Apply</button>
+</fieldset>
+<table id="income_results" style="display:none;">
+  <thead><tr><th>n</th><th>Net income</th><th>Depreciation D_n</th><th>Taxable income</th></tr></thead>
+  <tbody id="income_body"></tbody>
+</table>
+
+<script>
+document.getElementById('method').addEventListener('change', function() {
+  document.getElementById('uop_row').style.display = (this.value === 'UOP') ? 'block' : 'none';
+});
+
+// same unified DB/DDB engine as dgs/depreciation.py's _declining_balance_schedule,
+// verified against Dr. Alsharqawi's Lecture 8 Examples 4-6 in that module's tests
+function decliningBalanceSchedule(P, S, N, rateMultiplier) {
+  const d = rateMultiplier / N;
+  let BV = P;
+  const rows = [];
+  for (let n = 1; n <= N; n++) {
+    const remaining = N - n + 1;
+    const D_db = d * BV;
+    const D_sl = (BV - S) / remaining;
+    const D = Math.min(Math.max(D_db, D_sl), Math.max(BV - S, 0));
+    rows.push({ n: n, BV_start: BV, D: D, BV_end: BV - D });
+    BV -= D;
+  }
+  return rows;
+}
+
+function straightLine(P, S, N) {
+  const D = (P - S) / N;
+  let BV = P;
+  const rows = [];
+  for (let n = 1; n <= N; n++) {
+    rows.push({ n: n, BV_start: BV, D: D, BV_end: BV - D });
+    BV -= D;
+  }
+  return rows;
+}
+
+function unitsOfProduction(P, S, serviceByYear) {
+  const total = serviceByYear.reduce((a, b) => a + b, 0);
+  if (total <= 0) throw new Error("total service must be positive");
+  let BV = P;
+  const rows = [];
+  serviceByYear.forEach((s, i) => {
+    const D = (s / total) * (P - S);
+    rows.push({ n: i + 1, BV_start: BV, D: D, BV_end: BV - D });
+    BV -= D;
+  });
+  return rows;
+}
+
+function sumOfYearsDigits(P, S, N) {
+  const soyd = N * (N + 1) / 2;
+  let BV = P;
+  const rows = [];
+  for (let n = 1; n <= N; n++) {
+    const D = (N - n + 1) / soyd * (P - S);
+    rows.push({ n: n, BV_start: BV, D: D, BV_end: BV - D });
+    BV -= D;
+  }
+  return rows;
+}
+
+let lastSchedule = null;
+
+function compute() {
+  document.getElementById('error').textContent = '';
+  const P = parseFloat(document.getElementById('P').value);
+  const S = parseFloat(document.getElementById('S').value);
+  const N = parseInt(document.getElementById('N').value, 10);
+  const method = document.getElementById('method').value;
+
+  try {
+    if (isNaN(P) || P <= 0) throw new Error("P (cost basis) must be positive");
+    if (isNaN(S) || S < 0) throw new Error("S (salvage value) must be non-negative");
+    if (S > P) throw new Error("S (salvage value) cannot exceed P (cost basis)");
+    if (!Number.isInteger(N) || N < 1) throw new Error("N (useful life) must be a positive integer");
+
+    let schedule;
+    if (method === 'SL') schedule = straightLine(P, S, N);
+    else if (method === 'SOYD') schedule = sumOfYearsDigits(P, S, N);
+    else if (method === 'DB') schedule = decliningBalanceSchedule(P, S, N, 1);
+    else if (method === 'DDB') schedule = decliningBalanceSchedule(P, S, N, 2);
+    else if (method === 'UOP') {
+      const service = document.getElementById('uop_service').value.split(',').map(x => parseFloat(x.trim()));
+      if (service.some(isNaN) || service.some(x => x < 0)) throw new Error("service values must be non-negative numbers");
+      schedule = unitsOfProduction(P, S, service);
+    }
+
+    lastSchedule = schedule;
+    renderSchedule(schedule, P);
+  } catch (e) {
+    document.getElementById('error').textContent = 'Error: ' + e.message;
+    document.getElementById('results').style.display = 'none';
+  }
+}
+
+function renderSchedule(schedule, P) {
+  const body = document.getElementById('results_body');
+  body.innerHTML = '';
+  schedule.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.className = 'bar-row';
+    const barWidth = Math.max(0, (row.D / P) * 300);
+    tr.innerHTML = `<td>${row.n}</td><td>${row.BV_start.toFixed(2)}</td>` +
+      `<td>${row.D.toFixed(2)}</td><td>${row.BV_end.toFixed(2)}</td>` +
+      `<td><span class="bar" style="width:${barWidth}px;"></span></td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('results').style.display = 'table';
+}
+
+function applyIncome() {
+  if (!lastSchedule) {
+    document.getElementById('error').textContent = 'Error: compute a depreciation schedule first';
+    return;
+  }
+  const incomeStr = document.getElementById('income').value;
+  const income = incomeStr.split(',').map(x => parseFloat(x.trim()));
+  if (income.length !== lastSchedule.length || income.some(isNaN)) {
+    document.getElementById('error').textContent =
+      `Error: provide exactly ${lastSchedule.length} comma-separated net income values`;
+    return;
+  }
+  document.getElementById('error').textContent = '';
+  const body = document.getElementById('income_body');
+  body.innerHTML = '';
+  lastSchedule.forEach((row, i) => {
+    const taxable = income[i] - row.D;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${row.n}</td><td>${income[i].toFixed(2)}</td>` +
+      `<td>${row.D.toFixed(2)}</td><td>${taxable.toFixed(2)}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('income_results').style.display = 'table';
+}
+</script>
+
+</body>
+</html>
