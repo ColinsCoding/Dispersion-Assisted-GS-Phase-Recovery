@@ -146,6 +146,91 @@ plt.xticks(rotation=20, ha='right')
 plt.title('same hidden field, four phase-recovery approaches')
 plt.tight_layout(); plt.show()"""))
 
+cells.append(md("""## Part 4 -- from simulation to real hardware: photodetector, TIA, ADC
+
+Part 2's exact (0.000000 rad) result came from an idealized simulation:
+complex field amplitudes read out directly, no noise, no quantization.
+A REAL receiver reads `|E|^2` optical POWER through a photodetector, an
+electronic transimpedance amplifier (TIA), and an ADC -- reusing
+`dgs/transimpedance_amplifier.py` and `dgs/adc.py` (already tested
+elsewhere in this repo, not rebuilt here) to make that chain concrete
+instead of hand-waved."""))
+
+cells.append(co("""from dgs.transimpedance_amplifier import responsivity, output_voltage, snr
+from dgs.adc import ADC
+
+# realistic operating point: 1550nm, modest optical power, a few-GHz TIA
+wavelength_nm = 1550.0
+eta_qe = 0.85
+R_lambda = responsivity(wavelength_nm, eta_qe)
+P_opt_scale_W = 50e-6   # 50 uW average optical power at full-scale |E_norm|=1
+R_f = 2e4               # TIA feedback resistor (V/A)
+bandwidth_hz = 1e9      # 1 GHz receiver bandwidth
+
+# convert the Part 2 I/Q intensity-difference signals (normalized |E|^2 units)
+# into real optical power, then photocurrent, then TIA output voltage.
+# photocurrent()'s scalar `if P_opt < 0` check doesn't support array input,
+# so apply the underlying I=R*P formula directly (same convention used
+# elsewhere in this repo, e.g. build_electrodynamics_nb.py's Part 10).
+I_power_W = I_hybrid * P_opt_scale_W
+Q_power_W = Q_hybrid * P_opt_scale_W
+I_current_A = R_lambda * I_power_W
+Q_current_A = R_lambda * Q_power_W
+I_voltage_V = output_voltage(I_current_A, R_f)
+Q_voltage_V = output_voltage(Q_current_A, R_f)
+
+# snr() returns a LINEAR amplitude ratio (I_ph/i_n), not decibels -- converting
+# explicitly rather than mislabeling the raw linear value as "dB" (a real bug
+# caught while building this: the first version printed the linear ratio
+# ~397.6 with a "dB" label, which is physically absurd for a receiver SNR;
+# the correctly-converted value below is a reasonable ~52 dB instead).
+# I_dark=0, e_n=0 (defaults): shot + thermal noise only, no amplifier voltage
+# noise -- a simplification, not a claim this is the full real noise budget.
+snr_linear = snr(P_opt_scale_W, R_lambda, R_f, C=0.5e-12, B=bandwidth_hz)
+snr_db = 20 * np.log10(snr_linear)
+print(f"responsivity @ {wavelength_nm}nm, eta={eta_qe}: {R_lambda:.3f} A/W")
+print(f"receiver SNR @ {P_opt_scale_W*1e6:.0f}uW, {bandwidth_hz/1e9:.1f}GHz bandwidth: "
+      f"{snr_linear:.1f} linear ({snr_db:.1f} dB)")
+print(f"I voltage range: [{I_voltage_V.min()*1e3:.3f}, {I_voltage_V.max()*1e3:.3f}] mV")
+print(f"Q voltage range: [{Q_voltage_V.min()*1e3:.3f}, {Q_voltage_V.max()*1e3:.3f}] mV")"""))
+
+cells.append(md("""Digitize with a realistic ADC bit depth (coherent receivers commonly run
+6-10 effective bits at multi-GHz rates) and redo phase recovery from the
+QUANTIZED I/Q -- this is the real cost of moving from an idealized
+simulation to actual hardware."""))
+
+cells.append(co("""v_span = max(np.abs(I_voltage_V).max(), np.abs(Q_voltage_V).max()) * 1.2
+sample_index = np.arange(n_p, dtype=float)
+
+rows = []
+for n_bits in [4, 6, 8, 10, 12]:
+    adc_i = ADC(n_bits=n_bits, fs=1.0, v_range=(-v_span, v_span))
+    adc_q = ADC(n_bits=n_bits, fs=1.0, v_range=(-v_span, v_span))
+    _, I_digitized = adc_i.convert(sample_index, I_voltage_V)
+    _, Q_digitized = adc_q.convert(sample_index, Q_voltage_V)
+
+    # ADC.convert's internal resampling returns one fewer sample than the
+    # input (checked directly, not assumed) -- align lengths rather than
+    # assume an exact 1:1 correspondence with phi_true_p
+    n_common = min(len(I_digitized), len(phi_true_p))
+    phi_digital = np.arctan2(Q_digitized[:n_common], I_digitized[:n_common])
+    phi_true_trunc = phi_true_p[:n_common]
+    offset_d = np.angle(np.mean(np.exp(1j * (phi_true_trunc - phi_digital))))
+    aligned_d = np.angle(np.exp(1j * (phi_digital + offset_d - phi_true_trunc)))
+    rms_digital = float(np.sqrt(np.mean(aligned_d ** 2)))
+    rows.append({"ADC bits": n_bits, "RMS phase error (rad)": rms_digital})
+
+df_adc = pd.DataFrame(rows)
+display(df_adc)
+
+plt.figure(figsize=(6, 3.4))
+plt.semilogy(df_adc["ADC bits"], df_adc["RMS phase error (rad)"], 'o-')
+plt.axhline(rms_hybrid, ls='--', color='gray', alpha=0.6, label='idealized (no ADC) result')
+plt.xlabel('ADC bit depth'); plt.ylabel('RMS phase error (rad)')
+plt.title(f'quantization cost: idealized {rms_hybrid:.1e} rad -> real ADC at finite bits')
+plt.legend(fontsize=8); plt.grid(alpha=0.3, which='both')
+plt.tight_layout(); plt.show()"""))
+
 cells.append(md("""## Summary
 
 | Method | Needs a local oscillator? | Hardware |
