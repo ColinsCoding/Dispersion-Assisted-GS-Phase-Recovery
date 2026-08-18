@@ -1,8 +1,9 @@
-"""Build photonic_modes_geometry.ipynb -- Sections 1-7 (Research Question,
+"""Build photonic_modes_geometry.ipynb -- Sections 1-8 (Research Question,
 Mathematical Model, Grid and Units, Computational Geometry, Finite-
-Difference Discretization, Eigenvalue Problem, Mode Visualization), per
-the mentor spec's own discipline: build incrementally, verify each step
-before the next. Section 8 (Bessel/circular connection) and beyond come later.
+Difference Discretization, Eigenvalue Problem, Mode Visualization,
+Bessel-Function Connection), per the mentor spec's own discipline: build
+incrementally, verify each step before the next. Section 9 (field
+metrics) and beyond come later.
 
 Build with `py -3.13 build_notebook.py` (run from this directory), execute
 with `py -3.13 -m jupyter nbconvert --to notebook --execute --inplace
@@ -19,11 +20,12 @@ cells = []
 # ============================================================================
 cells.append(md("""# Photonic modes and geometry
 
-Sections 1-7 of 14 (Research Question, Mathematical Model, Grid and Units,
+Sections 1-8 of 14 (Research Question, Mathematical Model, Grid and Units,
 Computational Geometry, Finite-Difference Discretization, Eigenvalue
-Problem, Mode Visualization) -- geometry through guided modes and coupled-
-core supermode splitting, per the project's own discipline: nothing
-further until each step is verified."""))
+Problem, Mode Visualization, Bessel-Function Connection) -- geometry
+through guided modes, coupled-core supermode splitting, and a validated
+check of the FD solver against the one exact analytic case, per the
+project's own discipline: nothing further until each step is verified."""))
 
 cells.append(co("""import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd()))
@@ -488,6 +490,102 @@ built here; this notebook shows THAT the effect happens and roughly how
 big it is, not a validated CMT model of it. The circular geometry's
 `modes_circ` results are used again in Section 8 for the analytic Bessel
 comparison, not repeated here."""))
+
+# ============================================================================
+# SECTION 8
+# ============================================================================
+cells.append(md("""## 8. Bessel-Function Connection (Circular Geometry)
+
+**QUESTION:** For the ONE geometry with exact rotational symmetry (the
+circle), does the finite-difference solver reproduce the known
+closed-form analytic solution? **Not claiming FD $\\approx$ analytic
+in general** -- checking it, on the one case where an exact answer
+exists.
+
+**PHYSICS:** In polar coordinates, $\\nabla^2=\\frac{1}{r}\\frac{\\partial}{\\partial r}
+\\left(r\\frac{\\partial}{\\partial r}\\right)+\\frac{1}{r^2}\\frac{\\partial^2}{\\partial\\phi^2}$.
+Separating $\\psi(r,\\phi)=R(r)\\cos(m\\phi)$ turns the 2D Helmholtz equation
+into an ODE for $R(r)$ alone -- Bessel's equation in the core, the
+MODIFIED Bessel equation in the cladding (same equation, imaginary
+argument, giving decay instead of oscillation). This is the direct
+cylindrical analog of separating the 3D Schrodinger equation for a
+central potential into radial + angular parts (Griffiths Ch. 4) -- same
+technique, same reason it works (rotational symmetry)."""))
+
+cells.append(co("""r_sym, m_sym = sp.symbols('r m', positive=True)
+R = sp.besselj(m_sym, r_sym)
+
+# verify J_m symbolically satisfies Bessel's equation: r^2 R'' + r R' + (r^2-m^2) R = 0
+bessel_ode_lhs = r_sym**2*sp.diff(R, r_sym, 2) + r_sym*sp.diff(R, r_sym) + (r_sym**2 - m_sym**2)*R
+print("Bessel's equation, LHS with R=J_m(r) substituted, simplified:")
+sp.simplify(bessel_ode_lhs)"""))
+
+cells.append(md("""**MATH:** Matching $R(r)=J_m(ur/a)$ (core) to $R(r)=K_m(wr/a)$ (cladding,
+modified Bessel, decaying) and their derivatives at $r=a$ gives the
+LP$_{mn}$ characteristic equation (Okamoto's *Fundamentals of Optical
+Waveguides*); for the fundamental ($m=0$, LP01) mode:
+
+$$u\\,\\frac{J_1(u)}{J_0(u)} = w\\,\\frac{K_1(w)}{K_0(w)}, \\qquad
+u^2+w^2=V^2, \\qquad V=k_0 a\\sqrt{n_{core}^2-n_{clad}^2}$$
+
+solved numerically below for $u$ (root-finding, not closed-form), then
+converted to $n_{eff}=\\beta/k_0$ via $\\beta^2=k_0^2n_{core}^2-(u/a)^2$.
+
+**CODE:** `bessel_modes.py` -- 11 tests, including a direct residual
+check that the solved $u$ actually satisfies the characteristic equation
+to $<10^{-6}$."""))
+
+cells.append(co("""from bessel_modes import lp01_effective_index, lp01_radial_profile
+
+radius_um = 1.0  # matches the circle geometry already solved with the FD solver in Section 7
+analytic = lp01_effective_index(n_core=3.4, n_clad=1.44, wavelength_um=wavelength_um, radius_um=radius_um)
+print(f"V-number: {analytic['V']:.4f}   u: {analytic['u']:.4f}   w: {analytic['w']:.4f}")
+print(f"analytic (Bessel) LP01 n_eff: {analytic['n_eff']:.6f}")
+print(f"finite-difference   n_eff:    {modes_circ[0]['n_eff']:.6f}   (from Section 7)")
+
+rel_err = abs(modes_circ[0]['n_eff'] - analytic['n_eff']) / analytic['n_eff']
+print(f"relative difference: {rel_err:.3e}")"""))
+
+cells.append(co("""# radial line-cut comparison: FD field along y=0 vs. the analytic Bessel profile
+r_fd = x[nx // 2:]                      # x-axis from center outward (Section 3's coordinate array)
+psi_fd_cut = modes_circ[0]["psi"][nx // 2:, ny // 2]
+psi_fd_cut = psi_fd_cut / psi_fd_cut[0]  # peak-normalize to match bessel_modes.py's convention
+
+r_analytic = np.linspace(0, r_fd.max(), 300)
+R_analytic = lp01_radial_profile(r_analytic, analytic["u"], analytic["w"], radius_um)
+
+plt.figure(figsize=(6.5, 4))
+plt.plot(r_fd, psi_fd_cut, "o", markersize=3, label="finite-difference (Section 7)")
+plt.plot(r_analytic, R_analytic, "-", label="analytic Bessel (LP01)")
+plt.axvline(radius_um, color="gray", linestyle="--", linewidth=0.8, label="core edge")
+plt.xlabel("r (um)"); plt.ylabel("normalized field"); plt.legend(fontsize=8)
+plt.title("radial profile: finite-difference vs. analytic Bessel solution")
+plt.tight_layout(); plt.show()"""))
+
+cells.append(md("""**CHECK:** the relative $n_{eff}$ difference above must be small (a
+strong implementation check) but is NOT expected to be exactly zero --
+quantified, not asserted away."""))
+
+cells.append(co("""assert rel_err < 1e-3, f"FD vs analytic n_eff disagree by {rel_err:.2e} -- larger than expected"
+print(f"CHECK PASSED: FD and analytic n_eff agree to {rel_err:.2e} relative error (< 1e-3 threshold)")"""))
+
+cells.append(md("""**INTERPRETATION:** agreement this tight ($\\sim 10^{-5}$-$10^{-4}$
+relative error) validates the finite-difference IMPLEMENTATION -- the
+sparse-matrix assembly (Section 5) and eigensolver (Section 6) are doing
+what the math says they should, on a case where the exact answer is
+independently known. That is a DIFFERENT claim from "the scalar model
+matches real fiber physics" (Section 1's own limitation, about the
+scalar-vs-vector approximation) -- this check only confirms the numerics
+correctly solve the equation we chose to solve.
+
+**LIMITATION:** the residual disagreement comes from two identifiable,
+finite sources, not an unexplained gap: (1) a circle drawn on a Cartesian
+grid has a jagged pixel boundary, not a smooth one (quantified already in
+Section 4's area check), and (2) the analytic solution assumes an
+infinite cladding, while the FD solution truncates it with a Dirichlet
+wall (Section 5) -- both shrink as the grid is refined, which is exactly
+what Section 12's convergence study will check quantitatively rather
+than asserting."""))
 
 # ============================================================================
 nb['cells'] = cells
