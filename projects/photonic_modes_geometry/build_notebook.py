@@ -1,8 +1,8 @@
-"""Build photonic_modes_geometry.ipynb -- Sections 1-5 (Research Question,
+"""Build photonic_modes_geometry.ipynb -- Sections 1-6 (Research Question,
 Mathematical Model, Grid and Units, Computational Geometry, Finite-
-Difference Discretization), per the mentor spec's own discipline: build
-incrementally, verify each step before the next. Section 6 (actual
-eigenvalue solve) and beyond come in later sessions.
+Difference Discretization, Eigenvalue Problem), per the mentor spec's own
+discipline: build incrementally, verify each step before the next.
+Section 7 (mode visualization / Bessel connection) and beyond come later.
 
 Build with `py -3.13 build_notebook.py` (run from this directory), execute
 with `py -3.13 -m jupyter nbconvert --to notebook --execute --inplace
@@ -19,9 +19,9 @@ cells = []
 # ============================================================================
 cells.append(md("""# Photonic modes and geometry
 
-Sections 1-5 of 14 (Research Question, Mathematical Model, Grid and Units,
-Computational Geometry, Finite-Difference Discretization) -- geometry and
-the discretized eigenproblem matrix, no eigenvalues solved yet, per the
+Sections 1-6 of 14 (Research Question, Mathematical Model, Grid and Units,
+Computational Geometry, Finite-Difference Discretization, Eigenvalue
+Problem) -- geometry through the first real guided modes, per the
 project's own discipline: nothing further until each step is verified."""))
 
 cells.append(co("""import sys, pathlib
@@ -309,6 +309,91 @@ modeling choice, not a physical law -- they implicitly assume perfectly
 absorbing/reflecting walls at the domain edge, which is only a good
 approximation for a well-confined mode in a large-enough domain. No
 eigenvalues have been computed yet; that's Section 6."""))
+
+# ============================================================================
+# SECTION 6
+# ============================================================================
+cells.append(md("""## 6. Eigenvalue Problem
+
+**QUESTION:** Which eigenvectors of $A(p)$ from Section 5 are actual
+GUIDED modes, and which eigenvalue should we even be solving for?
+
+**PHYSICS:** Split the eigenproblem $\\nabla^2\\psi + k_0^2 n^2\\psi=\\beta^2\\psi$
+by region. In the uniform cladding ($n=n_{clad}$):
+$\\nabla^2\\psi=(\\beta^2-k_0^2n_{clad}^2)\\psi$ -- for the field to DECAY
+away from the core (not blow up), this requires $\\beta^2 > k_0^2n_{clad}^2$.
+In the core ($n=n_{core}$): $\\nabla^2\\psi=(\\beta^2-k_0^2n_{core}^2)\\psi$ --
+for an oscillatory, bounded solution inside the core, this requires
+$\\beta^2 < k_0^2n_{core}^2$. So a physically guided mode must satisfy
+
+$$k_0^2 n_{clad}^2 \\;<\\; \\beta^2 \\;<\\; k_0^2 n_{core}^2
+\\qquad\\Longleftrightarrow\\qquad n_{clad} \\;<\\; n_{eff} \\;<\\; n_{core},
+\\quad n_{eff}\\equiv\\beta/k_0$$
+
+which is exactly why we want the LARGEST eigenvalues of $A(p)$ -- they sit
+just below $k_0^2n_{core}^2$ (the field's own diagonal ceiling), inside
+the guided band, before dropping toward the continuum near $k_0^2n_{clad}^2$.
+
+**MATH:** `scipy.sparse.linalg.eigsh(A, k=n_modes, which="LA")` -- "LA"
+= largest algebraic eigenvalues, the ARPACK mode matched to the physics
+above (NOT "LM"/largest magnitude, which would be wrong here since $A$
+has no large negative eigenvalues to worry about, and NOT "SA", which
+would return the least-confined/near-cladding numerical modes first).
+
+**CODE:** `modes.py`'s `solve_modes` -- wraps `eigsh`, sorts
+descending, reshapes each eigenvector back to the `(nx,ny)` grid, and
+normalizes each mode so $\\sum\\psi^2\\,dx\\,dy=1$ (a SIMPLIFIED NUMERICAL
+METRIC, not a rigorous optical-power normalization -- see Section 9). 9
+tests (`test_modes.py`), including a direct check that the fundamental
+mode's $n_{eff}$ falls strictly between $n_{clad}$ and $n_{core}$."""))
+
+cells.append(co("""from modes import solve_modes
+
+n_modes = 6
+modes = solve_modes(n_rect, dx, dy, wavelength_um, n_modes=n_modes)
+
+k0 = 2 * np.pi / wavelength_um
+print(f"k0^2 n_clad^2 = {k0**2*1.44**2:.3f}   k0^2 n_core^2 = {k0**2*3.4**2:.3f}   (guided band)\\n")
+for i, m in enumerate(modes):
+    print(f"mode {i}: beta^2={m['beta_sq']:.4f}  n_eff={m['n_eff']:.4f}")"""))
+
+cells.append(co("""fig, axs = plt.subplots(2, 3, figsize=(12, 7))
+extent = [-domain_width/2, domain_width/2, -domain_height/2, domain_height/2]
+for i, (ax, m) in enumerate(zip(axs.flat, modes)):
+    im = ax.imshow(m["psi"].T, origin="lower", cmap="RdBu_r", extent=extent)
+    ax.contour(X, Y, n_rect, levels=[(1.44 + 3.4) / 2], colors="k", linewidths=0.8)
+    ax.set_title(f"mode {i}: n_eff={m['n_eff']:.4f}", fontsize=9)
+    ax.set_xlabel("x (um)"); ax.set_ylabel("y (um)")
+plt.tight_layout(); plt.show()"""))
+
+cells.append(md("""**CHECK:** every returned mode's $n_{eff}$ must fall strictly inside
+$(n_{clad}, n_{core})$ -- confirmed directly, not assumed from the solver
+converging."""))
+
+cells.append(co("""n_clad, n_core = 1.44, 3.4
+all_guided = all(n_clad < m["n_eff"] < n_core for m in modes)
+for i, m in enumerate(modes):
+    in_band = n_clad < m["n_eff"] < n_core
+    print(f"mode {i}: n_eff={m['n_eff']:.4f}  guided={in_band}")
+assert all_guided, "at least one returned mode falls outside the physically guided band"
+print("\\nCHECK PASSED: all 6 modes are physically guided (not boundary/discretization artifacts)")"""))
+
+cells.append(md("""**INTERPRETATION:** mode 0 (largest $n_{eff}$, closest to $n_{core}$) is
+the fundamental mode -- a single lobe with no sign change, the most
+tightly confined. Higher-indexed modes have progressively lower $n_{eff}$
+and visibly more field lobes/sign changes (nodes) -- exactly the
+particle-in-a-well pattern from Section 5's Schrodinger analogy: more
+nodes = higher "energy" = less confined = closer to the edge of the
+guided band.
+
+**LIMITATION:** this is a FIXED-wavelength ($\\lambda=1.55\\,\\mu m$)
+snapshot at a FIXED geometry -- how $n_{eff}$ and confinement change as
+geometry is swept comes in Section 10 (Parameter Sweep). The Dirichlet
+domain boundary is finite, so in principle a few of the numerically
+lowest-$n_{eff}$ "modes" near the top of the requested `n_modes` could be
+boundary artifacts rather than true guided modes for some geometries --
+which is exactly why the CHECK above is run every time, not assumed to
+always pass."""))
 
 # ============================================================================
 nb['cells'] = cells
