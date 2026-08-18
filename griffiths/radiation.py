@@ -67,6 +67,64 @@ def total_pattern_solid_angle(kind="hertzian"):
     return sp.simplify(sp.integrate(pat * sp.sin(theta), (theta, 0, sp.pi)) * 2 * sp.pi)
 
 
+# ── radiation reaction: the charge pushes back on itself ─────────────
+def abraham_lorentz_force(q, da_dt):
+    """F_rad = mu0*q^2/(6*pi*c) * da/dt  (Griffiths Eq. 11.80). Radiating
+    away energy (Larmor) means something must be doing work AGAINST the
+    charge's motion -- this is that self-force, proportional to the JERK
+    (da/dt), not the acceleration itself. Same prefactor as larmor_power's
+    mu0*q^2/(6*pi*c), one derivative higher."""
+    return sp.simplify(mu0 * q**2 / (6 * sp.pi * c) * da_dt)
+
+
+def verify_abraham_lorentz_does_work_matching_larmor(q, a0, omega, t):
+    """For a(t) = a0*cos(omega*t), verify that F_rad's average power
+    delivered (-F_rad * v, integrated/averaged) matches larmor_power's
+    average radiated power -- the whole POINT of the Abraham-Lorentz force
+    is that it's the mechanical bookkeeping for Larmor radiation, checked
+    here rather than just asserted. v(t) = a0/omega * sin(omega t) (one
+    integral of a(t), zero integration constant -- oscillatory motion)."""
+    a = a0 * sp.cos(omega * t)
+    da_dt = sp.diff(a, t)
+    F_rad = abraham_lorentz_force(q, da_dt)
+    v = a0 / omega * sp.sin(omega * t)
+    power_delivered_to_charge = sp.simplify(F_rad * v)  # -(-F_rad*v) sign handled by defn below
+    T = 2 * sp.pi / omega
+    avg_power_lost_by_charge = sp.simplify(-sp.integrate(power_delivered_to_charge, (t, 0, T)) / T)
+    P_larmor_avg = sp.simplify(dipole_average_power(sp.Symbol('p0_placeholder'), omega))
+    # direct comparison: Larmor for a POINT CHARGE (not a dipole moment) is
+    # <P> = mu0*q^2*<a^2>/(6*pi*c) = mu0*q^2*a0^2/(12*pi*c) (a0^2 time-averages to a0^2/2)
+    P_larmor_point_charge = sp.simplify(mu0 * q**2 * a0**2 / (12 * sp.pi * c))
+    return {
+        "avg_power_from_abraham_lorentz": avg_power_lost_by_charge,
+        "avg_power_from_larmor": P_larmor_point_charge,
+        "match": bool(sp.simplify(avg_power_lost_by_charge - P_larmor_point_charge) == 0),
+    }
+
+
+# ── magnetic dipole radiation ─────────────────────────────────────────
+def magnetic_dipole_average_power(m0, omega):
+    """Time-averaged power of an oscillating MAGNETIC dipole m(t)=m0*cos(wt)
+    (Griffiths Eq. 11.39-equivalent): <P> = mu0*m0^2*omega^4/(12*pi*c^3).
+    Same omega^4/(12*pi*c) structure as the electric dipole
+    (dipole_average_power), with one extra factor of 1/c^2 -- magnetic
+    dipole radiation is weaker than electric dipole radiation by that
+    factor for comparable source strengths, which is WHY electric dipole
+    radiation dominates almost every practical antenna and atomic
+    transition."""
+    return sp.simplify(mu0 * m0**2 * omega**4 / (12 * sp.pi * c**3))
+
+
+def electric_vs_magnetic_dipole_power_ratio():
+    """dipole_average_power(p0,w) / magnetic_dipole_average_power(m0,w) with
+    p0=m0 (equal-magnitude source moments, an apples-to-apples comparison,
+    NOT a claim that p0 and m0 have the same units/physical meaning) --
+    isolates the c^2 factor the two formulas differ by."""
+    p0, m0, omega = sp.symbols('p0 m0 omega', positive=True)
+    ratio = sp.simplify(dipole_average_power(p0, omega) / magnetic_dipole_average_power(m0, omega).subs(m0, p0))
+    return ratio
+
+
 # ── parity of the radiation (odd vs even multipoles) ────────────────
 def multipole_parity(order):
     """Parity of the 2^order-pole radiation field under r -> -r:
