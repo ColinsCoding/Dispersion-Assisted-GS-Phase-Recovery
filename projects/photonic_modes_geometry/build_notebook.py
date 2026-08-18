@@ -1,8 +1,8 @@
-"""Build photonic_modes_geometry.ipynb -- Sections 1-4 only (Research
-Question, Mathematical Model, Grid and Units, Computational Geometry), per
-the mentor spec's own discipline: geometry + scalar eigenproblem FIRST,
-nothing further until this is verified. Sections 5-14 come in later
-sessions.
+"""Build photonic_modes_geometry.ipynb -- Sections 1-5 (Research Question,
+Mathematical Model, Grid and Units, Computational Geometry, Finite-
+Difference Discretization), per the mentor spec's own discipline: build
+incrementally, verify each step before the next. Section 6 (actual
+eigenvalue solve) and beyond come in later sessions.
 
 Build with `py -3.13 build_notebook.py` (run from this directory), execute
 with `py -3.13 -m jupyter nbconvert --to notebook --execute --inplace
@@ -19,9 +19,10 @@ cells = []
 # ============================================================================
 cells.append(md("""# Photonic modes and geometry
 
-Sections 1-4 of 14 (Research Question, Mathematical Model, Grid and Units,
-Computational Geometry) -- geometry and the eigenproblem setup only, per
-the project's own discipline: nothing further until this is verified."""))
+Sections 1-5 of 14 (Research Question, Mathematical Model, Grid and Units,
+Computational Geometry, Finite-Difference Discretization) -- geometry and
+the discretized eigenproblem matrix, no eigenvalues solved yet, per the
+project's own discipline: nothing further until each step is verified."""))
 
 cells.append(co("""import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd()))
@@ -203,6 +204,111 @@ sub-pixel smoothing. This repo's `dgs/spectral_interferometry.py` and
 issues from unsmoothed material interfaces in a different (dispersion
 discretization) context this session -- worth remembering once Section 5's
 finite-difference Laplacian meets these same hard edges."""))
+
+# ============================================================================
+# SECTION 5
+# ============================================================================
+cells.append(md("""## 5. Finite-Difference Discretization
+
+**QUESTION:** How does $\\nabla^2\\psi + k_0^2 n(x,y)^2\\psi = \\beta^2\\psi$
+become an explicit matrix, i.e. what exactly IS `A(p)` from Section 2?
+
+**PHYSICS:** Boundary condition choice: $\\psi=0$ at the domain edge
+(Dirichlet). This is only physically reasonable once the mode has
+decayed to roughly zero well before reaching the edge -- if the domain is
+too small for the index contrast, this boundary condition will visibly
+distort the mode (checked directly in Section 12's convergence study, not
+assumed here).
+
+**MATH -- deriving the stencil, not quoting it:** the standard
+1D central-difference weights for $d^2\\psi/dx^2$ come from matching
+Taylor series term-by-term (Fornberg's algorithm) -- computed
+symbolically below, not typed in from memory."""))
+
+cells.append(co("""from sympy.calculus.finite_diff import finite_diff_weights
+
+# 2nd derivative, 3-point stencil at offsets [-1, 0, 1] from the evaluation point,
+# derived by matching Taylor series order-by-order (Fornberg's algorithm)
+weights_table = finite_diff_weights(2, [-1, 0, 1], 0)
+central_2nd_deriv_weights = weights_table[2][-1]
+central_2nd_deriv_weights"""))
+
+cells.append(md("""This gives weights $[1, -2, 1]$, i.e.
+
+$$\\psi''(x_i) \\approx \\frac{\\psi_{i-1} - 2\\psi_i + \\psi_{i+1}}{h^2}$$
+
+which is exactly the coefficient pattern predicted (correctly, ahead of
+building it) in this session's earlier `photonic_topopt` mentor thread:
+$E_{i-1}$ and $E_{i+1}$ get $1/h^2$, $E_i$ gets $-2/h^2$. Extending to 2D
+and adding the index term gives the full discretized operator:
+
+$$A(p) = \\underbrace{\\frac{E_{i-1,j}+E_{i+1,j}+E_{i,j-1}+E_{i,j+1}-4E_{i,j}}{h^2}}_{\\text{discrete }\\nabla^2}
+\\;+\\; k_0^2\\, n(x,y)^2$$
+
+**PHYSICS -- the quantum-mechanics connection asked for:** rewrite the
+eigenproblem as $\\hat H\\psi = E_{QM}\\psi$ with
+$\\hat H = -\\nabla^2 - k_0^2 n(x,y)^2$ and $E_{QM}=-\\beta^2$. Compare to
+the time-independent Schrodinger equation in units where $\\hbar^2/2m=1$:
+$\\hat H_{QM}=-\\nabla^2 + V(x,y)$. Matching term-by-term,
+$V(x,y) \\leftrightarrow -k_0^2 n(x,y)^2$ -- **a high-index core is
+mathematically a deep attractive potential well.** A waveguide core
+confining light via total internal reflection and a quantum well confining
+a particle are the SAME eigenproblem structure; that's not a metaphor,
+it's the literal matrix on this page. (This is also the natural home for
+the "analytical mechanics" angle: $\\beta^2$ is a stationary point of the
+Rayleigh quotient $R[\\psi]=\\langle\\psi|A|\\psi\\rangle/\\langle\\psi|\\psi\\rangle$ --
+the same variational structure as Hamilton's principle, extremizing a
+functional rather than solving pointwise. Not built out further here;
+noted for when Section 11's sensitivity analysis needs it.)
+
+**LIMITATION:** this is a STATIC eigenproblem (mode shapes at fixed
+wavelength) -- no time dependence, no $d/dt$. Pulse propagation/dynamics
+would be a distinct notebook (`dgs/nlse.py`'s `nlse_propagate` already
+covers real time-domain nonlinear propagation elsewhere in this repo, not
+duplicated here).
+
+**CODE:** `laplacian.py`'s `laplacian_2d` (5-point stencil, Kronecker-sum
+construction) and `helmholtz_operator` (adds the $k_0^2 n^2$ diagonal
+term) -- 9 tests (`test_laplacian.py`), including an exact check against
+$d^2(x^2)/dx^2=2$ in the interior (2nd-order FD is exact for degree-3
+polynomials, a real correctness check, not a smoke test)."""))
+
+cells.append(co("""from laplacian import laplacian_2d, helmholtz_operator
+
+wavelength_um = 1.55   # standard telecom wavelength
+A = helmholtz_operator(n_rect, dx, dy, wavelength_um)
+print(f"A(p) shape: {A.shape}  (= {nx}*{ny} = {nx*ny} grid points, flattened)")
+print(f"nonzeros: {A.nnz}  ({100*A.nnz/(A.shape[0]*A.shape[1]):.3f}% of dense matrix -- genuinely sparse)")"""))
+
+cells.append(co("""plt.figure(figsize=(5, 5))
+# spy plot of a small sub-block so the 5-diagonal banded structure is visible
+plt.spy(A[:3*ny, :3*ny], markersize=1)
+plt.title(f"sparsity pattern, A(p) (first {3*ny} of {A.shape[0]} rows/cols)")
+plt.tight_layout(); plt.show()"""))
+
+cells.append(md("""**CHECK:** the discrete Helmholtz operator must be symmetric (real,
+Dirichlet BC) for `scipy.sparse.linalg.eigsh` (Section 6) to be the
+correct solver -- `eigsh` assumes a Hermitian matrix and will silently
+return wrong answers if handed a non-symmetric one, so this is checked
+directly, not assumed."""))
+
+cells.append(co("""A_dense = A.toarray()
+asymmetry = np.max(np.abs(A_dense - A_dense.T))
+print(f"max |A - A^T| = {asymmetry:.3e}")
+assert asymmetry < 1e-10, "A(p) is not symmetric -- eigsh would give wrong results"
+print("CHECK PASSED: A(p) is symmetric, eigsh (Section 6) is the appropriate solver")"""))
+
+cells.append(md("""**INTERPRETATION:** the matrix is genuinely sparse (5 nonzeros per row
+out of `nx*ny` columns) because the finite-difference stencil only couples
+each grid point to its 4 immediate neighbors -- this is WHY sparse solvers
+(Section 6) are the right tool instead of a dense eigensolver, not an
+optimization detail.
+
+**LIMITATION:** Dirichlet boundaries (`psi=0` fixed at the edge) are a
+modeling choice, not a physical law -- they implicitly assume perfectly
+absorbing/reflecting walls at the domain edge, which is only a good
+approximation for a well-confined mode in a large-enough domain. No
+eigenvalues have been computed yet; that's Section 6."""))
 
 # ============================================================================
 nb['cells'] = cells
