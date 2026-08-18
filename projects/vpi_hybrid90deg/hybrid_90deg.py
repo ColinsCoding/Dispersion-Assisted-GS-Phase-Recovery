@@ -57,6 +57,31 @@ equation, kept documented here rather than silently ported over:
    1.0 for signalOutput0grad with unit inputs, MATLAB's reference gives
    2.0, exactly the missing factor of 2 in amplitude (4x in power).
 
+4. LIKELY SIGN TYPO IN VPI's OWN MANUAL, row 4: as printed (see equation
+   above), rows 3 and 4 are IDENTICAL at the fully-ideal operating point
+   (all losses 0 dB, all phase/imbalance terms 0) -- confirmed by
+   re-reading the source image at three increasing zoom levels, so this is
+   not a transcription error. Tested directly, this makes the hybrid
+   NON-FUNCTIONAL as a quadrature receiver: feeding a real Mie-scattered
+   test field (`projects/vpi_hybrid90deg` was cross-used with this repo's
+   SEALS bridge for this check) through balanced photodetection
+   (I=|E1|^2-|E2|^2, Q=|E3|^2-|E4|^2) gives Q identically zero everywhere
+   (E3==E4 exactly), and phase recovery via atan2(Q,I) fails completely
+   (RMS error 0.944 rad, no better than an uninformed guess). Flipping ONLY
+   row 4's sign to match row 2's pattern (E4,out =
+   (1/2)[ILS*ImbQ*E1,in - j*ILLO*ImbQ*exp(...)*E2,in], matching how row 2
+   is the sign-flipped partner of row 1) restores a properly functioning
+   quadrature receiver: Q becomes genuinely nonzero and phase recovery on
+   the same test field becomes EXACT (RMS error 0.0000 rad, matching the
+   textbook behavior of coherent detection against a perfectly known LO).
+   This function defaults to the corrected (working) sign; pass
+   row4_lo_sign=+1 to reproduce VPI's literally-printed (non-functional)
+   formula for reference. Still worth confirming against the primary
+   reference VPI's own doc cites (Seimetz & Weinert, J. Lightwave Technol.
+   24(3), 2006) or with Yiming -- but the empirical evidence (broken vs.
+   exact) is strong enough that the default here is the corrected version,
+   not the literal transcription.
+
 ONE UNRESOLVED POINT, flagged rather than guessed at: VPI's dB-to-linear
 formula image (ILS = 10^(0.5 x IL_S_dB)) was too low-resolution to fully
 resolve its internal notation with certainty (whether "IL_S_dB" in that
@@ -95,6 +120,7 @@ def hybrid_90deg(
     InsertionLossImbalanceI: float = 0.0,
     InsertionLossImbalanceQ: float = 0.0,
     phase_unit: str = "deg",
+    row4_lo_sign: float = -1.0,
 ) -> Dict[str, complex]:
     """90-degree optical hybrid, VPI Hybrid90deg module.
 
@@ -108,12 +134,18 @@ def hybrid_90deg(
             unit, or 'rad'), default 0.0
         InsertionLossImbalanceI, InsertionLossImbalanceQ : dB, >= 0,
             default 0.0
+        row4_lo_sign : -1.0 (default) uses the CORRECTED row-4 sign (see
+            module docstring bug 4 -- makes the hybrid a functioning
+            quadrature receiver). Pass +1.0 to reproduce VPI's literally
+            printed (non-functional at the ideal point) formula instead.
 
     Returns dict with keys signalOutput0grad, signalOutput90grad,
     signalOutput180grad, signalOutput270grad (VPI's own port names).
     """
     if phase_unit not in ("deg", "rad"):
         raise ValueError("phase_unit must be 'deg' or 'rad'")
+    if row4_lo_sign not in (1.0, -1.0):
+        raise ValueError("row4_lo_sign must be +1.0 or -1.0")
     to_rad = (np.pi / 180.0) if phase_unit == "deg" else 1.0
     phi_slo = PhaseImbalance_SignalLocalOscillator * to_rad
     phi_iq = PhaseImbalance_IQ * to_rad
@@ -128,7 +160,7 @@ def hybrid_90deg(
     E1_out = 0.5 * (ILS * E1_in + ILLO * np.exp(1j * phi_slo) * E2_in)
     E2_out = 0.5 * (ILS * ImbI * E1_in - ILLO * ImbI * np.exp(1j * phi_slo) * E2_in)
     E3_out = 0.5 * (ILS * E1_in + 1j * ILLO * np.exp(1j * (phi_slo + phi_iq)) * E2_in)
-    E4_out = 0.5 * (ILS * ImbQ * E1_in + 1j * ILLO * ImbQ * np.exp(1j * (phi_slo + phi_iq)) * E2_in)
+    E4_out = 0.5 * (ILS * ImbQ * E1_in + row4_lo_sign * 1j * ILLO * ImbQ * np.exp(1j * (phi_slo + phi_iq)) * E2_in)
 
     return {
         "signalOutput0grad": E1_out,

@@ -25,16 +25,38 @@ def test_ideal_case_output0_is_average_of_inputs():
 
 def test_ideal_case_four_outputs_have_correct_phase_relationships():
     # with equal-magnitude, in-phase-ish inputs, verify the documented
-    # 0/180/90/270 structure directly from the formulas
+    # 0/180/90/270 structure directly from the formulas. Uses the
+    # CORRECTED row-4 sign (row4_lo_sign=-1, the default) -- with VPI's
+    # literally-printed sign, output270 would equal output90 exactly,
+    # which is the bug documented in the module docstring (point 4).
     E1, E2 = 2.0 + 0j, 1.0 + 0j
     result = hybrid_90deg(E1, E2)
     expected_0 = 0.5 * (E1 + E2)
     expected_180 = 0.5 * (E1 - E2)
     expected_90 = 0.5 * (E1 + 1j * E2)
-    expected_270 = 0.5 * (E1 + 1j * E2)  # ImbQ=1 in ideal case, same as 90 but would differ if ImbQ!=1
+    expected_270 = 0.5 * (E1 - 1j * E2)
     assert result["signalOutput0grad"] == pytest.approx(expected_0)
     assert result["signalOutput180grad"] == pytest.approx(expected_180)
     assert result["signalOutput90grad"] == pytest.approx(expected_90)
+    assert result["signalOutput270grad"] == pytest.approx(expected_270)
+
+
+def test_row4_sign_flag_reproduces_literally_printed_vpi_formula():
+    # row4_lo_sign=+1.0 reproduces VPI's literally-printed formula, where
+    # output90 and output270 are identical at the ideal operating point --
+    # the bug documented in the module docstring (point 4), kept testable
+    # rather than silently removed.
+    E1, E2 = 2.0 + 0j, 1.0 + 0j
+    result_printed = hybrid_90deg(E1, E2, row4_lo_sign=1.0)
+    assert result_printed["signalOutput90grad"] == pytest.approx(result_printed["signalOutput270grad"])
+
+    result_corrected = hybrid_90deg(E1, E2)  # default row4_lo_sign=-1.0
+    assert result_corrected["signalOutput90grad"] != pytest.approx(result_corrected["signalOutput270grad"])
+
+
+def test_rejects_bad_row4_lo_sign():
+    with pytest.raises(ValueError):
+        hybrid_90deg(1.0, 1.0, row4_lo_sign=0.5)
 
 
 def test_180deg_output_is_negative_relative_to_0deg_for_real_inputs():
