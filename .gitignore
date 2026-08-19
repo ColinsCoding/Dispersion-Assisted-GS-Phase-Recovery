@@ -87,6 +87,7 @@ tdgsa_project_frames/
 *.mat
 # Track curated sample data (synthetic, <1 MB each)
 !sample_data/*.mat
+!projects/daily_finance_tracker/example_*.csv
 
 ############################
 # AI / notebook artifacts
