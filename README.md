@@ -23,6 +23,7 @@ version of this repo (ECE 279AS deliverable framing), see [`main`](../../tree/ma
 * [Four ways to recover the same hidden phase](#four-ways-to-recover-the-same-hidden-phase)
 * [Where the naive approach breaks — and how we know it's real](#where-the-naive-approach-breaks--and-how-we-know-its-real)
 * [The fix](#the-fix-a-third-measurement-plane)
+* [The hardware side](#the-hardware-side-a-receiver-not-just-an-algorithm)
 * [Reproduce this](#reproduce-this)
 * [Technology-area alignment](#technology-area-alignment)
 * [Funding status](#funding-status)
@@ -115,8 +116,46 @@ including in the previously-broken weak-signal tail:
   <img src="docs/mie_3plane_fix.png" width="720">
 </p>
 
-That's a **~350×** reduction in phase error from one additional, physically
+That's a **~360×** reduction in phase error from one additional, physically
 cheap measurement arm (`projects/seals/inverse/gs_multiplane.py`).
+
+---
+
+## The hardware side: a receiver, not just an algorithm
+
+The classical alternative to blind phase retrieval is a 90°-hybrid
+coherent receiver with a phase-locked local oscillator
+(`dgs/optical_hybrid_90deg.py`) — real front-end hardware, not a simulation
+shortcut. Building it against VPIphotonics' own Hybrid90deg datasheet
+turned up a genuine bug: the datasheet's general transfer-matrix equation
+(eq. 1) and its own worked ideal-case simplification (eq. 2), on the same
+page, disagree on the 270° port's local-oscillator sign. Taken as printed,
+eq. (1) produces a receiver that can never recover a Q quadrature — not a
+typo, a self-contradiction in the primary source:
+
+<p align="center">
+  <img src="docs/hybrid_datasheet_bug.png" width="720">
+</p>
+
+That's the difference between a working receiver and a non-functional one,
+traced to one sign in a datasheet equation — see
+[`dgs/optical_hybrid_90deg.py`](dgs/optical_hybrid_90deg.py) for the
+row-by-row derivation and `tests/test_optical_hybrid_90deg.py` for the
+regression test that pins it down.
+
+Either receiver design still has to survive real front-end electronics.
+Feeding the recovered signal through a modeled photodetector,
+transimpedance amplifier, and ADC (`dgs/transimpedance_amplifier.py`,
+`dgs/adc.py`) shows the idealized, noise-free phase error (6.3×10⁻¹⁶ rad)
+degrading by orders of magnitude once realistic ADC bit depth is accounted
+for:
+
+<p align="center">
+  <img src="docs/adc_quantization_cost.png" width="720">
+</p>
+
+Full chain (photodetector → hybrid → TIA → ADC) is in
+[`notebooks/hybrid90deg_phase_retrieval_mie.ipynb`](notebooks/hybrid90deg_phase_retrieval_mie.ipynb).
 
 ---
 
