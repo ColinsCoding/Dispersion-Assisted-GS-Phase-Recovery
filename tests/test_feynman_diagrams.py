@@ -1,96 +1,102 @@
-"""Test dgs/feynman_diagrams.py: the wavy-line squiggle actually lands on
-its endpoints, every named diagram satisfies the real QED/weak vertex rule
-(2 fermion lines + 1 boson line per internal vertex -- this caught a real
-bug: an earlier pair_production_diagram put both photons on one vertex and
-both outgoing fermions on the other, which verify_vertex_valence correctly
-rejects), external legs match each process's known physics, and fermion
-arrows follow the fermion-number-flow convention (reversed for
-antiparticles) rather than just spatial motion."""
-import sys, pathlib, math
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-
 import numpy as np
+import pytest
 from dgs.feynman_diagrams import (
-    wavy_line_points, fermion_arrow_midpoint, vertex_line_counts,
-    verify_vertex_valence, external_legs, compton_scattering_diagram,
-    ee_annihilation_diagram, pair_production_diagram, beta_decay_diagram,
-    ALL_DIAGRAMS,
+    PROCESSES, energy_conservation_check, diagram_order,
+    phase_matching_condition, detector_response,
+    measurement_vs_memory_table, feynman_sympy_5,
 )
 
-# 1. wavy_line_points: an integer number of periods lands exactly on both endpoints
-for n_periods in (1, 2, 5):
-    xs, ys = wavy_line_points((0.0, 0.0), (1.0, 0.3), n_periods=n_periods)
-    assert abs(xs[0] - 0.0) < 1e-9 and abs(ys[0] - 0.0) < 1e-9
-    assert abs(xs[-1] - 1.0) < 1e-9 and abs(ys[-1] - 0.3) < 1e-9
 
-try:
-    wavy_line_points((0, 0), (1, 1), n_periods=0)
-    assert False, "should have raised ValueError"
-except ValueError:
-    pass
+def test_processes_registry_has_expected_entries():
+    for name in ["SHG", "SFG", "DFG", "THG", "FWM", "SRS"]:
+        assert name in PROCESSES
+        assert "order" in PROCESSES[name]
+        assert "legs" in PROCESSES[name]
 
-try:
-    wavy_line_points((0, 0), (0, 0))
-    assert False, "should have raised ValueError for coincident points"
-except ValueError:
-    pass
 
-# 2. fermion_arrow_midpoint: midpoint and unit direction are correct
-mid, direction = fermion_arrow_midpoint((0.0, 0.0), (2.0, 0.0))
-assert abs(mid[0] - 1.0) < 1e-12 and abs(mid[1]) < 1e-12
-assert abs(direction[0] - 1.0) < 1e-12 and abs(direction[1]) < 1e-12
-assert abs(np.linalg.norm(direction) - 1.0) < 1e-12
+def test_diagram_order_chi2_vs_chi3():
+    assert diagram_order("SHG") == 2
+    assert diagram_order("FWM") == 3
+    assert diagram_order("THG") == 3
 
-# 3. Every named diagram satisfies the real QED/weak vertex rule:
-#    exactly 2 fermion lines + 1 boson line at every internal vertex
-for title, builder in ALL_DIAGRAMS.items():
-    diagram = builder()
-    assert verify_vertex_valence(diagram), f"{title} failed vertex valence: {vertex_line_counts(diagram)}"
 
-# 4. A deliberately broken topology (the actual bug this module caught:
-#    both photons on one vertex, both outgoing fermions on the other) must
-#    be REJECTED by verify_vertex_valence, proving the check has teeth
-broken = {
-    "vertices": {"g1": (0, 1), "g2": (0, -1), "A": (0.4, 0), "B": (0.7, 0),
-                 "e1": (1, 1), "e2": (1, -1)},
-    "lines": [
-        {"from": "g1", "to": "A", "kind": "photon", "label": "γ", "external": True, "incoming": True},
-        {"from": "g2", "to": "A", "kind": "photon", "label": "γ", "external": True, "incoming": True},
-        {"from": "A", "to": "B", "kind": "fermion", "label": "e-", "external": False, "incoming": True},
-        {"from": "B", "to": "e1", "kind": "fermion", "label": "e-", "external": True, "incoming": False},
-        {"from": "B", "to": "e2", "kind": "fermion", "label": "e+", "external": True, "incoming": False, "antiparticle": True},
-    ],
-}
-assert not verify_vertex_valence(broken)
+def test_energy_conservation_shg_balanced():
+    res = energy_conservation_check("SHG", {"omega": 1.5})
+    assert res["conserved"] is True
+    assert abs(res["energy_change"]) < 1e-9
 
-# 5. External legs match each process's known incoming/outgoing content
-compton_legs = set(external_legs(compton_scattering_diagram()))
-assert compton_legs == {("e-", True), ("γ", True), ("e-", False), ("γ", False)}
 
-ann_legs = set(external_legs(ee_annihilation_diagram()))
-assert ann_legs == {("e-", True), ("e+", True), ("μ-", False), ("μ+", False)}
+def test_energy_conservation_fwm_balanced():
+    res = energy_conservation_check("FWM", {"omega_p": 1.0, "omega_s": 1.3, "omega_i": 0.7})
+    assert res["conserved"] is True
 
-# (pair production has two identical incoming photon labels, so this is
-# compared as a sorted multiset, not a set -- a set would silently collapse
-# the duplicate ("γ", True) entry and hide a missing-photon bug)
-pair_legs = sorted(external_legs(pair_production_diagram()))
-assert pair_legs == sorted([("γ", True), ("γ", True), ("e+", False), ("e-", False)])
 
-beta_legs = set(external_legs(beta_decay_diagram()))
-assert beta_legs == {("d", True), ("u", False), ("e-", False), ("ν̄_e", False)}
+def test_energy_conservation_fwm_unbalanced_raises_flag():
+    # signal+idler don't sum to 2*pump -- physically invalid combo
+    res = energy_conservation_check("FWM", {"omega_p": 1.0, "omega_s": 1.5, "omega_i": 0.7})
+    assert res["conserved"] is False
+    assert abs(res["energy_change"]) > 1e-9
 
-# 6. Fermion-number-flow arrow direction: ordinary particles get the arrow
-#    along their actual spatial motion; antiparticles get it reversed
-ann = ee_annihilation_diagram()
-v = ann["vertices"]
-by_label = {line["label"]: line for line in ann["lines"]}
 
-e_minus_line = by_label["e-"]
-_, e_minus_dir = fermion_arrow_midpoint(v[e_minus_line["from"]], v[e_minus_line["to"]])
-assert not e_minus_line.get("antiparticle", False)   # matter: arrow = spatial direction (into vertex)
-assert e_minus_dir[1] > 0   # e- enters from below, moving up toward the vertex
+def test_energy_conservation_unknown_process_raises():
+    with pytest.raises(ValueError):
+        energy_conservation_check("NOT_A_PROCESS", {"omega": 1.0})
 
-e_plus_line = by_label["e+"]
-assert e_plus_line.get("antiparticle", False)   # antimatter: arrow gets reversed
 
-print("all dgs.feynman_diagrams tests passed")
+def test_energy_conservation_thg():
+    res = energy_conservation_check("THG", {"omega": 0.8})
+    assert res["conserved"] is True
+
+
+def test_energy_conservation_srs():
+    res = energy_conservation_check(
+        "SRS", {"omega_p": 1.0, "omega_s": 1.0})  # degenerate case, no Stokes shift
+    assert res["conserved"] is True
+
+
+def test_phase_matching_condition_is_equation():
+    import sympy as sp
+    eq = phase_matching_condition("FWM")
+    assert isinstance(eq, sp.Eq)
+
+
+def test_phase_matching_condition_leg_count_matches_process():
+    eq = phase_matching_condition("SHG")
+    n_legs = len(PROCESSES["SHG"]["legs"])
+    free_k_symbols = [s for s in eq.free_symbols if str(s).startswith('k')]
+    assert len(free_k_symbols) == n_legs
+
+
+def test_detector_response_intensity_is_modulus_squared():
+    E = [3 + 4j]
+    dr = detector_response(E)
+    assert dr["intensity_measured"][0] == pytest.approx(25.0)
+
+
+def test_detector_response_phase_matches_angle():
+    E = [1j]  # pure imaginary -> phase = pi/2
+    dr = detector_response(E)
+    assert dr["phase_discarded"][0] == pytest.approx(np.pi / 2)
+
+
+def test_detector_response_zero_field():
+    dr = detector_response([0 + 0j])
+    assert dr["intensity_measured"][0] == 0.0
+
+
+def test_measurement_vs_memory_table_structure():
+    table = measurement_vs_memory_table()
+    assert "Photodetector" in table
+    assert "GS algorithm" in table
+    assert "common_lesson" in table
+    for key in ["Photodetector", "FWM vertex", "GS algorithm"]:
+        assert "changes" in table[key]
+        assert "measured/remembered" in table[key]
+
+
+def test_feynman_sympy_5_count_and_type():
+    import sympy as sp
+    eqs = feynman_sympy_5()
+    assert len(eqs) == 5
+    for eq in eqs.values():
+        assert isinstance(eq, sp.Eq)
