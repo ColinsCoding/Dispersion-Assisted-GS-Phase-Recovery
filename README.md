@@ -12,6 +12,11 @@ independent second algorithm.
 This branch is the technical case for that validation. For the course-context
 version of this repo (ECE 279AS deliverable framing), see [`main`](../../tree/main).
 
+> **Recruiters:** an interactive version of this page — same figures, plus a
+> one-click switch to hide everything AI/ML-tagged and see the core
+> physics/EE/hardware work on its own — is at
+> [claude.ai/code/artifact/01376304-819d-4f62-a623-2b98e96d57ad](https://claude.ai/code/artifact/01376304-819d-4f62-a623-2b98e96d57ad).
+
 ## Contents
 
 * [The problem](#the-problem-a-real-mie-scattering-signature)
@@ -75,9 +80,15 @@ diverges hard at wider angles (RMS error 0.504 rad):
   <img src="docs/mie_gs_2plane_breakdown.png" width="900">
 </p>
 
-This is not blamed on numerics without proof. An independently-implemented
-PyTorch autograd solver, run on the identical measurement, breaks down in
-the **same region**:
+This is not blamed on numerics without proof — an independent method backs
+it up. Click to expand (or collapse, if you'd rather see the classical-only
+case for it):
+
+<details open>
+<summary><b>AI/ML-tagged:</b> independent PyTorch autograd cross-check</summary>
+
+An independently-implemented PyTorch autograd solver, run on the identical
+measurement, breaks down in the **same region** as classical GS:
 
 <p align="center">
   <img src="docs/mie_gs_vs_autograd_crosscheck.png" width="720">
@@ -86,6 +97,11 @@ the **same region**:
 Two independent algorithms agreeing on where they fail is the signature of
 a real information-theoretic limit in the two-plane measurement — not a bug
 in either implementation.
+
+</details>
+
+Either way, the fix below is classical linear algebra, not a learned model —
+it doesn't depend on the cross-check above being visible.
 
 ---
 
