@@ -12,11 +12,6 @@ independent second algorithm.
 This branch is the technical case for that validation. For the course-context
 version of this repo (ECE 279AS deliverable framing), see [`main`](../../tree/main).
 
-> **Recruiters:** an interactive version of this page — same figures, plus a
-> one-click switch to hide everything AI/ML-tagged and see the core
-> physics/EE/hardware work on its own — is at
-> [claude.ai/code/artifact/01376304-819d-4f62-a623-2b98e96d57ad](https://claude.ai/code/artifact/01376304-819d-4f62-a623-2b98e96d57ad).
-
 ## Contents
 
 * [The problem](#the-problem-a-real-mie-scattering-signature)
