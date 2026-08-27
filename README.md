@@ -1,218 +1,154 @@
-# Dispersion-Assisted GS Phase Recovery
+# Dispersion-Assisted GS Phase Recovery — Real-Scattering Validation
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
-[![Jupyter](https://img.shields.io/badge/notebooks-Jupyter-orange.svg?logo=jupyter)](notebooks/)
+[![Status](https://img.shields.io/badge/status-pursuing%20SBIR%20Phase%20I-lightgrey.svg)](#funding-status)
 
-ECE 279AS · UCLA · Winter 2024 · Jalali Lab
+Carrier-less optical phase retrieval — recovering φ(t) from two intensity-only
+measurements, no local oscillator, no 90° hybrid — validated against **real Mie
+scattering**, not just synthetic test signals, and cross-checked with an
+independent second algorithm.
 
-Carrier-less optical phase retrieval from two intensity-only measurements.
-No local oscillator. No 90° hybrid. Just fiber, a photodetector, and math.
-
-```
- I₁(t)  ──  D₁ = −695 ps/nm  ──┐
-                                  ├──  Temporal GS  ──►  φ(t)
- I₂(t)  ──  D₂ = −800 ps/nm  ──┘
-
- H(ν) = exp(i π D ν²)      transfer function of dispersive fiber
-```
+This branch is the technical case for that validation. For the course-context
+version of this repo (ECE 279AS deliverable framing), see [`main`](../../tree/main).
 
 ## Contents
 
-* [Start here](#-start-here--the-core-notebooks)
-* [How it works](#how-it-works)
-* [Quick start](#quick-start)
-* [Files](#files)
-* [Core algorithm](#core-algorithm-dgsgs_corepy)
-* [Results](#results)
-* [OUSD(R&E) Critical Technology Area alignment](#ousdre-critical-technology-area-alignment)
-* [References](#references)
-
-## ▶ Start here — the core notebooks
-
-| Notebook | What it does |
-|---|---|
-| **[`phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb)** | The mission deliverable: time-domain Gerchberg–Saxton recovers φ(t) from two intensity-only measurements (the carrier-less coherent receiver). |
-| **[`notebooks/ml_course_on_receiver.ipynb`](notebooks/ml_course_on_receiver.ipynb)** | The AI notebook: trains/​classifies on the recovered-signal data (MLP + random forest + boosting). |
-| **[`notebooks/phase_retrieval_materials.ipynb`](notebooks/phase_retrieval_materials.ipynb)** | The applied case study: the same self-supervised GS recovers absorption spectra of four organic semiconductors (pentacene, PCBM, P3HT, Alq3) — see [Results](#results) below. |
-
-*Everything else (the `griffiths/` physics package, `hardware/` C+Verilog FFT, `qubits.py`, etc.) is supporting work; these three are the project.*
+* [The problem](#the-problem-a-real-mie-scattering-signature)
+* [Four ways to recover the same hidden phase](#four-ways-to-recover-the-same-hidden-phase)
+* [Where the naive approach breaks — and how we know it's real](#where-the-naive-approach-breaks--and-how-we-know-its-real)
+* [The fix](#the-fix-a-third-measurement-plane)
+* [Reproduce this](#reproduce-this)
+* [Technology-area alignment](#technology-area-alignment)
+* [Funding status](#funding-status)
 
 ---
 
-## How it works
+## The problem: a real Mie scattering signature
 
-Light from a pulsed source passes through a gas cell, then splits into two paths
-with different dispersive fibers (D₁, D₂). Each path maps spectrum → time
-(dispersive Fourier transform), and a photodetector records the intensity.
+Not a synthetic sinusoid — the actual intensity, phase, and angular pattern
+of light Mie-scattered from a particle, computed by the SEALS physics engine
+(`projects/seals/`). This is the hidden field every method below has to
+recover phase for, seeing only intensity.
 
-You see brightness. Not phase. The GS algorithm recovers the missing phase by
-alternating between two constraints — one per measurement arm — until both are
-simultaneously satisfied.
+<p align="center">
+  <img src="docs/mie_scattering_signature.png" width="900">
+</p>
 
-**Grade 7 version:** run a jump rope through two different springs and film both.
-From the videos alone, GS figures out how the rope was twisted.
+A photodetector only ever records the left panel's intensity axis. The phase
+(middle panel) is what every method here is trying to recover from
+intensity alone.
 
 ---
 
-## Quick start
+## Four ways to recover the same hidden phase
+
+Same hidden Mie field, four independent phase-recovery methods, compared
+head-to-head on RMS phase error against the known Mie truth:
+
+<p align="center">
+  <img src="docs/mie_four_methods_compared.png" width="720">
+</p>
+
+The 90-degree hybrid wins because it has a known local oscillator — that's
+the whole tradeoff this project is built around. The other three recover
+phase from intensity *alone*, which is the harder, carrier-less problem this
+repo targets (see [`dgs/optical_hybrid_90deg.py`](dgs/optical_hybrid_90deg.py)
+for the hybrid, audited against VPIphotonics' own datasheet and shown to
+contain a real internal sign inconsistency, not a convention choice).
+
+---
+
+## Where the naive approach breaks — and how we know it's real
+
+The textbook two-plane GS algorithm, fed the *native* SEALS intensity trace
+(not a synthetic stand-in):
+
+<p align="center">
+  <img src="docs/mie_seals_intensity_trace.png" width="900">
+</p>
+
+Classical 2-plane GS recovers the phase well near the scattering peak, then
+diverges hard at wider angles (RMS error 0.504 rad):
+
+<p align="center">
+  <img src="docs/mie_gs_2plane_breakdown.png" width="900">
+</p>
+
+This is not blamed on numerics without proof. An independently-implemented
+PyTorch autograd solver, run on the identical measurement, breaks down in
+the **same region**:
+
+<p align="center">
+  <img src="docs/mie_gs_vs_autograd_crosscheck.png" width="720">
+</p>
+
+Two independent algorithms agreeing on where they fail is the signature of
+a real information-theoretic limit in the two-plane measurement — not a bug
+in either implementation.
+
+---
+
+## The fix: a third measurement plane
+
+Adding one more dispersed measurement plane (three total) resolves the
+ambiguity almost completely — RMS error drops from 0.504 rad to 0.0014 rad,
+including in the previously-broken weak-signal tail:
+
+<p align="center">
+  <img src="docs/mie_3plane_fix.png" width="720">
+</p>
+
+That's a **~350×** reduction in phase error from one additional, physically
+cheap measurement arm (`projects/seals/inverse/gs_multiplane.py`).
+
+---
+
+## Reproduce this
 
 ```bash
 pip install -r requirements.txt
-pip install -e .           # makes the `dgs` package importable
-python -c "from dgs import gs_core; gs_core"   # smoke-check the import
+pip install -e .
+jupyter notebook projects/seals/seals_to_tdgsa_bridge.ipynb
 ```
 
-To open the main notebook:
-
-```bash
-jupyter notebook notebooks/phase_retrieval.ipynb
-```
-
----
-
-## Files
+The full step-by-step derivation — including the honest null result on
+amplitude regularization and a historical cross-check against a known
+even-degree phase ambiguity — is in that notebook. The 90-degree hybrid
+comparison above is in
+[`notebooks/hybrid90deg_phase_retrieval_mie.ipynb`](notebooks/hybrid90deg_phase_retrieval_mie.ipynb).
 
 | File | What it is |
 |---|---|
-| [`dgs/`](dgs/) | The toolkit package — `gs_core` (dispersion operator, GS loop), plus the physics/ML/hardware modules. Install with `pip install -e .` |
-| [`dgs/gs_core.py`](dgs/gs_core.py) | Physics engine — dispersion operator, GS loop, QPSK test data generator |
-| [`notebooks/phase_retrieval.ipynb`](notebooks/phase_retrieval.ipynb) | Main notebook — the project deliverable |
-| [`notebooks/ml_course_on_receiver.ipynb`](notebooks/ml_course_on_receiver.ipynb) | AI notebook — train/classify on the recovered-signal data |
-| [`notebooks/phase_retrieval_materials.ipynb`](notebooks/phase_retrieval_materials.ipynb) | Applied case study — GS on organic-semiconductor absorption spectra ([Results](#results)) |
-| [`docs/`](docs/) | Figures referenced in this README, regenerated by the notebooks above |
-| [`griffiths/`](griffiths/) | Physics engine — EM, QM, Bessel, relativity, fields (SymPy) |
-| [`hardware/`](hardware/) | 8-point FFT: C golden model (`fft8.c`) + Verilog RTL (`fft8.v`) + Makefile |
-| [`tests/`](tests/) | Smoke tests for every module (`python tests/test_*.py`) |
-| [`sample_data/`](sample_data/) | Synthetic two-arm `.mat` files for testing |
-| [`references/README.md`](references/README.md) | Paper citations with DOI links |
+| [`projects/seals/`](projects/seals/) | SEALS Mie-scattering physics engine + the SEALS→TD-GSA inverse bridge |
+| [`projects/seals/inverse/gs_multiplane.py`](projects/seals/inverse/gs_multiplane.py) | The N-plane GS extension that fixes the breakdown above |
+| [`projects/seals/inverse/phase_retrieval.py`](projects/seals/inverse/phase_retrieval.py) | Independent PyTorch autograd solver, used as the cross-check |
+| [`dgs/gs_core.py`](dgs/gs_core.py) | Classical two-plane TD-GSA engine |
+| [`dgs/optical_hybrid_90deg.py`](dgs/optical_hybrid_90deg.py) | VPI-datasheet-audited 90-degree hybrid, the known-LO comparison point |
+| [`dgs/sbir_portfolio.py`](dgs/sbir_portfolio.py) | The broader project portfolio this validation supports |
 
 ---
 
-## Core algorithm (`dgs/gs_core.py`)
+## Technology-area alignment
 
-```python
-from dgs.gs_core import retrieve_phase, make_qpsk_measurements
-
-data = make_qpsk_measurements(n_symbols=128, D1=-695.0, D2=-800.0, snr_db=30.0)
-phi, errors = retrieve_phase(data["I1"], data["I2"], data["D1"], data["D2"], n_iter=20)
-```
-
-The transfer function, derived with SymPy:
-
-```python
-from dgs.gs_core import show_transfer_function
-H, latex_str = show_transfer_function()
-# H(ν) = exp(i π D ν²)
-```
-
-Convergence follows Fig. 3 of Solli et al. 2009 — phase and amplitude errors
-decrease monotonically, reaching a noise floor around iteration 15–20.
+This validation work sits under the same OUSD(R&E) Critical Technology Area
+mapping as the rest of the project — see [`main`](../../tree/main#ousdre-critical-technology-area-alignment)
+for the full table (`FutureG`, `Trusted AI and Autonomy`,
+`Advanced Computing and Software`, `Integrated Sensing and Cyber`,
+`Directed Energy` [diagnostic use only], `Human-Machine Interfaces`,
+`Quantum Science`, `Biotechnology`). Run `python dgs/ousd_alignment.py` for
+the live, programmatically-generated table.
 
 ---
 
-## Results
+## Funding status
 
-Applying the same self-supervised GS loop to synthetic absorption data for four
-organic semiconductors, reproducible end-to-end from
-[`notebooks/phase_retrieval_materials.ipynb`](notebooks/phase_retrieval_materials.ipynb).
-No ground-truth phase is ever shown to the algorithm — only the two dispersed
-intensity traces per material.
+This is a UCLA / Jalali-Lab-adjacent academic project **pursuing SBIR Phase I
+funding** — a proposal in progress, not an awarded contract. Nothing on this
+page should be read as claiming DoD funding, sponsorship, or endorsement.
+Marked **UNCLASSIFIED // DISTRIBUTION A — Approved for Public Release**.
 
-### 1. Ground-truth absorption spectra (Hückel MO model)
-
-Four organic semiconductors, each with a distinct HOMO–LUMO gap the GS loop
-has to recover blind: pentacene (1.90 eV), PCBM (2.00 eV), P3HT (1.90 eV),
-Alq3 (2.70 eV).
-
-<p align="center">
-  <img src="docs/fig1_organic_spectra.png" width="720">
-</p>
-
-### 2. The two-arm dispersive Fourier transform
-
-Each spectrum is propagated through two fibers with different dispersion
-(D₁ = −5000 ps², D₂ = −15000 ps², a 3× ratio) to produce the only two signals
-the receiver ever sees — intensity vs. time, no phase. The far-field pattern
-(right column) is shown only as a reference, never used by GS.
-
-<p align="center">
-  <img src="docs/fig2_dft_measurements.png" width="900">
-</p>
-
-### 3. Self-supervised GS convergence
-
-150 iterations, no labels — the self-consistency loss between the two
-dispersed-arm reconstructions drives convergence, reaching amp-correlation
-≥ 0.988 for every material.
-
-<p align="center">
-  <img src="docs/fig3_convergence.png" width="820">
-</p>
-
-### 4. Recovered vs. true spectra
-
-The recovered |E|² overlaid on the true α(E) for all four materials —
-correlations of 0.988–0.993, with the visible mismatch confined to the
-noise floor above the absorption edge.
-
-<p align="center">
-  <img src="docs/fig4_recovery.png" width="820">
-</p>
-
----
-
-## OUSD(R&E) Critical Technology Area alignment
-
-This project maps onto **eight** of the OUSD(R&E) Critical Technology Areas
-(the priority-1 set, ★★) — grown from the original six as later modules
-(`logic_timing.py`, `error_propagation.py`, the biotech-adjacent imaging/
-dosimetry work) matured past "adjacent" into real focus areas. Tagging is
-generated programmatically — run `python dgs/ousd_alignment.py` for the live
-table and JSON stamp.
-
-| ★ | Critical Technology Area | How this repo contributes | Evidence |
-|---|---|---|---|
-| ★★ | **FutureG** | Optical-bandwidth sensing/comms via the dispersive Fourier transform; carrier-less phase recovery | [2] |
-| ★★ | **Trusted AI and Autonomy** | Physics-grounded ML — wrapped-phase loss, FNO with a known analytic kernel, `gs_verify` checks | [3] |
-| ★★ | **Advanced Computing and Software** | GPU phase retrieval (`gs_torch`), resolution-invariant FNO, SymPy analytic validation — Maxwell → the dispersion operator `H(f)=exp(iπDf²)` (`griffiths/electrodynamics.py`) | [1][3] |
-| ★★ | **Integrated Sensing and Cyber** | Single-shot DFT spectroscopy + rogue-wave telemetry (`gs_monitor`, `gs_backtest`) | [2] |
-| ★★ | **Directed Energy** | High-rep-rate pulsed-laser characterization and wavefront sensing from intensity only | [1][2] |
-| ★★ | **Human-Machine Interfaces** | Real-time optical dashboard, 3-D phase-surface visualization, scanner control | — |
-| ★★ | **Quantum Science** | Ring-resonator photon-pair sources (`optical_loops`), Coulomb-gauge field quantization (`helmholtz_decomposition`), cavity-QED pole structure (`contour_integration_residues`); RF/microwave hardware bridge (EC ENGR 279AS) and Bayesian readout statistics (`error_propagation.py`) | — |
-| ★★ | **Biotechnology** | Lab-on-chip microfluidic scanner, STEAM circulating-tumor-cell detection, ESR/EPR dosimetry, magnetic-nanoparticle hyperthermia, CDI phase retrieval | — |
-| ★ | Microelectronics | adjacent area the repo touches (priority-2) — SiC ADC timing, FPGA logic synthesis, planar transmission-line design | — |
-
-Source of truth: the OUSD(R&E) Critical Technology Areas list (priority-1 =
-the eight items marked ★★ above). The registry and component→CTA reverse map
-live in [`ousd_alignment.py`](dgs/ousd_alignment.py); `stamp()` attaches CTA
-metadata to any run's stats block for traceability.
-
-> **Scope / honesty note.** This is a public UCLA / Jalali-Lab academic project
-> (the GitHub repo is itself a course deliverable), marked **UNCLASSIFIED //
-> DISTRIBUTION A — Approved for Public Release**. The CTA tags describe
-> *technology-area relevance* — not DoD funding, endorsement, or controlled data.
-> The Directed Energy link is **diagnostic only** (characterizing a beam from
-> intensity measurements), consistent with the project's civilian optical-metrology
-> scope — not a weapon or directed-energy system.
-
----
-
-## References
-
-[1] Gerchberg & Saxton, *Optik* 35(2):237–246, 1972 — original GS algorithm  
-[2] Solli, Gupta & Jalali, *Appl. Phys. Lett.* 95, 231108, 2009 — time-domain GS in the dispersive Fourier transform  
-[3] Pu & Jalali, *Optics Express* 29(13), 20786, 2021 — neural network time-stretch spectral regression  
-[4] BioXFEL, “Phase Retrieval for Coherent Diffractive Imaging: Theory and Algorithm,” YouTube, May 31, 2026, 1h 8m 45s — tutorial lecture on phase retrieval methods for coherent diffractive imaging
-DOI links: [`references/README.md`](references/README.md)
-
----
-
-## Acknowledgment
-
-The dispersive Fourier transform and time-domain GS phase retrieval concept
-originates from the work of **Prof. Bahram Jalali** and his group at UCLA.
-This repository is an independent student implementation for ECE 279AS.
-It does not represent the lab's official code or results.
-Errors are my own.
-
+The dispersive Fourier transform and time-domain GS concept originates from
+the work of **Prof. Bahram Jalali** and his group at UCLA. This repository
+is an independent implementation; it does not represent the lab's official
+code or results. Errors are my own.
