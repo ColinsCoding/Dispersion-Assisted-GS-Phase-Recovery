@@ -99,6 +99,9 @@ help:
 	@echo "  make pts-grammar — evaluate Coppinger 1999 system via PDL grammar"
 	@echo "  make notebook-jalali  — build + execute rogue_wave_ai_detection.ipynb"
 	@echo "  make notebook-rogue   — alias for notebook-jalali"
+	@echo "  make notebook-kk-certificate — KK-consistency certificate for GS phase retrieval"
+	@echo "  make notebook-kk-attempts    — 3 attempts to fix (not just detect) the KK-ambiguity + symmetry search"
+	@echo "  make notebook-kk      — both KK notebooks"
 	@echo "  make smoke-jalali     — quick smoke tests for jalali + grammar"
 	@echo "  make smoke-coppinger  — quick smoke tests for coppinger_jalali_1999"
 	@echo "  make notebooks   — execute all notebooks in $(NB_DIR)/"
@@ -362,11 +365,30 @@ smoke-coppinger:
 .PHONY: notebook-jalali
 notebook-jalali:
 	$(PYTHON) scripts/build_rogue_wave_nb.py
-	$(JUPYTER) nbconvert --to notebook --execute $(NB_DIR)/rogue_wave_ai_detection.ipynb --output $(NB_DIR)/rogue_wave_ai_detection.ipynb --ExecutePreprocessor.timeout=300
+	$(JUPYTER) nbconvert --to notebook --execute $(NB_DIR)/rogue_wave_ai_detection.ipynb --output rogue_wave_ai_detection.ipynb --ExecutePreprocessor.timeout=300
 	@echo "  notebook-jalali done: $(NB_DIR)/rogue_wave_ai_detection.ipynb"
 
 .PHONY: notebook-rogue
 notebook-rogue: notebook-jalali
+
+# ══════════════════════════════════════════════════════════════════════════════
+# KRAMERS-KRONIG / PHASE-RETRIEVAL CERTIFICATE  (added 2026-09-05)
+# ══════════════════════════════════════════════════════════════════════════════
+
+.PHONY: notebook-kk-certificate
+notebook-kk-certificate:
+	$(PYTHON) scripts/build_kk_phase_retrieval_certificate_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute $(NB_DIR)/kk_phase_retrieval_certificate.ipynb --output kk_phase_retrieval_certificate.ipynb --ExecutePreprocessor.timeout=300
+	@echo "  notebook-kk-certificate done: $(NB_DIR)/kk_phase_retrieval_certificate.ipynb"
+
+.PHONY: notebook-kk-attempts
+notebook-kk-attempts:
+	$(PYTHON) scripts/build_kk_constrained_gs_attempts_nb.py
+	$(JUPYTER) nbconvert --to notebook --execute $(NB_DIR)/kk_constrained_gs_attempts.ipynb --output kk_constrained_gs_attempts.ipynb --ExecutePreprocessor.timeout=300
+	@echo "  notebook-kk-attempts done: $(NB_DIR)/kk_constrained_gs_attempts.ipynb"
+
+.PHONY: notebook-kk
+notebook-kk: notebook-kk-certificate notebook-kk-attempts
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INCOMPLETE — TODO for Phase I delivery
