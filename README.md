@@ -2,7 +2,7 @@
 
 A photodetector measures only intensity, so the phase of an optical signal is lost. This project recovers it. The signal is measured after two known, different dispersions, and the Gerchberg-Saxton algorithm iterates between the two measurements until it finds a phase consistent with both.
 
-## What is here (6 files)
+## What is here (10 files)
 
 | file | what it does |
 |---|---|
@@ -11,6 +11,10 @@ A photodetector measures only intensity, so the phase of an optical signal is lo
 | `tests/test_materials.py` | checks the material library against published index values |
 | `notebooks/demo_dispersion_gs.ipynb` | runs a recovery end to end and plots it (simulated data) |
 | `requirements.txt` | Python packages |
+| `notebooks/phase_retrieval.ipynb` | the full ECE 279AS notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced |
+| `dgs/qiskit_gs.py` | the same phase retrieval with the dispersion built as a Qiskit circuit (inverse QFT, diagonal phase, QFT on 7 qubits) and the intensities sampled from qubits |
+| `tests/test_qiskit_gs.py` | checks the circuit against `gs_core`, and the recovery from exact and sampled measurements |
+| `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end: 0.022 rad error from 100,000 shots, error ~ 1/√shots, gate counts |
 | `README.md` | this file |
 
 ## Quick start
@@ -30,7 +34,7 @@ What the code in this repository shows, all on **simulated** data (no lab measur
 3. **Noise sets the accuracy.** When the intensities are sampled (photon or shot counting), the phase error falls like 1/√(number of counts): 0.070 rad at 10⁴ counts, 0.022 rad at 10⁵, 0.007 rad at 10⁶. At 10³ counts recovery fails.
 4. **Some things can never be recovered from intensity:** a constant phase offset, and (in general) a sign flip of the phase. Results are reported after removing both.
 5. **The material numbers are trustworthy.** `dgs/materials.py` reproduces published values: N-BK7 n_d = 1.5168 and Abbe number 64.17, fused-silica zero-dispersion wavelength 1.27 µm, and D ≈ +22 ps/(nm·km) at 1550 nm (`tests/test_materials.py`).
-6. **A quantum-circuit version gives the same answer, but no speedup.** On the archive branch, the same dispersion is built in Qiskit (inverse QFT → diagonal phase → QFT on 7 qubits). It matches the FFT model to about 10⁻¹³. Loading and reading out the data cancels any quantum advantage, and the circuit needs about 350 two-qubit gates.
+6. **A quantum-circuit version gives the same answer, but no speedup.** In `dgs/qiskit_gs.py`, the same dispersion is built in Qiskit (inverse QFT → diagonal phase → QFT on 7 qubits). It matches the FFT model to about 10⁻¹³. Loading and reading out the data cancels any quantum advantage, and the circuit needs about 350 two-qubit gates.
 
 **Limits.** Only second-order dispersion is modeled, the input is assumed to have constant amplitude, and every result is from simulation. The next real test is measured data from a dispersive-fiber setup.
 
