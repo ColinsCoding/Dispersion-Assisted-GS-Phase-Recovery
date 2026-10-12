@@ -1,21 +1,45 @@
-# Dispersion-Assisted Gerchberg-Saxton Phase Recovery
+# Dispersion-Assisted Phase Recovery
 
-A photodetector measures only intensity, so the phase of an optical signal is lost. This project recovers it. The signal is measured after two known, different dispersions, and the Gerchberg-Saxton algorithm iterates between the two measurements until it finds a phase consistent with both.
+**Recovering the phase of an optical signal from intensity-only measurements**, in Python, with a Qiskit quantum-circuit version and machine-checked proofs in Lean 4.
 
-## What is here (10 files)
+A photodetector records only intensity, |E|², so the phase of the light is lost. That phase carries the data in coherent optical links and the shape of the pulse in ultrafast measurements. This project recovers it without a reference laser. The signal is recorded after two known, different amounts of fiber dispersion, and the Gerchberg-Saxton algorithm iterates between the two recordings until it finds the one phase consistent with both.
+
+![Phase recovered from qubit measurements, and recovery error versus number of shots](docs/phase_recovery.png)
+
+*Left: the true phase (black) and the phase recovered from 100,000 sampled measurements (dashed orange, on top of it) and from 1,000 (dotted blue, too few). Right: the error falls as 1/√shots, the shot-noise limit.*
+
+## Results (simulated data)
+
+| result | number |
+|---|---|
+| phase recovered from two dispersed intensity measurements (QPSK signal, 25 dB SNR) | **0.061 rad** RMS error |
+| one dispersion instead of two | fails (1.69 rad, close to random), which is why two are needed |
+| recovery from sampled photon counts | 0.070 / 0.022 / 0.007 rad at 10⁴ / 10⁵ / 10⁶ counts: **error ∝ 1/√counts** |
+| same algorithm with the dispersion built as a 7-qubit Qiskit circuit | matches the FFT model to **~10⁻¹³**; no quantum speedup (stated, not claimed) |
+| Gerchberg-Saxton error over 60 iterations | **never increases**, as proved in Lean (error-reduction property) |
+
+## Skills shown
+
+- **Signal processing and optics:** dispersion as a quadratic spectral phase, FFT-based forward models, alternating projections, Wirtinger flow, Poisson noise, coherent (IQ) detection.
+- **Python:** NumPy, SciPy, Matplotlib, pandas, PyTorch, Jupyter.
+- **Quantum computing (Qiskit 2.x):** QFT and diagonal phase gates, state preparation, shot sampling with `StatevectorSampler`, transpiled gate counts (about 350 CNOTs).
+- **Symbolic math (SymPy):** derivations of the field model, the dispersion kernel and the GS projections.
+- **Formal verification (Lean 4 + Mathlib):** proofs that intensity is blind to phase, that dispersion is all-pass, that the GS magnitude step is the closest possible correction, and that the GS error can never increase.
+- **Software practice:** pytest suite (22 tests), results tied to fixed random seeds, a materials library checked against published refractive-index data.
+
+## What's in the repository
 
 | file | what it does |
 |---|---|
-| `dgs/gs_core.py` | simulates the two intensity measurements with noise and runs Gerchberg-Saxton phase retrieval (numpy only) |
+| `dgs/gs_core.py` | forward model (two dispersed intensity measurements, with noise) and Gerchberg-Saxton phase retrieval, NumPy only |
+| `dgs/qiskit_gs.py` | the same retrieval with the dispersion as a Qiskit circuit (inverse QFT → diagonal phase → QFT) and intensities sampled from qubits |
 | `dgs/materials.py` | refractive index and dispersion of fused silica, N-BK7, sapphire, CaF₂ and LiNbO₃ (Sellmeier equation) |
-| `tests/test_materials.py` | checks the material library against published index values |
-| `notebooks/demo_dispersion_gs.ipynb` | runs a recovery end to end and plots it (simulated data) |
-| `requirements.txt` | Python packages |
-| `notebooks/phase_retrieval.ipynb` | the full ECE 279AS notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced |
-| `dgs/qiskit_gs.py` | the same phase retrieval with the dispersion built as a Qiskit circuit (inverse QFT, diagonal phase, QFT on 7 qubits) and the intensities sampled from qubits |
-| `tests/test_qiskit_gs.py` | checks the circuit against `gs_core`, and the recovery from exact and sampled measurements |
-| `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end: 0.022 rad error from 100,000 shots, error ~ 1/√shots, gate counts |
-| `README.md` | this file |
+| `lean/PhaseRetrieval.lean` | the Lean 4 + Mathlib proofs (8 theorems) |
+| `notebooks/phase_retrieval.ipynb` | the full course notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced, Lean section |
+| `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end, with shot-noise and gate-count analysis |
+| `notebooks/demo_dispersion_gs.ipynb` | a short end-to-end demo |
+| `tests/test_qiskit_gs.py`, `tests/test_materials.py` | checks the circuit against the FFT model, the recovery, and the material data |
+| `docs/phase_recovery.png` | the figure above |
 
 ## Quick start
 
@@ -25,21 +49,14 @@ python -m pytest tests -q
 jupyter lab notebooks/demo_dispersion_gs.ipynb
 ```
 
-## Conclusions
+The Lean proofs need a Lean 4 + Mathlib setup; the notebooks skip that check when one isn't installed.
 
-What the code in this repository shows, all on **simulated** data (no lab measurements):
+## Limits
 
-1. **Two dispersions recover the phase; one does not.** With two different dispersions, Gerchberg-Saxton recovers a QPSK phase to 0.061 rad RMS (`notebooks/demo_dispersion_gs.ipynb`). An earlier single-dispersion prototype only reached 1.69 rad, which is close to a random guess.
-2. **The dispersion has to be strong enough.** At 128 samples, normalized dispersions of (−200, −230) fail (1.33 rad), (−600, −690) are partial (0.73 rad), and (−1000, −1150) recover the phase essentially exactly. When the dispersions are weak, the two intensity recordings look almost the same, so there is nothing to solve from.
-3. **Noise sets the accuracy.** When the intensities are sampled (photon or shot counting), the phase error falls like 1/√(number of counts): 0.070 rad at 10⁴ counts, 0.022 rad at 10⁵, 0.007 rad at 10⁶. At 10³ counts recovery fails.
-4. **Some things can never be recovered from intensity:** a constant phase offset, and (in general) a sign flip of the phase. Results are reported after removing both.
-5. **The material numbers are trustworthy.** `dgs/materials.py` reproduces published values: N-BK7 n_d = 1.5168 and Abbe number 64.17, fused-silica zero-dispersion wavelength 1.27 µm, and D ≈ +22 ps/(nm·km) at 1550 nm (`tests/test_materials.py`).
-6. **A quantum-circuit version gives the same answer, but no speedup.** In `dgs/qiskit_gs.py`, the same dispersion is built in Qiskit (inverse QFT → diagonal phase → QFT on 7 qubits). It matches the FFT model to about 10⁻¹³. Loading and reading out the data cancels any quantum advantage, and the circuit needs about 350 two-qubit gates.
+Every result is from simulation; the next step is measured data from a dispersive-fiber setup. Only second-order dispersion is modeled, and the main examples assume a constant-amplitude signal. Intensity measurements can never recover a constant phase offset or a sign flip of the phase, so results are reported after removing both.
 
-**Limits.** Only second-order dispersion is modeled, the input is assumed to have constant amplitude, and every result is from simulation. The next real test is measured data from a dispersive-fiber setup.
+## About
 
-## Full history
+Started as a UCLA ECE 279AS course project (2024) and continued at Sacramento State in computer engineering. By Colin Casey. Built with the help of an AI coding assistant; every number above is reproduced by the tests and notebooks, and the core math is checked in Lean.
 
-Everything else (more notebooks, C and CUDA versions, coursework, and the complete commit history) is on the branch [`archive/full-history-2026-10-12`](../../tree/archive/full-history-2026-10-12).
-
-Originally a UCLA ECE 279AS course project (2024).
+The earlier, much larger version of this repository (more notebooks, C and CUDA ports, coursework, full commit history) is on the branch [`archive/full-history-2026-10-12`](../../tree/archive/full-history-2026-10-12).
