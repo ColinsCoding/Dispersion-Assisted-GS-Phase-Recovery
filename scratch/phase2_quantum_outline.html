@@ -1,0 +1,240 @@
+<title>Phase II Quantum Extension</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f7f4ee; --surface:#ffffff; --surface-2:#efeade;
+  --border:#ddd6c4; --border-strong:#c9c0a6;
+  --text:#221f17; --text-dim:#5b5644; --text-faint:#8a8368;
+  --ink:#1c2b45; --ink-soft:#eef1f6; --ink-line:#a9b8cf;
+  --gold:#946b1f; --gold-soft:#f6ecd9; --gold-line:#d8b877;
+  --teal:#1f6b63; --teal-soft:#e6f1ef; --teal-line:#7fb3ab;
+  --font-display:'Source Serif 4',Georgia,serif;
+  --font-body:'Source Sans 3',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#181712; --surface:#221f18; --surface-2:#2a2620;
+    --border:#3a3527; --border-strong:#4d4634;
+    --text:#efe9db; --text-dim:#b3ab93; --text-faint:#847c66;
+    --ink:#c3d2ea; --ink-soft:#20293a; --ink-line:#3d5170;
+    --gold:#d8b877; --gold-soft:#332a17; --gold-line:#7d611f;
+    --teal:#7fc9be; --teal-soft:#173230; --teal-line:#2f6058;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#181712; --surface:#221f18; --surface-2:#2a2620;
+  --border:#3a3527; --border-strong:#4d4634;
+  --text:#efe9db; --text-dim:#b3ab93; --text-faint:#847c66;
+  --ink:#c3d2ea; --ink-soft:#20293a; --ink-line:#3d5170;
+  --gold:#d8b877; --gold-soft:#332a17; --gold-line:#7d611f;
+  --teal:#7fc9be; --teal-soft:#173230; --teal-line:#2f6058;
+}
+*{box-sizing:border-box;}
+body{ background:var(--bg); color:var(--text); font-family:var(--font-body); margin:0; padding:0; }
+.wrap{ max-width:800px; margin:0 auto; padding:48px 28px 80px; }
+
+.kicker{ font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--text-faint); margin:0 0 10px; }
+h1{ font-family:var(--font-display); font-weight:700; font-size:34px; line-height:1.15; margin:0 0 8px;
+  text-wrap:balance; color:var(--text); }
+.subtitle{ font-size:15px; color:var(--text-dim); max-width:560px; line-height:1.55; margin:0 0 28px; }
+.meta-row{ display:flex; gap:22px; flex-wrap:wrap; font-family:var(--font-mono); font-size:11.5px;
+  color:var(--text-faint); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  padding:12px 0; margin-bottom:36px; }
+.meta-row b{ color:var(--text-dim); font-weight:600; }
+
+h2{ font-family:var(--font-display); font-weight:600; font-size:21px; color:var(--ink); margin:44px 0 6px;
+  padding-bottom:8px; border-bottom:2px solid var(--ink-line); }
+h2 .num{ font-family:var(--font-mono); font-size:14px; color:var(--text-faint); font-weight:400; margin-right:10px; }
+h3{ font-family:var(--font-body); font-weight:700; font-size:15px; color:var(--text); margin:26px 0 8px; }
+p{ font-size:14.5px; line-height:1.65; color:var(--text); margin:0 0 14px; max-width:66ch; }
+p.lede{ font-size:15px; color:var(--text-dim); }
+ul, ol{ font-size:14.5px; line-height:1.65; margin:0 0 14px; padding-left:22px; }
+li{ margin-bottom:6px; }
+strong{ color:var(--text); }
+code{ font-family:var(--font-mono); font-size:12.5px; background:var(--surface-2); padding:1px 5px;
+  border-radius:3px; color:var(--text-dim); }
+
+.citebox{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--ink-line);
+  border-radius:4px; padding:12px 16px; margin:12px 0 18px; }
+.citebox .label{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-faint); margin-bottom:4px; }
+.citebox code{ font-size:12px; }
+
+.thrust{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px 22px;
+  margin:16px 0; }
+.thrust .tag{ display:inline-block; font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase;
+  letter-spacing:0.07em; padding:3px 9px; border-radius:3px; margin-bottom:10px; }
+.thrust.a .tag{ background:var(--teal-soft); color:var(--teal); border:1px solid var(--teal-line); }
+.thrust.b .tag{ background:var(--gold-soft); color:var(--gold); border:1px solid var(--gold-line); }
+.thrust.c .tag{ background:var(--ink-soft); color:var(--ink); border:1px solid var(--ink-line); }
+.thrust h3{ margin-top:0; font-size:16px; }
+
+.two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:640px){ .two-col{ grid-template-columns:1fr; } }
+.panel{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 18px; }
+.panel h3{ margin-top:0; font-size:13.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); }
+.panel.phase1{ border-top:3px solid var(--text-faint); }
+.panel.phase2{ border-top:3px solid var(--gold); }
+
+table{ width:100%; border-collapse:collapse; font-size:13.5px; margin:14px 0 20px; }
+th{ text-align:left; font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em;
+  color:var(--text-faint); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border-strong); }
+td{ padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+td.num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.timeline{ margin:18px 0 26px; }
+.tl-row{ display:grid; grid-template-columns:90px 1fr; gap:14px; align-items:start; margin-bottom:10px; }
+.tl-row .qtr{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); padding-top:2px; text-align:right; }
+.tl-row .bar{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--ink-line);
+  border-radius:4px; padding:8px 12px; font-size:13px; }
+
+.callout{ background:var(--gold-soft); border:1px solid var(--gold-line); border-radius:6px; padding:14px 18px;
+  font-size:13.5px; line-height:1.6; margin:16px 0; }
+.callout .label{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--gold); margin-bottom:4px; font-weight:600; }
+
+.foot{ margin-top:44px; padding-top:18px; border-top:1px solid var(--border); font-size:12px;
+  color:var(--text-faint); line-height:1.6; }
+</style>
+
+<div class="wrap">
+  <p class="kicker">SBIR Phase II — Outline Sketch</p>
+  <h1>From Classical Phase Retrieval to Quantum-Extended Sensing</h1>
+  <p class="subtitle">A technical bridge from the funded Phase I dispersion-assisted GS phase-recovery
+  work to a quantum-sensing Phase II, built on capability that already exists in this repository —
+  not a pivot into a new field.</p>
+  <div class="meta-row">
+    <span><b>Phase I:</b> $275K, 3 investigators</span>
+    <span><b>Phase II (illustrative):</b> $1.75M</span>
+    <span><b>OUSD CTA:</b> Quantum Science · Integrated Sensing and Cyber</span>
+  </div>
+
+  <h2><span class="num">01</span>The One-Sentence Thesis</h2>
+  <p class="lede">Phase I proved that dispersion can be used to recover phase from intensity-only
+  measurements in a classical photonic receiver. The identical mathematical problem — recovering
+  phase from a measurement that only gives you magnitude — is the central bottleneck in quantum
+  photonic sensing and quantum key distribution. Phase II doesn't change the problem; it changes
+  which photons are counting.</p>
+
+  <h2><span class="num">02</span>What Phase I Actually Proved</h2>
+  <div class="two-col">
+    <div class="panel phase1">
+      <h3>Proven, verified this cycle</h3>
+      <ul>
+        <li>Dispersion-assisted Gerchberg-Saxton (GS) phase retrieval, cross-validated against a
+        Fourier Neural Operator that independently rediscovers the same closed-form dispersion
+        kernel <code>H(f)=exp(iπDf²)</code></li>
+        <li>Real Mie-scattering hardware validation (CUDA-accelerated, cross-checked against an
+        independent Python reimplementation)</li>
+        <li>Kramers-Kronig causality as an external certificate for phase-retrieval ambiguity —
+        confirmed structural (not a one-off bug) across 200 Monte Carlo trials</li>
+        <li>A characterized failure mode: GS's own convergence metric can be fooled; causality
+        catches what the algorithm's own error metric cannot</li>
+      </ul>
+    </div>
+    <div class="panel phase2">
+      <h3>What this hands to Phase II</h3>
+      <ul>
+        <li>A validated dispersion-encoding technique for phase recovery</li>
+        <li>A working ambiguity-detection method (causality-as-certificate) that generalizes past
+        classical GS to any phase-recovery pipeline, quantum ones included</li>
+        <li>An FNO-based learned-operator toolchain already shown to rediscover a known physical
+        kernel from data alone</li>
+        <li>Real hardware-in-the-loop validation discipline (not simulation-only claims)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="num">03</span>Three Candidate Technical Thrusts</h2>
+  <p>Ranked by how directly each one reuses Phase I infrastructure versus requiring new
+  capability. All three are grounded in modules that already exist in this repository, not
+  proposed from scratch.</p>
+
+  <div class="thrust a">
+    <span class="tag">Lowest new-capability risk</span>
+    <h3>Thrust A — Causality-Certified Quantum Phase Estimation</h3>
+    <p>Quantum phase estimation (the core primitive behind quantum sensing and quantum computing's
+    own Shor's-algorithm-class routines) faces the same ambiguity problem Phase I's KK-certificate
+    work already characterized: a phase-estimation circuit can converge to a self-consistent but
+    physically wrong answer. Extend the causality-certificate methodology from classical dispersion
+    to quantum phase-estimation circuits as an independent validation layer.</p>
+    <div class="citebox"><div class="label">Grounded in</div>
+      <code>dgs/causality.py</code> · <code>notebooks/kk_phase_retrieval_certificate.ipynb</code> ·
+      <code>notebooks/kk_certificate_monte_carlo.ipynb</code> · <code>dgs/quantum_modulo.py</code>
+      (existing QPE simulation)</div>
+  </div>
+
+  <div class="thrust b">
+    <span class="tag">Direct hardware extension</span>
+    <h3>Thrust B — Dispersion-Assisted Quantum Receiver for QKD</h3>
+    <p>Phase I's dispersion-encoding trick, applied to a real BB84 optical link: use dispersion as
+    a passive, low-cost way to add a phase-based side channel to an existing polarization-based QKD
+    receiver, potentially improving key rate or adding an eavesdropping-detection signature beyond
+    the standard intercept-resend statistics.</p>
+    <div class="citebox"><div class="label">Grounded in</div>
+      <code>dgs/photonic_qkd.py</code> (BB84 via real Jones-calculus optics, not a toy coin-flip
+      model) · <code>dgs/gs_core.py</code></div>
+  </div>
+
+  <div class="thrust c">
+    <span class="tag">Systems / link-budget</span>
+    <h3>Thrust C — Quantum Internet Repeater-Node Sensing</h3>
+    <p>Quantum repeater nodes need to characterize link quality (loss, timing jitter, phase noise)
+    without destroying the quantum state in transit. Adapt the dispersion-assisted phase-recovery
+    approach as a classical side-channel diagnostic riding alongside the quantum channel — measuring
+    the classical carrier's phase to infer link health without touching the qubits.</p>
+    <div class="citebox"><div class="label">Grounded in</div>
+      <code>dgs/quantum_internet_link_budget.py</code> (fiber vs. satellite link budgets, entangled-pair
+      detection rates, repeater spacing) · <code>dgs/gs_fno.py</code></div>
+  </div>
+
+  <h2><span class="num">04</span>OUSD Critical Technology Area Alignment</h2>
+  <p>Phase I already aligned to FutureG, Trusted AI, Advanced Computing, Integrated Sensing, and
+  Directed Energy. Quantum Science is a sixth CTA this repository has groundwork for but Phase I
+  did not formally claim — Phase II is the natural place to add it, strengthening rather than
+  diluting the existing alignment story.</p>
+  <table>
+    <tr><th>CTA</th><th>Phase I claim</th><th>Phase II addition</th></tr>
+    <tr><td>Integrated Sensing and Cyber</td><td>Established</td><td>Extended to quantum-channel diagnostics (Thrust C)</td></tr>
+    <tr><td>Quantum Science</td><td>Not formally claimed</td><td><strong>New</strong> — Thrusts A &amp; B</td></tr>
+    <tr><td>Trusted AI and Autonomy</td><td>FNO learned-operator work</td><td>Carries forward unchanged</td></tr>
+  </table>
+
+  <h2><span class="num">05</span>Illustrative Timeline</h2>
+  <p>A structure to adapt, not a commitment — actual milestones depend on the real proposal's scope
+  and reviewer feedback.</p>
+  <div class="timeline">
+    <div class="tl-row"><span class="qtr">Q1–Q2</span><div class="bar">Port the causality-certificate methodology to a simulated quantum phase-estimation testbed (Thrust A); no new hardware required, reuses <code>dgs/quantum_modulo.py</code>'s existing QPE simulation.</div></div>
+    <div class="tl-row"><span class="qtr">Q3–Q4</span><div class="bar">Bench integration: add a dispersion-based phase side-channel to a BB84 test link (Thrust B); first hardware-in-the-loop quantum result.</div></div>
+    <div class="tl-row"><span class="qtr">Y2 H1</span><div class="bar">Link-budget field validation for repeater-node diagnostics (Thrust C), building on the existing fiber/satellite comparison tooling.</div></div>
+    <div class="tl-row"><span class="qtr">Y2 H2</span><div class="bar">Integration + Phase III / commercialization case, informed by whichever thrust showed the strongest bench results.</div></div>
+  </div>
+
+  <h2><span class="num">06</span>Risk and the Honest Tradeoff</h2>
+  <p>Staying purely classical (deepening the GS/dispersion work) is lower-risk and faster to
+  publish — it's an area with demonstrated, deep expertise now. Going quantum is a real lift:
+  different noise model (shot-noise-limited single photons, not classical intensity), different
+  hardware (single-photon detectors, not a photodiode), and a genuinely harder validation story.
+  The case for taking that risk is that Quantum Science is where a meaningful share of OUSD funding
+  actually sits, and Thrust A specifically costs almost nothing to attempt first — it's a software
+  extension of an existing simulation module, not a hardware bet — making it a reasonable way to
+  test the quantum direction before committing Phase II's full budget to it.</p>
+
+  <div class="callout">
+    <div class="label">Suggested next concrete step</div>
+    If any of this is worth pursuing for real, the lowest-cost next step is prototyping Thrust A —
+    extending <code>notebooks/kk_certificate_monte_carlo.ipynb</code>'s statistical methodology to
+    <code>dgs/quantum_modulo.py</code>'s QPE simulation. That's a notebook, not a hardware
+    commitment, and would give a concrete result to put in front of a program manager before
+    writing the full proposal.
+  </div>
+
+  <p class="foot">
+    This is a sketch to react to, not a submitted proposal — dollar figures for Phase I and the
+    OUSD CTA list are as previously established; the Phase II figure, timeline, and thrust
+    prioritization are illustrative and should be revised against the actual solicitation and your
+    own judgment before anything goes to a program manager.
+  </p>
+</div>

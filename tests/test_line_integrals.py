@@ -49,7 +49,13 @@ def test_stokes_theorem():
         np.sin(PI/2*u)*np.sin(2*PI*v),
         np.cos(PI/2*u),
     ])
-    s = verify_stokes(F, r_eq, r_h, n_line_pts=256, n_surf_pts=20)
+    # verify_stokes uses a first-order (Riemann-sum) surface quadrature, so its
+    # error scales as ~1/n_surf_pts; n_surf_pts=20 gave rel_err=0.0502 -- just
+    # over this test's own 0.05 threshold from under-resolution, not a bug in
+    # Stokes' theorem itself (confirmed: error halves each time n_surf_pts
+    # doubles, and the line integral matches the exact answer -2*pi). Using
+    # more points gives a real margin instead of sitting at the edge.
+    s = verify_stokes(F, r_eq, r_h, n_line_pts=256, n_surf_pts=80)
     assert s['relative_error'] < 0.05, f"Stokes rel_err={s['relative_error']}"
 
 

@@ -1,0 +1,15 @@
+# Core pipeline (all permissively licensed: BSD / Apache-2.0 / PSF-style)
+numpy>=1.22
+scipy>=1.8
+# The "headless" OpenCV wheel has no GUI libraries, so it installs cleanly on
+# servers and over SSH.  The regular "opencv-python" wheel also works.
+opencv-python-headless>=4.5
+matplotlib>=3.5
+
+# Tests
+pytest>=7.0
+
+# Notebook (optional: only needed for notebooks/symmetry_crack_detection.ipynb)
+jupyter>=1.0
+nbconvert>=7.0
+ipykernel>=6.0

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photonics-crack-detection"
+version = "0.1.0"
+description = "Educational, headless, CPU-only crack analysis combining image symmetry, a simplified Phase Stretch Transform edge detector, and civil-engineering crack metrics."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.8",
+    "opencv-python-headless>=4.5",
+    "matplotlib>=3.5",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+notebook = ["jupyter>=1.0", "nbconvert>=7.0", "ipykernel>=6.0"]
+
+[project.scripts]
+crack-photonics = "crack_photonics.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets `pytest` find the package without installing it first.
+pythonpath = ["src"]

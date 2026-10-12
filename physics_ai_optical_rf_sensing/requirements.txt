@@ -1,0 +1,19 @@
+# Core (imported by src/ and the notebook)
+numpy>=1.26
+pandas>=2.1
+scipy>=1.11
+matplotlib>=3.8
+sympy>=1.12
+scikit-learn>=1.4
+
+# Notebook environment
+jupyterlab>=4.0
+ipykernel>=6.25
+nbformat>=5.9
+nbconvert>=7.10
+
+# Tests
+pytest>=7.4
+
+# Optional, NOT required: PyTorch is not used by this project; the notebook runs on CPU
+# with the packages above. MATLAB and gcc are optional external tools (see README).

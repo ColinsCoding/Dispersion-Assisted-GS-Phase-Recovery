@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from dgs.special_relativity import (
     lorentz_factor, lorentz_transform, time_dilation, length_contraction,
-    four_vector_boost, relativistic_energy, energy_momentum_relation,
-    relativistic_doppler, velocity_addition,
+    relativity_of_simultaneity, four_vector_boost, relativistic_energy,
+    energy_momentum_relation, relativistic_doppler, velocity_addition,
     phase_velocity, group_velocity, gvd_from_dispersion,
     smf28_dispersion, sr_sympy_5, C_SI,
 )
@@ -51,6 +51,40 @@ def test_length_contraction_gamma():
     res = length_contraction(L0=1.0, v=0.6 * C_SI)
     g = 1.0 / np.sqrt(1 - 0.36)
     assert abs(res["L_lab"] - 1.0/g) < 1e-8
+
+
+def test_simultaneity_agrees_at_rest():
+    # v=0: no boost, both events stay simultaneous
+    res = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=0.0)
+    assert abs(res["dt_prime"]) < 1e-10
+    assert res["simultaneous_in_S_prime"]
+
+
+def test_simultaneity_breaks_under_boost():
+    # classic Einstein train: same-time strikes at x=-500 and x=+500 are
+    # NOT simultaneous to an observer moving at 0.6c
+    res = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=0.6 * C_SI)
+    assert not res["simultaneous_in_S_prime"]
+    assert abs(res["dt_prime"]) > 1e-9
+
+
+def test_simultaneity_matches_closed_form():
+    res = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=0.6 * C_SI)
+    assert abs(res["dt_prime"] - res["dt_prime_formula_check"]) < 1e-15
+
+
+def test_simultaneity_reverses_sign_with_boost_direction():
+    # the SAME two events order differently depending on which way the
+    # observer moves -- the defining feature of relativity of simultaneity
+    pos = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=0.6 * C_SI)
+    neg = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=-0.6 * C_SI)
+    assert pos["dt_prime"] * neg["dt_prime"] < 0
+
+
+def test_simultaneity_identical_position_is_frame_independent():
+    # two events at the SAME place are simultaneous in every frame
+    res = relativity_of_simultaneity(x1=100.0, x2=100.0, t=0.0, v=0.6 * C_SI)
+    assert abs(res["dt_prime"]) < 1e-10
 
 
 def test_four_vector_invariant_preserved():
@@ -109,6 +143,16 @@ def test_velocity_addition_classical_limit():
     # At low speed, u ~ v1 + v2
     res = velocity_addition(100.0, 200.0)
     assert abs(res["u_ms"] - 300.0) < 0.01
+
+
+def test_velocity_addition_c_plus_anything_is_c():
+    # postulate 2: adding ANY subluminal speed to light still gives light --
+    # this used to crash (beta hit exactly 1.0, lorentz_factor raised) since
+    # gamma is genuinely infinite/undefined for a lightlike result, not an error
+    res = velocity_addition(C_SI, 20.0)
+    assert res["u_ms"] == C_SI
+    assert res["gamma"] == float("inf")
+    assert res["beta"] == 1.0
 
 
 # ── Phase and group velocity ──────────────────────────────────────────────────

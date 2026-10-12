@@ -1,0 +1,10 @@
+# A deliberately UNDER-braced truss: 4 nodes but only 3 members + 3 reaction
+# DOFs = 6 unknowns, needs 2*4=8 -- not statically determinate (a mechanism).
+4 3
+0.0 0.0  1 1   0.0 0.0
+2.0 0.0  0 1   0.0 0.0
+1.0 1.5  0 0   0.0 -10000.0
+1.0 3.0  0 0   0.0 0.0
+0 2
+1 2
+0 1

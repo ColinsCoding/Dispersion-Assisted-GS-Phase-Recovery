@@ -74,9 +74,16 @@ for combo in itertools.combinations(range(n), na):
     allU.append(min(Ua, na * len(b) - Ua))
 allU = np.array(allU)
 exact_p = np.mean(allU <= U + 1e-9)             # one-sided lower-tail proportion
-# two-sided normal p should be in the right ballpark of 2x the one-sided exact
+# exact_p is ALREADY two-sided, not one-sided: allU takes min(Ua, Ub) for
+# every permutation, which folds both tails together before the mean() is
+# taken -- so exact_p is directly comparable to the two-sided normal-approx
+# p, with no extra factor of 2 (an earlier version of this test doubled
+# exact_p here, comparing p=0.327 against 2*0.413=0.825 -- comparing two
+# different things, not a bug in dgs.robot_error_stats.mann_whitney_u,
+# whose z=-0.980, p=0.327 match a by-hand normal-approximation calculation
+# exactly).
 assert 0.0 < p <= 1.0
-assert abs(p - min(1.0, 2 * exact_p)) < 0.25, (p, exact_p)
+assert abs(p - exact_p) < 0.25, (p, exact_p)
 # a clean separation is highly significant
 _, _, psep = r.mann_whitney_u([1, 2, 3, 4, 5], [10, 11, 12, 13, 14])
 assert psep < 0.02
@@ -100,4 +107,4 @@ assert r.decide(0.05, alpha=0.05)["reject"] is True   # boundary: p <= alpha
 print(f"TEST PASS  (FK matches hand calc; analytic J == finite-diff J; "
       f"pose cov J St J^T == Monte Carlo; RMS radial {rms*1e3:.3f} mm; "
       f"sqrt(N) mean scatter matches; Stirling==lgamma to 1e-3; "
-      f"MW U={U:.0f} p={p:.3f}~2x exact; Wilcoxon W+={W:.0f} p={pw:.3f})")
+      f"MW U={U:.0f} p={p:.3f}~=exact_p={exact_p:.3f} (two-sided both); Wilcoxon W+={W:.0f} p={pw:.3f})")

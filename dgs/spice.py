@@ -59,6 +59,108 @@ def dc_nodal_analysis(elements, n_nodes):
     return x[:n_nodes]                          # node voltages (drop the source currents)
 
 
+# ── s-domain (Laplace): independent AND dependent sources ────────────
+def s_domain_nodal_analysis(elements, n_nodes, s):
+    """Generalizes dc_nodal_analysis two ways: (1) elements can be reactive
+    (C, L), stamped as complex ADMITTANCES at the given Laplace variable s
+    (Y_R=1/R, Y_C=s*C, Y_L=1/(s*L) -- s=j*omega for a sinusoidal steady
+    state, matching dgs.laplace_transform's H(s) convention), and (2) a
+    new element type 'E' is a VCVS (voltage-controlled voltage source,
+    SPICE's own letter for it): V(n1)-V(n2) = gain*(V(nc1)-V(nc2)) --
+    the standard way SPICE-family simulators model an ideal op-amp,
+    stamped with the SAME "extra current unknown" MNA trick used for
+    independent voltage sources above, except its right-hand side reads
+    OTHER node voltages instead of a fixed constant.
+
+    elements: list of tuples --
+      ('R', a, b, ohms) | ('C', a, b, farads) | ('L', a, b, henries)
+      ('V', a, b, volts) | ('I', a, b, amps)
+      ('E', n1, n2, nc1, nc2, gain)   -- VCVS
+
+    At s=0 with only R/V/I elements this reduces exactly to
+    dc_nodal_analysis (verified in tests, not just claimed)."""
+    if s == 0:
+        for e in elements:
+            if e[0] in ("C", "L"):
+                raise ValueError(f"s=0 makes a {e[0]} element's admittance singular or zero; "
+                                  "use dc_nodal_analysis for a purely resistive DC circuit instead")
+    vsrc = [e for e in elements if e[0] == "V"]
+    esrc = [e for e in elements if e[0] == "E"]
+    M = len(vsrc) + len(esrc)
+    size = n_nodes + M
+    A = np.zeros((size, size), dtype=complex)
+    z = np.zeros(size, dtype=complex)
+    idx = lambda n: n - 1
+
+    def stamp_admittance(a, b, y):
+        for p, q, sgn in [(a, a, y), (b, b, y), (a, b, -y), (b, a, -y)]:
+            if p != 0 and q != 0:
+                A[idx(p), idx(q)] += sgn
+
+    for e in elements:
+        if e[0] == "R":
+            _, a, b, val = e
+            stamp_admittance(a, b, 1.0 / val)
+        elif e[0] == "C":
+            _, a, b, val = e
+            stamp_admittance(a, b, s * val)
+        elif e[0] == "L":
+            _, a, b, val = e
+            stamp_admittance(a, b, 1.0 / (s * val))
+        elif e[0] == "I":
+            _, a, b, val = e
+            if a != 0:
+                z[idx(a)] -= val
+            if b != 0:
+                z[idx(b)] += val
+
+    for k, (_, a, b, val) in enumerate(vsrc):
+        m = n_nodes + k
+        if a != 0:
+            A[idx(a), m] += 1; A[m, idx(a)] += 1
+        if b != 0:
+            A[idx(b), m] -= 1; A[m, idx(b)] -= 1
+        z[m] = val
+
+    for k, (_, n1, n2, nc1, nc2, gain) in enumerate(esrc):
+        m = n_nodes + len(vsrc) + k
+        if n1 != 0:
+            A[idx(n1), m] += 1; A[m, idx(n1)] += 1
+        if n2 != 0:
+            A[idx(n2), m] -= 1; A[m, idx(n2)] -= 1
+        # constraint row: V(n1) - V(n2) - gain*(V(nc1) - V(nc2)) = 0
+        if nc1 != 0:
+            A[m, idx(nc1)] -= gain
+        if nc2 != 0:
+            A[m, idx(nc2)] += gain
+        z[m] = 0.0
+
+    x = np.linalg.solve(A, z)
+    return x[:n_nodes]
+
+
+def transfer_function_from_circuit(elements, n_nodes, s_values, out_node, in_node=1):
+    """H(s) = V(out_node)(s) / V(in_node)(s): drive the circuit with a
+    1V-phasor independent source at in_node, solve s_domain_nodal_analysis
+    at each requested s, and read off the ratio. Requires `elements` to
+    NOT already include a source at in_node (this function adds its own
+    unit drive)."""
+    H = np.zeros(len(s_values), dtype=complex)
+    drive = ("V", in_node, 0, 1.0)
+    for i, s in enumerate(s_values):
+        v = s_domain_nodal_analysis(list(elements) + [drive], n_nodes, s)
+        H[i] = v[idx_from_node(out_node)] / v[idx_from_node(in_node)]
+    return H
+
+
+def idx_from_node(n):
+    """Node n (>=1) -> its position in the node-voltage vector returned by
+    *_nodal_analysis (ground, node 0, is never in that vector)."""
+    if n < 1:
+        raise ValueError("node index must be >= 1 (0 is ground, not a returned voltage)")
+    return n - 1
+
+
 # ── transient: the RLC loop as a 2nd-order ODE (differential eqs) ────
 def rlc_step_response(R, L, C, t, V=1.0, vc0=0.0, il0=0.0):
     """Series RLC driven by a DC step V. State (vc, iL) obeys

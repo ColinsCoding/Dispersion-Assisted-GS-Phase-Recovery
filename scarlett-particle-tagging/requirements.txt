@@ -1,0 +1,13 @@
+# Core (permissive licences: BSD / PSF-style)
+numpy>=2.0
+scipy>=1.10
+matplotlib>=3.6
+
+# Tests
+pytest>=7.0
+
+# Notebook (optional)
+jupyter>=1.0
+nbconvert>=7.0
+ipykernel>=6.0
+nbformat>=5.0

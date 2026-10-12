@@ -57,7 +57,6 @@ from . import dielectrics
 from . import magnetostatics
 from . import magnetic_matter
 from . import hilbert
-from . import radiation
 from . import electrodynamics
 
 __version__ = "0.1.0"
@@ -75,5 +74,5 @@ __all__ = [
     "trig_substitution", "sifting_property", "line_integral", "circulation",
     "relativity", "potentials", "quantum", "electrostatics", "potential_theory",
     "bessel", "dielectrics", "magnetostatics", "magnetic_matter", "hilbert",
-    "radiation", "electrodynamics",
+    "electrodynamics",
 ]

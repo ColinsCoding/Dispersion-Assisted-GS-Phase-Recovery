@@ -74,6 +74,26 @@ def solve_truss(nodes, members, supports, loads):
     return member_forces, {n: tuple(v) for n, v in reactions.items()}
 
 
+def three_bar_truss():
+    """The reference 3-bar truss used to cross-validate dgs.torch.truss_fem's
+    differentiable FEM solver against this module's independent method-of-
+    joints solution: A=(0,0) pinned, B=(2,0) roller, apex C=(1,1.5), a 10 kN
+    downward load at C. (Restored as a small wrapper around solve_truss --
+    the original dgs/statics.py this lived in was removed in a prior
+    "reduce to 20 core files" cleanup; tests/test_truss_fem.py's import of
+    it was left dangling and is fixed here rather than resurrecting that
+    whole file for one worked example.)"""
+    nodes = {"A": (0.0, 0.0), "B": (2.0, 0.0), "C": (1.0, 1.5)}
+    members = [("A", "C"), ("B", "C"), ("A", "B")]
+    supports = {"A": (True, True), "B": (False, True)}
+    loads = {"C": (0.0, -10000.0)}
+    member_forces, reactions = solve_truss(nodes, members, supports, loads)
+    return {
+        "member_forces_N": {f"{a}-{c}": f for (a, c), f in member_forces.items()},
+        "reactions_N": reactions,
+    }
+
+
 if __name__ == "__main__":
     # a simple triangular truss: pin at A, roller at B, apex C, 10 kN down at C
     nodes = {"A": (0, 0), "B": (4, 0), "C": (2, 2)}

@@ -1,0 +1,371 @@
+<title>CO2 Focal Picker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#17140f; --surface:#221d16; --surface-2:#2b2419;
+  --border: rgba(243,236,224,0.10); --border-strong: rgba(243,236,224,0.20);
+  --text:#f3ece0; --text-dim:#a89a86; --text-faint:#7a6c58;
+  --ember:#ff5a24; --ember-soft:rgba(255,90,36,0.14); --ember-line:rgba(255,90,36,0.45);
+  --focus:#6fd6e6; --focus-soft:rgba(111,214,230,0.14); --focus-line:rgba(111,214,230,0.45);
+  --font-display:'Big Shoulders Display',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="light"]){
+    --bg:#f6f1e6; --surface:#ece3d1; --surface-2:#e2d6bd;
+    --border: rgba(36,29,20,0.12); --border-strong: rgba(36,29,20,0.22);
+    --text:#241d14; --text-dim:#5f5342; --text-faint:#8a7c66;
+    --ember:#c8420f; --ember-soft:rgba(200,66,15,0.10); --ember-line:rgba(200,66,15,0.4);
+    --focus:#0f7f96; --focus-soft:rgba(15,127,150,0.10); --focus-line:rgba(15,127,150,0.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17140f; --surface:#221d16; --surface-2:#2b2419;
+  --border: rgba(243,236,224,0.10); --border-strong: rgba(243,236,224,0.20);
+  --text:#f3ece0; --text-dim:#a89a86; --text-faint:#7a6c58;
+  --ember:#ff5a24; --ember-soft:rgba(255,90,36,0.14); --ember-line:rgba(255,90,36,0.45);
+  --focus:#6fd6e6; --focus-soft:rgba(111,214,230,0.14); --focus-line:rgba(111,214,230,0.45);
+}
+*{box-sizing:border-box;}
+body{
+  background:var(--bg); color:var(--text); font-family:var(--font-body);
+  margin:0; padding:28px 20px 60px; min-height:100vh;
+}
+.wrap{ max-width:1040px; margin:0 auto; }
+.masthead{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:22px; }
+h1{
+  font-family:var(--font-display); font-weight:800; font-size:42px; line-height:0.92;
+  letter-spacing:0.5px; margin:0; text-transform:uppercase; text-wrap:balance;
+}
+h1 span{ color:var(--ember); }
+.tagline{ font-size:13.5px; color:var(--text-dim); max-width:360px; line-height:1.5; margin:0; }
+.badge{
+  font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-faint); border:1px solid var(--border-strong); border-radius:3px; padding:3px 8px;
+  white-space:nowrap;
+}
+
+.panel-row{ display:grid; grid-template-columns: 1fr 1.15fr; gap:18px; align-items:stretch; }
+@media (max-width:780px){ .panel-row{ grid-template-columns:1fr; } }
+
+.panel{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:22px; }
+.panel h2{
+  font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--text-dim); margin:0 0 16px;
+}
+
+.field{ margin-bottom:18px; }
+.field:last-child{ margin-bottom:0; }
+.field label{
+  display:block; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-faint); margin-bottom:8px;
+}
+.pillrow{ display:flex; gap:8px; flex-wrap:wrap; }
+.pill{
+  font-family:var(--font-mono); font-size:13px; padding:8px 14px; border-radius:6px;
+  border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-dim);
+  cursor:pointer; transition:border-color .15s, color .15s, background .15s;
+}
+.pill:hover{ border-color:var(--focus-line); color:var(--text); }
+.pill.active{ background:var(--ember-soft); border-color:var(--ember-line); color:var(--ember); font-weight:600; }
+.pill.active.usecase{ background:var(--focus-soft); border-color:var(--focus-line); color:var(--focus); }
+
+.thickness-row{ display:flex; align-items:center; gap:10px; }
+.thickness-row input[type=number]{
+  width:90px; font-family:var(--font-mono); font-size:15px; padding:8px 10px; border-radius:6px;
+  border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text);
+}
+.thickness-row select{
+  font-family:var(--font-body); font-size:13px; padding:8px 10px; border-radius:6px;
+  border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-dim); flex:1;
+}
+.hint{ font-size:11.5px; color:var(--text-faint); margin-top:6px; line-height:1.4; }
+[hidden]{ display:none !important; }
+
+.result-panel{ background:var(--surface); border:1px solid var(--ember-line); border-radius:10px; padding:22px;
+  background: linear-gradient(160deg, var(--ember-soft), var(--surface) 55%); }
+.result-eyebrow{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--text-faint); margin:0 0 6px; }
+.result-headline{ display:flex; align-items:baseline; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.result-headline .big{
+  font-family:var(--font-display); font-weight:800; font-size:56px; line-height:0.85; color:var(--ember);
+}
+.result-headline .unit{ font-family:var(--font-mono); font-size:16px; color:var(--text-dim); }
+.reason{ font-size:13.5px; color:var(--text-dim); line-height:1.55; margin:0 0 18px; }
+.reason strong{ color:var(--text); font-weight:600; }
+
+.stat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.stat{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+.stat .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); margin-bottom:6px; }
+.stat .v{ font-family:var(--font-mono); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+.stat .v small{ font-size:12px; color:var(--text-dim); font-weight:400; }
+
+.diagram-panel{ margin-top:18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:22px 22px 14px; }
+.diagram-panel h2{ font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--text-dim); margin:0 0 4px; }
+.diagram-panel .scale-note{ font-size:11px; color:var(--text-faint); margin:0 0 12px; }
+.diagram-scroll{ overflow-x:auto; }
+svg text{ font-family:var(--font-mono); fill:var(--text-dim); }
+svg .label-strong{ fill:var(--text); font-weight:600; }
+svg .dof-band{ fill:var(--focus-soft); stroke:var(--focus-line); }
+svg .waist-line{ stroke:var(--ember); }
+svg .beam-line{ stroke:var(--text-faint); }
+svg .lens{ fill:var(--focus-soft); stroke:var(--focus); }
+svg .center-axis{ stroke:var(--border-strong); stroke-dasharray:3,3; }
+
+table.compare{ width:100%; border-collapse:collapse; margin-top:16px; font-size:13px; }
+table.compare th{ text-align:left; font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase;
+  letter-spacing:0.06em; color:var(--text-faint); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border-strong); }
+table.compare td{ padding:9px 10px; border-bottom:1px solid var(--border); font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+table.compare tr.recommended td{ background:var(--ember-soft); color:var(--text); font-weight:600; }
+table.compare tr.recommended td:first-child{ border-left:2px solid var(--ember); }
+table.compare td.mat{ font-family:var(--font-body); font-weight:500; }
+
+.foot{ margin-top:26px; font-size:11.5px; color:var(--text-faint); line-height:1.6; border-top:1px solid var(--border); padding-top:16px; }
+.foot code{ font-family:var(--font-mono); background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div>
+      <h1>CO2 Focal<br><span>Picker</span></h1>
+      <p class="tagline">Every replacement lens is sold by diameter — never by what it does to your beam. This picks the focal length for your material.</p>
+    </div>
+    <span class="badge">CO2 · 10.6 micron · Gaussian beam optics</span>
+  </div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <h2>Your machine &amp; job</h2>
+
+      <div class="field">
+        <label>Tube power</label>
+        <div class="pillrow" id="power-pills"></div>
+      </div>
+
+      <div class="field">
+        <label>Operation</label>
+        <div class="pillrow" id="usecase-pills"></div>
+      </div>
+
+      <div class="field" id="thickness-field">
+        <label>Material thickness</label>
+        <div class="thickness-row">
+          <input type="number" id="thickness-input" min="0.1" step="0.1" value="3">
+          <span style="font-family:var(--font-mono); font-size:13px; color:var(--text-dim);">mm</span>
+          <select id="material-select">
+            <option value="">— pick a material (reference only) —</option>
+            <option value="3">3mm plywood</option>
+            <option value="6">6mm MDF</option>
+            <option value="1.5">1.5mm leather</option>
+            <option value="10">10mm acrylic</option>
+            <option value="0.4">corrugated cardboard</option>
+          </select>
+        </div>
+        <p class="hint">Cutting must stay in focus through the full depth. Engraving only touches the surface, so thickness doesn't matter.</p>
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <p class="result-eyebrow">Recommended lens</p>
+      <div class="result-headline">
+        <span class="big" id="rec-focal">4.0″</span>
+        <span class="unit">focal length</span>
+      </div>
+      <p class="reason" id="rec-reason">—</p>
+      <div class="stat-grid">
+        <div class="stat"><div class="k">Focused spot</div><div class="v" id="stat-spot">—<small> mm</small></div></div>
+        <div class="stat"><div class="k">Depth of focus</div><div class="v" id="stat-dof">—<small> mm</small></div></div>
+        <div class="stat"><div class="k">Est. kerf</div><div class="v" id="stat-kerf">—<small> mm</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-panel">
+    <h2>Beam through the lens</h2>
+    <p class="scale-note">Schematic — the focus region is exaggerated in scale to stay visible; the mm figures next to each label are exact.</p>
+    <div class="diagram-scroll">
+      <svg id="beam-svg" viewBox="0 0 900 260" width="900" height="260"></svg>
+    </div>
+
+    <table class="compare">
+      <thead><tr><th>Lens</th><th>Spot ⌀</th><th>Depth of focus</th><th>Est. kerf</th></tr></thead>
+      <tbody id="compare-body"></tbody>
+    </table>
+  </div>
+
+  <p class="foot">
+    Physics: a raw beam of radius <code>w0</code> propagated 1 m to a thin lens of focal length <code>f</code>,
+    via the Gaussian-beam ABCD/q-parameter method (Kogelnik's law) — the same formulation used throughout
+    <code>dgs/paraxial_optics_abcd.py</code>. Default raw beam radii by tube power are common hobbyist-tube
+    figures (40W≈3.0mm … 150W≈5.0mm), not a precisely measured universal law — override your own machine's
+    spec if you know it. Kerf is estimated as the focused spot diameter; real kerf runs slightly wider from
+    the melt/char zone. Reference lens data (18/20mm ZnSe, 1.5″–4″) drawn from real listings at a Shopify-hosted
+    hobbyist optics shop, americanphotonics.com.
+  </p>
+</div>
+
+<script>
+const WAVELENGTH_M = 10.6e-6;
+const PATH_TO_LENS_M = 1.0;
+const FOCAL_LENGTHS_IN = [1.5, 2.0, 2.5, 4.0];
+const BEAM_RADIUS_BY_POWER = {40:3.0, 60:3.5, 80:4.0, 100:4.5, 130:5.0, 150:5.0};
+const POWERS = [40, 60, 80, 100, 130, 150];
+
+function focusedSpotAndDOF(focalLengthIn, rawBeamRadiusMm){
+  const f = focalLengthIn * 0.0254;
+  const w0 = rawBeamRadiusMm * 1e-3;
+  const zR0 = Math.PI * w0 * w0 / WAVELENGTH_M;
+  // q0 = 0 + i*zR0 ; propagate PATH_TO_LENS_M (add real part)
+  let qRe = 0 + PATH_TO_LENS_M, qIm = zR0;
+  // thin lens: 1/q' = 1/q - 1/f
+  const denom = qRe*qRe + qIm*qIm;
+  const invQRe = qRe/denom, invQIm = -qIm/denom;
+  const invQpRe = invQRe - 1/f, invQpIm = invQIm;
+  const d2 = invQpRe*invQpRe + invQpIm*invQpIm;
+  let qpRe = invQpRe/d2, qpIm = -invQpIm/d2;
+  // propagate f more (add real part) to reach the new waist
+  const qfRe = qpRe + f, qfIm = qpIm;
+  const df = qfRe*qfRe + qfIm*qfIm;
+  const invQfIm = -qfIm/df;
+  const wFocus = Math.sqrt(-WAVELENGTH_M / (Math.PI * invQfIm));
+  const zR = Math.PI * wFocus * wFocus / WAVELENGTH_M;
+  return { spotMm: 2*wFocus*1e3, dofMm: 2*zR*1e3 };
+}
+
+function recommend(useCase, thicknessMm, powerW){
+  const rawR = BEAM_RADIUS_BY_POWER[powerW];
+  const table = FOCAL_LENGTHS_IN.map(f => {
+    const r = focusedSpotAndDOF(f, rawR);
+    return { f, spot: r.spotMm, dof: r.dofMm, kerf: r.spotMm };
+  });
+  let chosen, reason;
+  if (useCase === 'engrave'){
+    chosen = table[0];
+    reason = 'Engraving only cuts the surface — always pick the <strong>shortest</strong> focal length for the finest detail.';
+  } else {
+    const fitting = table.filter(row => row.dof >= thicknessMm);
+    if (fitting.length){
+      chosen = fitting[0];
+      reason = `Shortest focal length whose depth of focus (<strong>${chosen.dof.toFixed(2)}mm</strong>) still covers your <strong>${thicknessMm}mm</strong> material.`;
+    } else {
+      chosen = table[table.length-1];
+      reason = `No standard lens has enough depth of focus for <strong>${thicknessMm}mm</strong> material (best: ${chosen.dof.toFixed(2)}mm at ${chosen.f}″) — expect a tapered edge, or plan multiple passes.`;
+    }
+  }
+  return { chosen, table, reason };
+}
+
+let state = { power: 60, useCase: 'cut', thickness: 3.0 };
+
+function buildPills(){
+  const powerWrap = document.getElementById('power-pills');
+  POWERS.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'pill' + (p===state.power ? ' active':'');
+    el.textContent = p + 'W';
+    el.onclick = () => { state.power = p; render(); };
+    el.dataset.power = p;
+    powerWrap.appendChild(el);
+  });
+  const ucWrap = document.getElementById('usecase-pills');
+  [['cut','Cut'],['engrave','Engrave']].forEach(([val,label]) => {
+    const el = document.createElement('div');
+    el.className = 'pill usecase' + (val===state.useCase ? ' active':'');
+    el.textContent = label;
+    el.onclick = () => { state.useCase = val; render(); };
+    el.dataset.usecase = val;
+    ucWrap.appendChild(el);
+  });
+}
+
+function refreshPillStyles(){
+  document.querySelectorAll('#power-pills .pill').forEach(el=>{
+    el.classList.toggle('active', Number(el.dataset.power)===state.power);
+  });
+  document.querySelectorAll('#usecase-pills .pill').forEach(el=>{
+    el.classList.toggle('active', el.dataset.usecase===state.useCase);
+  });
+}
+
+function drawDiagram(chosenF, table){
+  const svg = document.getElementById('beam-svg');
+  svg.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+  const midY = 130;
+  const lensX = 140, rightEdge = 860;
+  const rawHalf = 46;
+  // focus distance from the lens genuinely scales with focal length -- shown to
+  // (compressed) scale here, not just relabeled, so a shorter lens visibly
+  // converges closer to itself and a longer one visibly reaches further right
+  const maxF = Math.max(...FOCAL_LENGTHS_IN), minF = Math.min(...FOCAL_LENGTHS_IN);
+  const t = (chosenF - minF) / (maxF - minF);
+  const focusX = lensX + 260 + t * 380;   // 1.5" -> ~400px from lens, 4.0" -> ~780px
+
+  const addEl = (tag, attrs) => {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    svg.appendChild(el);
+    return el;
+  };
+
+  addEl('line', {x1:40, y1:midY, x2:rightEdge, y2:midY, class:'center-axis'});
+
+  const row = table.find(r => r.f === chosenF);
+  const dofPx = Math.min(140, 30 + row.dof*14);
+  addEl('rect', {x:focusX-dofPx/2, y:midY-70, width:dofPx, height:140, class:'dof-band', rx:4, 'stroke-width':1.5, 'stroke-dasharray':'4,3'});
+  addEl('text', {x:focusX, y:midY-78, 'text-anchor':'middle', 'font-size':10.5, fill:'var(--focus)'}).textContent = 'depth of focus';
+
+  addEl('path', {d:`M40,${midY-rawHalf} L${lensX},${midY-rawHalf} L${focusX},${midY-4} L${rightEdge},${midY-18}`, class:'beam-line', fill:'none', 'stroke-width':1.6});
+  addEl('path', {d:`M40,${midY+rawHalf} L${lensX},${midY+rawHalf} L${focusX},${midY+4} L${rightEdge},${midY+18}`, class:'beam-line', fill:'none', 'stroke-width':1.6});
+
+  addEl('ellipse', {cx:lensX, cy:midY, rx:10, ry:56, class:'lens', 'stroke-width':2});
+  addEl('line', {x1:focusX, y1:midY-6, x2:focusX, y2:midY+6, class:'waist-line', 'stroke-width':3});
+
+  addEl('text', {x:lensX, y:midY-72, 'text-anchor':'middle', 'font-size':11}).textContent = `${chosenF}″ lens`;
+  addEl('text', {x:40, y:midY-rawHalf-10, 'font-size':11}).textContent = 'raw beam';
+  const t1 = addEl('text', {x:focusX, y:midY+92, 'text-anchor':'middle', 'font-size':12, class:'label-strong'});
+  t1.textContent = `spot ⌀ ${row.spot.toFixed(3)} mm`;
+  const t2 = addEl('text', {x:focusX, y:midY+108, 'text-anchor':'middle', 'font-size':11});
+  t2.textContent = `depth of focus ${row.dof.toFixed(2)} mm`;
+}
+
+function render(){
+  refreshPillStyles();
+  document.getElementById('thickness-field').hidden = (state.useCase === 'engrave');
+  const thickness = parseFloat(document.getElementById('thickness-input').value) || 3.0;
+  state.thickness = thickness;
+
+  const { chosen, table, reason } = recommend(state.useCase, state.thickness, state.power);
+
+  document.getElementById('rec-focal').textContent = chosen.f.toFixed(1) + '″';
+  document.getElementById('rec-reason').innerHTML = reason;
+  document.getElementById('stat-spot').innerHTML = chosen.spot.toFixed(3) + '<small> mm</small>';
+  document.getElementById('stat-dof').innerHTML = chosen.dof.toFixed(2) + '<small> mm</small>';
+  document.getElementById('stat-kerf').innerHTML = chosen.kerf.toFixed(3) + '<small> mm</small>';
+
+  const tbody = document.getElementById('compare-body');
+  tbody.innerHTML = '';
+  table.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row.f === chosen.f) tr.className = 'recommended';
+    tr.innerHTML = `<td class="mat">${row.f.toFixed(1)}″</td><td>${row.spot.toFixed(3)} mm</td><td>${row.dof.toFixed(2)} mm</td><td>${row.kerf.toFixed(3)} mm</td>`;
+    tbody.appendChild(tr);
+  });
+
+  drawDiagram(chosen.f, table);
+}
+
+document.getElementById('thickness-input').addEventListener('input', render);
+document.getElementById('material-select').addEventListener('change', (e) => {
+  if (e.target.value){
+    document.getElementById('thickness-input').value = e.target.value;
+    render();
+  }
+});
+
+buildPills();
+render();
+</script>

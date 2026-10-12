@@ -70,6 +70,30 @@ def length_contraction(L0, v, c=C_SI):
     }
 
 
+def relativity_of_simultaneity(x1, x2, t, v, c=C_SI):
+    """Two events at positions x1, x2, simultaneous at time t in frame S
+    (Knight Ch 36.5). Boost both to a frame S' moving at v: reuses
+    lorentz_transform (not reimplemented) on each event separately, so
+    the two boosted times are whatever the existing transform gives --
+    the closed-form check below (dt' = -gamma*v*(x2-x1)/c^2) is a
+    cross-verification, not the primary computation.
+
+    Simultaneity is frame-dependent: dt'=0 only when x1==x2 or v==0.
+    """
+    e1 = lorentz_transform(x1, t, v, c)
+    e2 = lorentz_transform(x2, t, v, c)
+    dt_prime = e2["t_prime"] - e1["t_prime"]
+    gamma = e1["gamma"]
+    dt_prime_formula = -gamma * v * (x2 - x1) / c**2
+    return {
+        "t1_prime": e1["t_prime"], "t2_prime": e2["t_prime"],
+        "dt_prime": dt_prime, "dt_prime_formula_check": dt_prime_formula,
+        "simultaneous_in_S": True,
+        "simultaneous_in_S_prime": abs(dt_prime) < 1e-15,
+        "gamma": gamma, "x1": x1, "x2": x2, "v": v,
+    }
+
+
 def four_vector_boost(event, v, c=C_SI):
     """Boost a spacetime 4-vector [ct, x, y, z] to frame moving at v along x.
 
@@ -146,12 +170,19 @@ def relativistic_doppler(f0, v, c=C_SI, approaching=True):
 
 
 def velocity_addition(v1, v2, c=C_SI):
-    """Relativistic velocity addition u = (v1+v2)/(1 + v1*v2/c^2)."""
+    """Relativistic velocity addition u = (v1+v2)/(1 + v1*v2/c^2).
+
+    Combining ANY subluminal speed with exactly c lands u exactly on c
+    (postulate 2: adding a speed to light still gives light) -- gamma is
+    then genuinely infinite/undefined (only massless things move at c),
+    not an error, so that case is returned directly instead of calling
+    lorentz_factor, which would otherwise raise on beta==1.0 exactly."""
     u = (v1 + v2) / (1.0 + v1 * v2 / c**2)
-    if abs(u) > c:
-        u = np.sign(u) * c * (1 - 1e-15)   # numerical clamp
-    lf = lorentz_factor(abs(u), c)
-    return {"u_ms": u, "gamma": lf["gamma"], "beta": u / c}
+    beta = u / c
+    if abs(beta) >= 1.0:
+        return {"u_ms": np.sign(u) * c, "gamma": float("inf"), "beta": np.sign(beta)}
+    lf = lorentz_factor(u, c)
+    return {"u_ms": u, "gamma": lf["gamma"], "beta": lf["beta"]}
 
 
 # ── Phase and group velocity ───────────────────────────────────────────────────
@@ -297,6 +328,16 @@ if __name__ == "__main__":
     mp = 1.6726e-27
     re = relativistic_energy(mp, 0.5 * C_SI)
     print(f"  E_total = {re['E_total_J']:.4e} J  KE = {re['KE_J']:.4e} J")
+
+    print("\n=== Relativity of simultaneity: two lightning strikes ===")
+    # classic Einstein train: strikes at the front and back of a platform,
+    # simultaneous to an observer standing on the platform (frame S)
+    sim = relativity_of_simultaneity(x1=-500.0, x2=500.0, t=0.0, v=0.6 * C_SI)
+    print(f"  simultaneous in S (platform):        {sim['simultaneous_in_S']}")
+    print(f"  t1' (back strike, moving train frame):  {sim['t1_prime']:.4e} s")
+    print(f"  t2' (front strike, moving train frame): {sim['t2_prime']:.4e} s")
+    print(f"  dt' = {sim['dt_prime']:.4e} s  (closed-form check: {sim['dt_prime_formula_check']:.4e} s)")
+    print(f"  simultaneous in S' (train)?           {sim['simultaneous_in_S_prime']}")
 
     print("\n=== SMF-28 GVD from dispersion ===")
     om0   = 2 * np.pi * 3e8 / 1550e-9

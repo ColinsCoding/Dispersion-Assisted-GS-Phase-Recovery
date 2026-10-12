@@ -1,9 +1,16 @@
 """Test the torch differentiable truss FEM solver: cross-validated against
-dgs.statics.three_bar_truss() (same geometry/loads, different method), a
+dgs.truss.three_bar_truss() (same geometry/loads, different method), a
 closed-form single-bar sanity check, EA-independence of member forces for a
 determinate truss, and autograd sensitivity against the analytic derivative.
 
 torch is py-3.12 ONLY in this repo -- run with `py -3.12 -m pytest tests/test_truss_fem.py`.
+
+NOTE: this used to import three_bar_truss from dgs.statics, a module removed
+in a prior "reduce to 20 core files" cleanup that left this import dangling
+(a real bug, caught while surveying existing truss/statics coverage before
+adding a new SymPy-based module). Fixed by restoring three_bar_truss as a
+small wrapper in dgs/truss.py, reusing its existing solve_truss rather than
+resurrecting the whole deleted file.
 """
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -11,7 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import torch
 
 from dgs.torch.truss_fem import solve_truss_fem, bridge_load_sweep, export_trajectory_json
-from dgs.statics import three_bar_truss
+from dgs.truss import three_bar_truss
 
 dtype = torch.float64
 

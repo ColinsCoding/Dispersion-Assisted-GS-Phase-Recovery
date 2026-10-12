@@ -1,0 +1,10 @@
+# The reference 3-bar truss used throughout this repo's Python truss work
+# (dgs.truss.three_bar_truss, dgs.truss_symbolic's worked example):
+# A=(0,0) pinned, B=(2,0) roller, apex C=(1,1.5), 10 kN down at C.
+3 3
+0.0 0.0  1 1   0.0 0.0        # node 0 = A, pinned (fix_x=1, fix_y=1)
+2.0 0.0  0 1   0.0 0.0        # node 1 = B, roller (fix_x=0, fix_y=1)
+1.0 1.5  0 0   0.0 -10000.0   # node 2 = C, free, 10 kN downward load
+0 2   # member A-C
+1 2   # member B-C
+0 1   # member A-B

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scarlett-particle-tagging"
+version = "0.1.0"
+description = "Simulation-first optical particle characterization: Mie scattering, a behavioural sensor/ASIC model, and an RF telemetry layer. All results are synthetic."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["numpy>=2.0", "scipy>=1.10", "matplotlib>=3.6"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+notebook = ["jupyter>=1.0", "nbconvert>=7.0", "ipykernel>=6.0", "nbformat>=5.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
