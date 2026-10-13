@@ -46,9 +46,10 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | `lean/PhaseRetrieval.lean` | the Lean 4 + Mathlib proofs (8 theorems) |
 | `notebooks/phase_retrieval.ipynb` | the full course notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced, Lean section |
 | `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end, with shot-noise and gate-count analysis |
-| `notebooks/quantum_phase_retrieval.ipynb` | the same algorithm for a quantum wavefunction (Pauli's question): SymPy, Python, C (gcc, WSL), CUDA (nvcc, cuFFT), Lean |
+| `notebooks/quantum_phase_retrieval.ipynb` | the same algorithm for a quantum wavefunction (Pauli's question): SymPy, Python, C (gcc, WSL), CUDA (nvcc, cuFFT), wave-packet spreading (step-by-step SymPy derivatives, torch autograd), Lean |
 | `tools/qgs/` | `gs_wavefunction.c` (C11, own FFT), `gs_wavefunction.cu` (cuFFT), `run_qgs.py` (shebang driver; errors as exit codes) |
 | `lean/QuantumPhaseRetrieval.lean` | Lean proofs: unitary free evolution, time-evolution group, conjugation = time reversal, global phase |
+| `lean/WavePacketSpreading.lean` | Lean proofs that a free Gaussian packet spreads: derivative of the width (`HasDerivAt`), narrowest at t = 0, linear growth at long times, narrower starts spread faster |
 | `notebooks/receiver_comparison.ipynb` | coherent vs Kramers-Kronig vs dispersion-assisted GS receivers: BER vs OSNR, Kerr effect, hardware and compute cost, with references |
 | `dgs/receivers.py`, `tests/test_receivers.py` | split-step fiber model and the three receivers, with tests |
 | `spice/tia_frontend.cir` | PSpice/ngspice netlist of the photodiode + transimpedance amplifier front end (28 GHz, 500 Ω, ~20 pA/√Hz) |
