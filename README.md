@@ -12,14 +12,17 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 
 | result | number |
 |---|---|
-| phase recovered from two dispersed intensity measurements (QPSK signal, 25 dB SNR) | **0.061 rad** RMS error |
+| phase recovered from two dispersed intensity measurements (smooth band-limited phase, 25 dB SNR) | **0.061 rad** RMS error |
 | one dispersion instead of two | fails (1.69 rad, close to random), which is why two are needed |
 | recovery from sampled photon counts | 0.070 / 0.022 / 0.007 rad at 10⁴ / 10⁵ / 10⁶ counts: **error ∝ 1/√counts** |
 | same algorithm with the dispersion built as a 7-qubit Qiskit circuit | matches the FFT model to **~10⁻¹³**; no quantum speedup (stated, not claimed) |
 | Gerchberg-Saxton error over 60 iterations | **never increases**, as proved in Lean (error-reduction property) |
+| a text message sent as QPSK optical phase, detected with intensity only (5 dispersions, CRC-4, pilots) | received **error-free from 15 dB SNR** up; at 10 dB, 1 of 26 characters wrong and flagged by the CRC |
+| data symbols (QPSK) need more measurement diversity than smooth phases | frames recovered: 8/40 with 2 dispersions, 27/40 with 3, 37/40 with 4, **40/40 with 5** |
 
 ## Skills shown
 
+- **Communications:** framing, Gray-coded QPSK, pilot symbols, CRC-4 error detection, retries, character error rate versus SNR.
 - **Signal processing and optics:** dispersion as a quadratic spectral phase, FFT-based forward models, alternating projections, Wirtinger flow, Poisson noise, coherent (IQ) detection.
 - **Python:** NumPy, SciPy, Matplotlib, pandas, PyTorch, Jupyter.
 - **Quantum computing (Qiskit 2.x):** QFT and diagonal phase gates, state preparation, shot sampling with `StatevectorSampler`, transpiled gate counts (about 350 CNOTs).
@@ -37,6 +40,7 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | `lean/PhaseRetrieval.lean` | the Lean 4 + Mathlib proofs (8 theorems) |
 | `notebooks/phase_retrieval.ipynb` | the full course notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced, Lean section |
 | `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end, with shot-noise and gate-count analysis |
+| `notebooks/text_over_phase.ipynb` | a full link: text → bits → QPSK phase → dispersion → intensity-only detectors → phase recovery → text |
 | `notebooks/demo_dispersion_gs.ipynb` | a short end-to-end demo |
 | `tests/test_qiskit_gs.py`, `tests/test_materials.py` | checks the circuit against the FFT model, the recovery, and the material data |
 | `docs/phase_recovery.png` | the figure above |
@@ -53,7 +57,7 @@ The Lean proofs need a Lean 4 + Mathlib setup; the notebooks skip that check whe
 
 ## Limits
 
-Every result is from simulation; the next step is measured data from a dispersive-fiber setup. Only second-order dispersion is modeled, and the main examples assume a constant-amplitude signal. Intensity measurements can never recover a constant phase offset or a sign flip of the phase, so results are reported after removing both.
+Every result is from simulation; the next step is measured data from a dispersive-fiber setup. Only second-order dispersion is modeled, and the main examples assume a constant-amplitude signal. The two-dispersion results use a smooth, band-limited test phase; true QPSK data needs more measurements (see `notebooks/text_over_phase.ipynb`). Intensity measurements can never recover a constant phase offset or a sign flip of the phase, so results are reported after removing both.
 
 ## About
 
