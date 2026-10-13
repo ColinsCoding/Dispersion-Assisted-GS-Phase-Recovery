@@ -1,0 +1,32 @@
+* Photodiode + transimpedance amplifier (TIA) front end, one detector of the receivers
+* PSpice / ngspice netlist. Values are illustrative for an integrated TIA: Cf = 15 fF gives a flat
+* (no peaking) 28 GHz response, enough for a 32 GBd link (5 fF peaks by 5.8 dB; 10 fF by 1.4 dB).
+*
+*   Iph  : photocurrent (responsivity 0.8 A/W x optical power)
+*   Cpd  : photodiode + pad capacitance
+*   Rf,Cf: feedback resistor and capacitor (transimpedance gain ~ Rf)
+*   the amplifier: inverting gain A0 = 1000 with one pole, gain-bandwidth 400 GHz, ideal output buffer
+*
+* Run in PSpice (or: ngspice tia_frontend.cir). Results to read:
+*   .AC   -> transimpedance |V(out)/Iph| and the -3 dB bandwidth
+*   .TRAN -> response to a 20 ps optical pulse
+*   .NOISE-> output noise from Rf (amplifier voltage noise is added in the notebook)
+
+.PARAM RF=500 CF=15f CPD=150f A0=1000 FP=400MEG
+
+Iph  0   in   DC 0 AC 1 PULSE(0 100u 50p 5p 5p 20p 400p)
+Cpd  in  0    {CPD}
+Rf   in  out  {RF}
+Cf   in  out  {CF}
+
+* single-pole inverting amplifier: Eamp = -A0*V(in), pole set by Rp*Cp, then a unity buffer
+Eamp n1  0    0 in {A0}
+Rp   n1  n2   1k
+Cp   n2  0    {1/(6.283185*1k*FP)}
+Ebuf out 0    n2 0 1
+
+.AC DEC 100 10MEG 200G
+.TRAN 0.5p 400p
+.NOISE V(out) Iph 20
+.PROBE
+.END

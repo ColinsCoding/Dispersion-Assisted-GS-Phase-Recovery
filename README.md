@@ -18,10 +18,13 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | same algorithm with the dispersion built as a 7-qubit Qiskit circuit | matches the FFT model to **~10⁻¹³**; no quantum speedup (stated, not claimed) |
 | Gerchberg-Saxton error over 60 iterations | **never increases**, as proved in Lean (error-reduction property) |
 | a text message sent as QPSK optical phase, detected with intensity only (5 dispersions, CRC-4, pilots) | received **error-free from 15 dB SNR** up; at 10 dB, 1 of 26 characters wrong and flagged by the CRC |
+| three receivers on a 32 GBd, 20 km fiber link (split-step NLSE, amplifier + photodiode noise) | coherent: error-free at 20 dB OSNR; Kramers-Kronig and dispersion-assisted GS: FEC limit near 32 dB, GS with no receiver laser or carrier but ~300× the computation |
 | data symbols (QPSK) need more measurement diversity than smooth phases | frames recovered: 8/40 with 2 dispersions, 27/40 with 3, 37/40 with 4, **40/40 with 5** |
 
 ## Skills shown
 
+- **Optical communications:** coherent detection, Kramers-Kronig receivers, split-step simulation of the nonlinear Schrödinger equation, BER vs OSNR.
+- **Circuits:** photodiode transimpedance-amplifier design in SPICE (bandwidth, peaking, noise), solved symbolically in SymPy.
 - **Communications:** framing, Gray-coded QPSK, pilot symbols, CRC-4 error detection, retries, character error rate versus SNR.
 - **Signal processing and optics:** dispersion as a quadratic spectral phase, FFT-based forward models, alternating projections, Wirtinger flow, Poisson noise, coherent (IQ) detection.
 - **Python:** NumPy, SciPy, Matplotlib, pandas, PyTorch, Jupyter.
@@ -40,6 +43,10 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | `lean/PhaseRetrieval.lean` | the Lean 4 + Mathlib proofs (8 theorems) |
 | `notebooks/phase_retrieval.ipynb` | the full course notebook: forward model, time-domain GS, PhyCV baseline, Wirtinger flow, noise, coherent detection, 2D phase retrieval, MATLAB figures reproduced, Lean section |
 | `notebooks/qiskit_gs_phase_recovery.ipynb` | the Qiskit version end to end, with shot-noise and gate-count analysis |
+| `notebooks/receiver_comparison.ipynb` | coherent vs Kramers-Kronig vs dispersion-assisted GS receivers: BER vs OSNR, Kerr effect, hardware and compute cost, with references |
+| `dgs/receivers.py`, `tests/test_receivers.py` | split-step fiber model and the three receivers, with tests |
+| `spice/tia_frontend.cir` | PSpice/ngspice netlist of the photodiode + transimpedance amplifier front end (28 GHz, 500 Ω, ~20 pA/√Hz) |
+| `lean/Receivers.lean` | Lean proofs: balanced and quadrature detection, the Kramers-Kronig no-zero condition, power splitting |
 | `notebooks/text_over_phase.ipynb` | a full link: text → bits → QPSK phase → dispersion → intensity-only detectors → phase recovery → text |
 | `notebooks/demo_dispersion_gs.ipynb` | a short end-to-end demo |
 | `tests/test_qiskit_gs.py`, `tests/test_materials.py` | checks the circuit against the FFT model, the recovery, and the material data |
