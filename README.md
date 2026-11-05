@@ -29,11 +29,15 @@ Every claim is checked three ways: numbers against closed forms in pytest, deriv
 
 ## Phase-shifting interferometry: the reference-laser way
 
-Add a known reference wave $R$ to the unknown field $E=|E|e^{i\phi}$, and record $N\ge 3$ frames with the reference phase stepped by $\delta_k = 2\pi k/N$:
+Add a known reference wave $R$ to the unknown field $E = \lvert E \rvert e^{i\phi}$, and record $N \ge 3$ frames with the reference phase stepped by $\delta_k = 2\pi k/N$:
 
-$$I_k = |E|^2 + R^2 + 2|E|R\cos(\phi-\delta_k) \quad\Longrightarrow\quad \sum_k I_k\,e^{i\delta_k} = N|E|R\,e^{i\phi}.$$
+```math
+I_k = \lvert E \rvert^2 + R^2 + 2 \lvert E \rvert R \cos(\phi - \delta_k)
+\quad\Longrightarrow\quad
+\sum_k I_k \, e^{i\delta_k} = N \lvert E \rvert R \, e^{i\phi}
+```
 
-The phase is the angle of that sum. For $N=4$ this is the textbook $\phi=\operatorname{atan2}(I_1-I_3,\ I_0-I_2)$. The reference makes each frame *linear* in $E$, so there is no iteration. Dispersion-assisted GS has no reference: the field interferes with itself, the measurements depend on the phase nonlinearly, and the algorithm has to iterate.
+The phase is the angle of that sum. For $N = 4$ this is the textbook $\phi = \mathrm{atan2}(I_1 - I_3, I_0 - I_2)$. The reference makes each frame *linear* in $E$, so there is no iteration. Dispersion-assisted GS has no reference: the field interferes with itself, the measurements depend on the phase nonlinearly, and the algorithm has to iterate.
 
 | | phase-shifting interferometry | dispersion-assisted GS (this repository) |
 |---|---|---|

@@ -45,7 +45,7 @@ Frame $k$ records $I_k = |E + R e^{i\delta_k}|^2 = |E|^2 + R^2 + 2|E|R\cos(\phi-
 
 $$\sum_{k=0}^{N-1} I_k\, e^{i\delta_k} = N|E|R\,e^{i\phi}.$$
 
-SymPy check for $N = 3, 4, 5$, and the familiar 4-step form $\phi=\operatorname{atan2}(I_1-I_3,\ I_0-I_2)$:
+SymPy check for $N = 3, 4, 5$, and the familiar 4-step form $\phi=\mathrm{atan2}(I_1-I_3,\ I_0-I_2)$:
 """),
 code(r"""
 A, Rr, phi = sp.symbols('A R phi', positive=True)
