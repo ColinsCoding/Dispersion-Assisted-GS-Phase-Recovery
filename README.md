@@ -4,6 +4,8 @@
 
 A photodetector records only intensity, |E|², so the phase of the light is lost. That phase carries the data in coherent optical links and the shape of the pulse in ultrafast measurements. This project recovers it without a reference laser. The signal is recorded after two known, different amounts of fiber dispersion, and the Gerchberg-Saxton algorithm iterates between the two recordings until it finds the one phase consistent with both.
 
+The standard way to recover phase uses a reference laser instead: **phase-shifting interferometry** (below). The repository runs both on the same signal, so the cost of dropping the reference can be measured.
+
 ![Phase recovered from qubit measurements, and recovery error versus number of shots](docs/phase_recovery.png)
 
 *Left: the true phase (black) and the phase recovered from 100,000 sampled measurements (dashed orange, on top of it) and from 1,000 (dotted blue, too few). Right: the error falls as 1/√shots, the shot-noise limit.*
@@ -20,21 +22,41 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | a text message sent as QPSK optical phase, detected with intensity only (5 dispersions, CRC-4, pilots) | received **error-free from 15 dB SNR** up; at 10 dB, 1 of 26 characters wrong and flagged by the CRC |
 | an electron wavefunction recovered from position densities at several times (free Schrödinger evolution = dispersion) | fidelity **1.000000** from 3+ times (0.74 from 2), in Python, C and CUDA |
 | three receivers on a 32 GBd, 20 km fiber link (split-step NLSE, amplifier + photodiode noise) | coherent: error-free at 20 dB OSNR; Kramers-Kronig and dispersion-assisted GS: FEC limit near 32 dB, GS with no receiver laser or carrier but ~300× the computation |
+| the same phase recovered **with** a reference laser (4-step phase-shifting interferometry, same detector noise) | **0.020 rad** RMS in one closed-form step, matching theory σ/(√(2N)\|E\|R); GS is 2.7–3.7× worse from 12.5 to 40 dB, the price of needing no reference |
 | data symbols (QPSK) need more measurement diversity than smooth phases | frames recovered: 8/40 with 2 dispersions, 27/40 with 3, 37/40 with 4, **40/40 with 5** |
+
+## Phase-shifting interferometry: the reference-laser way
+
+Add a known reference wave $R$ to the unknown field $E=|E|e^{i\phi}$, and record $N\ge 3$ frames with the reference phase stepped by $\delta_k = 2\pi k/N$:
+
+$$I_k = |E|^2 + R^2 + 2|E|R\cos(\phi-\delta_k) \quad\Longrightarrow\quad \sum_k I_k\,e^{i\delta_k} = N|E|R\,e^{i\phi}.$$
+
+The phase is the angle of that sum. For $N=4$ this is the textbook $\phi=\operatorname{atan2}(I_1-I_3,\ I_0-I_2)$. The reference makes each frame *linear* in $E$, so there is no iteration. Dispersion-assisted GS has no reference: the field interferes with itself, the measurements depend on the phase nonlinearly, and the algorithm has to iterate.
+
+| | phase-shifting interferometry | dispersion-assisted GS (this repository) |
+|---|---|---|
+| extra hardware | coherent reference arm and a phase stepper, stable to a fraction of a wavelength | dispersive fiber |
+| frames | 3 or more (4 here) | 2 for smooth phases, 5 for QPSK data |
+| solve | one closed-form step | iterative projections (60 iterations) |
+| what it cannot see | nothing (the reference fixes the absolute phase) | a constant phase offset and a sign flip |
+| phase error, 25 dB SNR, same signal and noise | **0.020 rad** | **0.061 rad** |
+| main error source | phase-step miscalibration: a step error ε leaves a ripple of peak ≈ ε/2 | too little dispersion diversity |
+
+Code: `dgs/phase_shifting.py`, `tests/test_phase_shifting.py`, `notebooks/phase_shifting_interferometry.ipynb` (SymPy derivation, error versus SNR, step-error analysis).
 
 ## Skills shown
 
 - **Optical communications:** coherent detection, Kramers-Kronig receivers, split-step simulation of the nonlinear Schrödinger equation, BER vs OSNR.
 - **Circuits:** photodiode transimpedance-amplifier design in SPICE (bandwidth, peaking, noise), solved symbolically in SymPy.
 - **Communications:** framing, Gray-coded QPSK, pilot symbols, CRC-4 error detection, retries, character error rate versus SNR.
-- **Signal processing and optics:** dispersion as a quadratic spectral phase, FFT-based forward models, alternating projections, Wirtinger flow, Poisson noise, coherent (IQ) detection.
+- **Signal processing and optics:** dispersion as a quadratic spectral phase, FFT-based forward models, alternating projections, phase-shifting interferometry, Wirtinger flow, Poisson noise, coherent (IQ) detection.
 - **C and CUDA:** a C11 program with its own FFT (gcc), a cuFFT version (nvcc), errors reported as exit codes; a shebang command-line driver.
 - **Quantum mechanics:** free Schrödinger evolution, wave-packet spreading, wavefunction phase retrieval.
 - **Python:** NumPy, SciPy, Matplotlib, pandas, PyTorch, Jupyter.
 - **Quantum computing (Qiskit 2.x):** QFT and diagonal phase gates, state preparation, shot sampling with `StatevectorSampler`, transpiled gate counts (about 350 CNOTs).
 - **Symbolic math (SymPy):** derivations of the field model, the dispersion kernel and the GS projections.
 - **Formal verification (Lean 4 + Mathlib):** proofs that intensity is blind to phase, that dispersion is all-pass, that the GS magnitude step is the closest possible correction, and that the GS error can never increase.
-- **Software practice:** pytest suite (22 tests), results tied to fixed random seeds, a materials library checked against published refractive-index data.
+- **Software practice:** pytest suite (44 tests), results tied to fixed random seeds, a materials library checked against published refractive-index data.
 
 ## What's in the repository
 
@@ -56,6 +78,8 @@ A photodetector records only intensity, |E|², so the phase of the light is lost
 | `lean/Receivers.lean` | Lean proofs: balanced and quadrature detection, the Kramers-Kronig no-zero condition, power splitting |
 | `notebooks/text_over_phase.ipynb` | a full link: text → bits → QPSK phase → dispersion → intensity-only detectors → phase recovery → text |
 | `notebooks/demo_dispersion_gs.ipynb` | a short end-to-end demo |
+| `dgs/phase_shifting.py`, `tests/test_phase_shifting.py` | N-step phase-shifting interferometry (reference-laser phase recovery), compared with GS on the same phase and noise |
+| `notebooks/phase_shifting_interferometry.ipynb` | the comparison: SymPy derivation, error versus SNR for both methods, phase-step miscalibration (built by `scripts/build_phase_shifting_nb.py`) |
 | `tests/test_qiskit_gs.py`, `tests/test_materials.py` | checks the circuit against the FFT model, the recovery, and the material data |
 | `docs/phase_recovery.png` | the figure above |
 
