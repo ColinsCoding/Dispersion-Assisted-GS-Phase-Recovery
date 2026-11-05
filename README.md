@@ -1,10 +1,12 @@
 # Dispersion-Assisted Phase Recovery
 
-**Recovering the phase of an optical signal from intensity-only measurements**, in Python, with a Qiskit quantum-circuit version and machine-checked proofs in Lean 4.
+Light carries information in its phase, but every photodetector is blind to it: it records only intensity, |E|². This project recovers the lost phase from intensity alone, using the physics behind photonic time-stretch: group-velocity dispersion gives each frequency its own delay, so the hidden phase reshapes the measured brightness.
 
-A photodetector records only intensity, |E|², so the phase of the light is lost. That phase carries the data in coherent optical links and the shape of the pulse in ultrafast measurements. This project recovers it without a reference laser. The signal is recorded after two known, different amounts of fiber dispersion, and the Gerchberg-Saxton algorithm iterates between the two recordings until it finds the one phase consistent with both.
+The signal is recorded after two known, different amounts of fiber dispersion, H(ν) = exp(iπDν²). Each recording sees the phase from a different angle. The Gerchberg-Saxton algorithm moves between them, keeping the measured brightness and correcting the phase, until one field explains both. No reference laser is needed.
 
-The standard way to recover phase uses a reference laser instead: **phase-shifting interferometry** (below). The repository runs both on the same signal, so the cost of dropping the reference can be measured.
+The classical alternative is interferometry: add a known reference beam, step its phase, and read the answer in one closed-form step. Both run here on the same signal and noise. The reference wins on accuracy (0.020 vs 0.061 rad at 25 dB); dispersion wins on hardware, needing only fiber and an intensity detector.
+
+Every claim is checked three ways: numbers against closed forms in pytest, derivations in SymPy, and core theorems (intensity is phase-blind, dispersion is all-pass, GS error never increases) proved in Lean 4. The same algorithm runs as a Qiskit circuit, in C and CUDA, and on a quantum wavefunction. All results are simulated; bench data is next.
 
 ![Phase recovered from qubit measurements, and recovery error versus number of shots](docs/phase_recovery.png)
 
