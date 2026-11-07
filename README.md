@@ -11,6 +11,17 @@ It started as a UCLA ECE 279AS project (Prof. Bahram Jalali, 2024) with Gabriel
 Morozowsky. It also includes a Python port of the Jalali Lab's SEALS light-scattering
 MATLAB code.
 
+![Phase recovery overview](figures/hero.png)
+
+<img src="figures/convergence.gif" width="640" alt="Recovered phase locking onto the true phase over 300 iterations">
+
+The recovered phase (green) is built only from the two intensity traces in panel 1, then
+compared with the true phase. Panel 3 is the useful part for real data: when GS stalls,
+the mismatch stays high, so you can tell a bad answer from a good one without knowing the
+truth. Panel 4 runs 2048 problems at once on an RTX 4060 with PyTorch, about 40x faster
+per signal than the NumPy loop, after checking the GPU output matches NumPy to 1e-9.
+Regenerate both images with `python scripts/make_hero.py`.
+
 ## Run it
 
 ```
@@ -35,6 +46,11 @@ Then open `notebooks/results.ipynb` for the figures. To rebuild it, edit
 | `tests/` | 92 tests |
 
 ## Results
+
+**How often GS works.** On 20 random smooth-phase test signals (D = -2000/-8000, normalized),
+GS recovered 10 to under 0.15 rad RMS phase error and stalled on the other 10. Every success
+ended with arm-1 mismatch at or below 3.9 %, every stall at or above 25.6 %. With gs_core's
+default dispersion pair (-5000/-5750) it stalls much more often.
 
 **GS on the sample files.** On all six signals the recovered field explains both traces.
 Mismatch on the trace not enforced last drops from 40-65 % at the first iteration to
@@ -61,6 +77,8 @@ comparison.
 - `gs_core.retrieve_phase` reports error against the trace it enforced last, which is
   ~0 after one iteration regardless of whether the answer is right. Use
   `real_data.retrieve()`, which checks the other trace. There is a test for this.
+- `gs_core.make_measurements("QPSK")` is not discrete QPSK. It's a smooth, band-limited
+  random phase (the test signal from the 2009 paper); only the name says QPSK.
 - `seals.scattering.mie()` keeps a quirk of the MATLAB: `I_p + I_s` is twice the
   unpolarized intensity. Halve it before comparing with Rayleigh or RDG.
 

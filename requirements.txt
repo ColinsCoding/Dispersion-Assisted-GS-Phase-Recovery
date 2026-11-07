@@ -6,3 +6,5 @@ pytest
 nbformat
 jupyter
 qiskit        # only for notebooks/qiskit_gs_phase_recovery.ipynb and tests/test_qiskit_gs.py
+torch         # only for scripts/make_hero.py (GPU panel); CPU-only torch also works, just slower
+pillow        # writes figures/convergence.gif
