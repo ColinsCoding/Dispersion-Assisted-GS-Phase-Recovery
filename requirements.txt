@@ -1,0 +1,8 @@
+numpy
+scipy
+sympy
+matplotlib
+pytest
+nbformat
+jupyter
+qiskit        # only for notebooks/qiskit_gs_phase_recovery.ipynb and tests/test_qiskit_gs.py

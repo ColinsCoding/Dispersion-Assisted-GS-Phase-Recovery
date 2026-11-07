@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dgs"
+version = "0.2.0"
+description = "Dispersion-assisted Gerchberg-Saxton optical phase recovery, plus a SEALS scattering port"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy", "sympy", "matplotlib"]
+
+[tool.setuptools]
+packages = ["dgs", "griffiths", "seals"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
