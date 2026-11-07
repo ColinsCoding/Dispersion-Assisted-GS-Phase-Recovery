@@ -1,0 +1,35 @@
+{
+  "_comment": "Single source of truth for the qubit-drive tables. Read by dgs/vector_potential_qubit.py (Python/Jupyter), learn/matlab/qubit_platforms_table.m (MATLAB) and used to generate learn/lean/QubitPlatforms.lean (Lean). Edit values HERE only, then rerun scripts/check_qubit_platforms_everywhere.sh. Platform values are illustrative orders of magnitude, not a specific device.",
+  "constants": {
+    "e_C": 1.602176634e-19,
+    "h_Js": 6.62607015e-34,
+    "kB_JpK": 1.380649e-23,
+    "m_e_kg": 9.1093837015e-31
+  },
+  "platforms": {
+    "transmon": {
+      "label": "superconducting transmon (dilution fridge)",
+      "EC_over_h_Hz": 250000000,
+      "EJ_over_EC": 50,
+      "beta_Cg_over_Csum": 0.001,
+      "drive_dBm_at_qubit": -76,
+      "Z0_ohm": 50,
+      "T_K": 0.015
+    },
+    "csus_lc_analog": {
+      "label": "CSUS bench: two coupled LC tanks (classical analog)",
+      "L_H": 3.6237148913e-05,
+      "C_F": 3.3e-09,
+      "C_probe_F": 1.2e-11,
+      "k": 0.0806173509,
+      "gap_m": 0.02,
+      "T_K": 295
+    },
+    "box_atom": {
+      "label": "electron in a 1 nm box driven by a laser field (toy artificial atom)",
+      "a_m": 1e-09,
+      "E0_Vpm": 1000000,
+      "T_K": 295
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Keep shell scripts LF on every checkout (core.autocrlf would otherwise break bash).
+*.sh text eol=lf

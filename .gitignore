@@ -192,3 +192,7 @@ repl/
 fpga/
 photonics_ml_pipeline/src/*.c
 photonics_ml_pipeline/include/*.h
+
+# Rust build output
+rust/**/target/
+

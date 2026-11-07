@@ -39,7 +39,8 @@ CTA = {
     "FutureG": {
         "priority": 1,
         "description": "Next-generation communications and sensing at optical bandwidth",
-        "repo_components": ["tsdft", "gs_core", "gs_fno", "rogue_wave", "adc_timing", "griffiths_em"],
+        "repo_components": ["tsdft", "gs_core", "gs_fno", "rogue_wave", "adc_timing", "griffiths_em",
+                            "qubit_microwave"],
     },
     "Trusted_AI_and_Autonomy": {
         "priority": 1,
@@ -50,12 +51,13 @@ CTA = {
         "priority": 1,
         "description": "GPU-accelerated phase retrieval; SymPy analytic validation "
                        "(Maxwell -> dispersion operator H(f)=exp(i pi D f^2))",
-        "repo_components": ["gs_core", "gs_fno", "gs_torch", "repl", "sympy_physics", "griffiths_em"],
+        "repo_components": ["gs_core", "gs_fno", "gs_torch", "repl", "sympy_physics", "griffiths_em",
+                            "qubit_microwave"],
     },
     "Integrated_Sensing_and_Cyber": {
         "priority": 1,
         "description": "Single-shot dispersive Fourier transform spectroscopy + secure telemetry",
-        "repo_components": ["tsdft", "td_gs", "gs_monitor", "gs_backtest", "rogue_wave"],
+        "repo_components": ["tsdft", "td_gs", "gs_monitor", "gs_backtest", "rogue_wave", "qubit_microwave"],
     },
     "Directed_Energy": {
         "priority": 1,
@@ -70,7 +72,8 @@ CTA = {
     "Quantum_Science": {
         "priority": 2,
         "description": "QM formalism underpins phase space and coherence analysis",
-        "repo_components": ["sympy_physics", "griffiths_qm", "wavefunction_grammar"],
+        "repo_components": ["sympy_physics", "griffiths_qm", "wavefunction_grammar",
+                            "qubit_microwave", "qubit_analog_bench"],
     },
     "Microelectronics": {
         "priority": 2,
