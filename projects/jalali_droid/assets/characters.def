@@ -1,0 +1,74 @@
+# Character and battle definitions (UTF-8). Original characters inspired by Japanese adventure and
+# monster-battle games -- not copies of any existing franchise's characters.
+# Read by src/defs.cpp (C++) and python/droid3d_np.py (configparser). Edit stats here; no rebuild needed.
+
+[guardian]
+name_ja = ジャラリ・ガーディアン
+name_en = Jalali Guardian
+role = PTZ camera droid: a time-stretch eye (Phase Stretch Transform vision) and a photon laser
+type = Photon/Steel
+level = 30
+hp = 95
+attack = 70
+defense = 80
+speed = 40
+move_ja = 位相ストレッチ光線
+move_en = Phase Stretch Beam
+move_type = Photon
+move_power = 40
+hit_hold_s = 0.30
+cooldown_s = 1.0
+laser_range_m = 9.0
+
+[hero]
+name_ja = 剣士ソウマ
+name_en = Souma, the Foam Swordsman
+role = male swordsman hero; wanders the rolling-hill field, jumps, parries lasers with a foam sword
+type = Fighting
+level = 30
+hp = 110
+attack = 85
+defense = 60
+speed = 90
+move_ja = スポンジ斬り
+move_en = Foam Slash
+move_type = Fighting
+move_power = 50
+height_m = 1.75
+reach_m = 1.8
+jump_speed_mps = 4.0
+dash_period_s = 9.0
+
+[types]
+# attacker>defender = multiplier (anything not listed is 1.0); a dual type multiplies both
+Fighting>Steel = 2.0
+Fighting>Photon = 1.0
+Photon>Fighting = 1.0
+Photon>Steel = 0.5
+
+[world]
+name_ja = 起伏の草原と太陽光発電所
+name_en = Rolling-hill field with a solar farm
+gravity = 9.81
+# late-afternoon sun, ~28 deg up: long shadows reach the panels (a 60 deg noon sun could not be shaded by the hero)
+sun_x = 0.62
+sun_y = -0.47
+sun_z = 0.42
+
+[solar]
+# Photovoltaic field (assumed, typical values): clear-sky irradiance, module efficiency, tilt = site latitude
+name_ja = 太陽光パネル
+latitude_deg = 38.6
+dni_w_m2 = 900
+dhi_w_m2 = 110
+module_efficiency = 0.21
+panel_w_m = 1.7
+panel_h_m = 1.0
+post_height_m = 0.9
+rows = 3
+cols = 7
+# centre 12.5 m out on the anti-sun side: the hero (radius <= 9.5 m) passes between the sun and the first row
+field_x_m = -10.0
+field_y_m = 7.5
+row_spacing_m = 2.6
+col_spacing_m = 1.9

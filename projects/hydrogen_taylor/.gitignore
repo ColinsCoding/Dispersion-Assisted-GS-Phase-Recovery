@@ -1,0 +1,3 @@
+# Linux build outputs of build.sh (the Windows .exe files are ignored repo-wide)
+taylor_c
+taylor_gpu
