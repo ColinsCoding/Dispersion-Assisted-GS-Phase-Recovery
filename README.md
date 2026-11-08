@@ -41,9 +41,10 @@ Then open `notebooks/results.ipynb` for the figures. To rebuild it, edit
 | `dgs/temporal_gs.py`, `dgs/dispersive_fourier.py`, `dgs/gs_recursive.py`, `dgs/precision_phase_retrieval.py` | Variations and supporting math |
 | `dgs/phase_retrieval_ambiguities.py` | Cases where the phase can't be recovered uniquely |
 | `dgs/qiskit_gs.py`, `dgs/quantum_bridge.py` | The same problem as a quantum circuit (dispersion is a diagonal phase between two Fourier transforms) |
+| `dgs/shot_noise.py` | How many quantum measurements (shots) the circuit version needs |
 | `griffiths/electrodynamics.py` | Dispersion, Lorentz oscillator, Kramers-Kronig |
 | `seals/scattering.py` | SEALS geometry, Mie and Rayleigh-Debye scattering, ported from `seals/matlab/` |
-| `tests/` | 92 tests |
+| `tests/` | 96 tests |
 
 ## Results
 
@@ -55,6 +56,18 @@ default dispersion pair (-5000/-5750) it stalls much more often.
 **GS on the sample files.** On all six signals the recovered field explains both traces.
 Mismatch on the trace not enforced last drops from 40-65 % at the first iteration to
 1-4 % after 2000 (QPSK is the slowest at 4.3 %).
+
+**How many quantum measurements.** A quantum computer returns counts, not exact
+intensities, so each detector trace carries shot noise. On the 7-qubit circuit version
+(D = -1000/-1150, 10 seeds per budget) there are two regimes. Below about 3,000 shots per
+arm GS never recovered the phase; it succeeded (under 0.1 rad RMS) in 20 % of runs at 10k,
+80 % at 100k and 100 % from 300k. Once it succeeds, the error falls as shots^-0.49, matching
+the shot-noise law shots^-0.5: 0.022 rad at 100k, 0.0041 rad at 3M. Reaching 0.01 rad takes
+about 480k shots per arm. Exact probabilities give 4e-8 rad. Fitting all runs together
+gives a misleading slope near -1, because it mixes failures with successes.
+`python scripts/make_shot_noise.py` regenerates the figure (about 15 minutes).
+
+![Shot-noise study](figures/shot_noise.png)
 
 **SEALS port.** Same default case through Python and the lab MATLAB (R2025b): scattering
 angle agrees to 5e-10, Mie intensity, phase and cross section to about 1e-14.
