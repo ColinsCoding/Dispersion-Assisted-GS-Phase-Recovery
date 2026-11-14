@@ -118,5 +118,7 @@ masks the problem is hard, and I have not tuned beyond one setting.
 Important caveat: the reconstructor is not broken. With 8 random masks it reaches 0.73 after 200 iterations
 and 0.98 after 1000 (plain GS is slow). So the table above, scored at 20 iterations, largely measures
 **convergence speed under a small iteration budget**: learned illumination makes GS converge faster. It does not
-yet show that learned masks make otherwise-unrecoverable samples recoverable. Testing that needs the same
-comparison at 1000+ iterations, which I have not run.
+yet show that learned masks make otherwise-unrecoverable samples recoverable. I then ran that comparison
+(`notebooks/coded_illumination_design.ipynb`, K=8, masks trained at 20 iterations, scored at more): learned
+0.70 / 0.95 / 0.98 / 0.99 versus random 0.13 / 0.37 / 0.70 / 0.94 at 20 / 100 / 300 / 1000 iterations. So the
+benefit is mostly faster convergence; a small advantage remains at 1000 iterations. One seed, 1-D, noiseless.

@@ -65,8 +65,12 @@ def _measure(x, masks, torch):
     return torch.fft.fft(masks[None] * x[:, None, :], dim=-1).abs() ** 2
 
 
-def train_masks(n=32, K=4, steps=150, n_train=64, lr=0.1, n_iter=20, seed=0):
-    """Returns dict with learned masks, random masks, and held-out mean fidelity of each."""
+def train_masks(n=32, K=4, steps=150, n_train=64, lr=0.1, n_iter=20, seed=0, snap_at=()):
+    """Returns dict with learned masks, random masks, and held-out mean fidelity of each.
+
+    snap_at: training steps at which to record the design (0 = the previous/initial design,
+    as in Fig. 3 panel c). Result key 'snapshots' maps step -> (masks, held-out fidelity).
+    """
     import torch
     if K < 1 or n < 4 or steps < 0:
         raise ValueError('need K >= 1, n >= 4, steps >= 0')
@@ -76,13 +80,19 @@ def train_masks(n=32, K=4, steps=150, n_train=64, lr=0.1, n_iter=20, seed=0):
     theta = (0.5 * torch.randn(K, n)).requires_grad_()
     rand_masks = _normalize(0.5 * torch.randn(K, n), torch).detach()   # same-distribution init
     opt = torch.optim.Adam([theta], lr=lr)
-    for _ in range(steps):
+    def held_out(m): return float(fidelity(reconstruct(_measure(xte, m, torch), m, n_iter, torch), xte).mean())
+    snaps = {}
+    for step in range(steps + 1):
+        if step in snap_at:
+            ms = _normalize(theta, torch).detach()
+            snaps[step] = (ms.numpy(), held_out(ms))
+        if step == steps:
+            break
         m = _normalize(theta, torch)
         loss = 1 - fidelity(reconstruct(_measure(xtr, m, torch), m, n_iter, torch), xtr).mean()
         opt.zero_grad(); loss.backward(); opt.step()
     learned = _normalize(theta, torch).detach()
-    def held_out(m): return float(fidelity(reconstruct(_measure(xte, m, torch), m, n_iter, torch), xte).mean())
-    return {'learned': learned.numpy(), 'random': rand_masks.numpy(),
+    return {'learned': learned.numpy(), 'random': rand_masks.numpy(), 'snapshots': snaps,
             'fid_learned': held_out(learned), 'fid_random': held_out(rand_masks)}
 
 
