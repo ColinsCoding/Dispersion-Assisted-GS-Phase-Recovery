@@ -6,3 +6,5 @@ notebooks/figures/
 notebooks/references/
 dgs/data/
 dgs/figures/
+# Kaggle dataset package written by notebooks/pde_discovery.ipynb (regenerate, do not commit)
+notebooks/kaggle_pde_discovery/
